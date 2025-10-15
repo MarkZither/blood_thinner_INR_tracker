@@ -9,7 +9,7 @@ Build a cross-platform blood thinner medication and INR tracking application wit
 
 ## Technical Context
 
-**Language/Version**: .NET 8+ (C# 12)  
+**Language/Version**: .NET 10 (C# 13) - Latest LTS with enhanced performance, AOT support, and improved MAUI reliability  
 **Primary Dependencies**: .NET MAUI, Blazor Server/WebAssembly, ASP.NET Core Web API, .NET Aspire, Entity Framework Core  
 **Storage**: SQLite (local encrypted) + PostgreSQL/SQL Server (cloud) with EF Core multi-provider  
 **Testing**: xUnit (backend), Playwright (E2E), BUnit (Blazor), NUnit (MAUI)  
@@ -50,48 +50,57 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+
+Following David Fowler's repository layout conventions:
 
 ```
-# Multi-platform .NET solution with Aspire orchestration
-BloodThinnerTracker/
-├── BloodThinnerTracker.AppHost/           # Aspire orchestration
-├── BloodThinnerTracker.ServiceDefaults/   # Shared Aspire configuration
-├── BloodThinnerTracker.Api/               # ASP.NET Core Web API
-│   ├── Controllers/
-│   ├── Services/
-│   ├── Data/
-│   └── Models/
-├── BloodThinnerTracker.Mobile/            # .NET MAUI (iOS/Android)
-│   ├── Platforms/
-│   ├── Pages/
-│   ├── ViewModels/
-│   └── Services/
-├── BloodThinnerTracker.Web/               # Blazor Server/WebAssembly
-│   ├── Components/
-│   ├── Pages/
-│   └── Services/
-├── BloodThinnerTracker.Cli/               # Console tool (NuGet package)
-│   └── Commands/
-├── BloodThinnerTracker.Mcp/               # MCP Server
-│   └── Handlers/
-├── BloodThinnerTracker.Shared/            # Shared models/contracts
-│   ├── Models/
-│   ├── Contracts/
-│   └── Extensions/
-└── Tests/
-    ├── BloodThinnerTracker.Api.Tests/
-    ├── BloodThinnerTracker.Mobile.Tests/
-    ├── BloodThinnerTracker.Web.Tests/
-    └── BloodThinnerTracker.Integration.Tests/
+blood_thinner_INR_tracker/
+├── src/
+│   ├── BloodThinnerTracker.AppHost/           # .NET Aspire orchestration
+│   ├── BloodThinnerTracker.ServiceDefaults/   # Shared Aspire configuration  
+│   ├── BloodThinnerTracker.Api/               # ASP.NET Core Web API
+│   │   ├── Controllers/
+│   │   ├── Services/
+│   │   ├── Data/
+│   │   └── Models/
+│   ├── BloodThinnerTracker.Mobile/            # .NET MAUI (iOS/Android)
+│   │   ├── Platforms/
+│   │   ├── Pages/
+│   │   ├── ViewModels/
+│   │   └── Services/
+│   ├── BloodThinnerTracker.Web/               # Blazor Server/WebAssembly
+│   │   ├── Components/
+│   │   ├── Pages/
+│   │   └── Services/
+│   ├── BloodThinnerTracker.Cli/               # Console tool (.NET tool)
+│   │   └── Commands/
+│   ├── BloodThinnerTracker.Mcp/               # MCP Server
+│   │   └── Handlers/
+│   └── BloodThinnerTracker.Shared/            # Shared models/contracts
+│       ├── Models/
+│       ├── Contracts/
+│       └── Extensions/
+├── tests/
+│   ├── BloodThinnerTracker.Api.Tests/
+│   ├── BloodThinnerTracker.Mobile.Tests/
+│   ├── BloodThinnerTracker.Web.Tests/
+│   └── BloodThinnerTracker.Integration.Tests/
+├── docs/
+│   ├── api/                                   # API documentation
+│   ├── deployment/                            # Deployment guides
+│   └── user-guide/                            # End-user documentation
+├── samples/
+│   ├── basic-setup/                           # Simple setup example
+│   └── advanced-config/                       # Advanced configuration
+├── tools/
+│   ├── scripts/                               # Build and deployment scripts
+│   └── generators/                            # Code generators
+└── .github/
+    ├── workflows/                             # CI/CD workflows
+    └── copilot-instructions.md                # Development guidelines
 ```
 
-**Structure Decision**: Multi-platform .NET solution leveraging Aspire for orchestration and shared infrastructure. Each platform (mobile, web, console, MCP) has dedicated projects sharing common models and business logic through BloodThinnerTracker.Shared.
+**Structure Decision**: Multi-platform .NET solution leveraging Aspire for orchestration and shared infrastructure. Each platform (mobile, web, console, MCP) has dedicated projects sharing common models and business logic through BloodThinnerTracker.Shared. Repository follows David Fowler's conventions with clear separation of source, tests, documentation, samples, and tooling.
 
 ## Complexity Tracking
 
@@ -147,7 +156,7 @@ BloodThinnerTracker/
 ✅ Error handling and safety alert specifications
 
 ### Development Environment Setup Completed ✅
-✅ .NET 8+ installation guide with Aspire workload  
+✅ .NET 10 installation guide with Aspire workload  
 ✅ Database setup (Docker PostgreSQL + Redis, SQLite fallback)  
 ✅ OAuth provider configuration (Azure AD + Google)  
 ✅ Multi-platform testing framework (xUnit, Playwright, BUnit)  

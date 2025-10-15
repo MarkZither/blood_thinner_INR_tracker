@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0  
 **Target Audience**: Developers setting up local development environment  
-**Prerequisites**: Basic knowledge of .NET development
+**Prerequisites**: Basic knowledge of .NET 10 development
 
 ---
 
@@ -12,8 +12,8 @@
 
 **Required Software**:
 ```bash
-# .NET 8 SDK (or later)
-winget install Microsoft.DotNet.SDK.8
+# .NET 10 SDK
+winget install Microsoft.DotNet.SDK.10
 
 # Docker Desktop (for database and services)
 winget install Docker.DockerDesktop
@@ -26,7 +26,7 @@ winget install Microsoft.VisualStudioCode
 
 **Verify Installation**:
 ```bash
-dotnet --version          # Should show 8.0.0 or later
+dotnet --version          # Should show 10.0.0 or later
 docker --version          # Should show Docker version info
 git --version            # Should show Git version info
 ```
@@ -98,8 +98,8 @@ dotnet run
 
 # Terminal 3: Mobile (Android Emulator)
 cd src/BloodThinnerTracker.Mobile
-dotnet build -f net8.0-android
-dotnet run -f net8.0-android
+dotnet build -f net10.0-android
+dotnet run -f net10.0-android
 ```
 
 ---
@@ -138,7 +138,7 @@ dotnet workload install maccatalyst windows
 
 ```bash
 # Build and install as global tool (local development)
-cd src/BloodThinnerTracker.Console
+cd src/BloodThinnerTracker.Cli
 dotnet pack
 dotnet tool install --global --add-source ./nupkg BloodThinnerTracker.Tool
 
@@ -239,7 +239,7 @@ reportgenerator -reports:"**/*.cobertura.xml" -targetdir:coverage -reporttypes:H
 docker-compose -f docker-compose.test.yml up -d
 
 # Run integration tests
-dotnet test Tests/BloodThinnerTracker.Integration.Tests/
+dotnet test tests/BloodThinnerTracker.Integration.Tests/
 
 # Cleanup test environment
 docker-compose -f docker-compose.test.yml down
@@ -248,10 +248,10 @@ docker-compose -f docker-compose.test.yml down
 ### Mobile Testing (Playwright)
 ```bash
 # Install Playwright browsers
-pwsh bin/Debug/net8.0/playwright.ps1 install
+pwsh bin/Debug/net10.0/playwright.ps1 install
 
 # Run mobile UI tests
-dotnet test Tests/BloodThinnerTracker.Mobile.Tests/
+dotnet test tests/BloodThinnerTracker.Mobile.Tests/
 ```
 
 ---
@@ -355,6 +355,7 @@ dotnet-gcdump collect -p <pid>
 - 🏗️ **Architecture**: `/specs/feature/blood-thinner-medication-tracker/research.md`
 - 📊 **Data Model**: `/specs/feature/blood-thinner-medication-tracker/data-model.md`
 - 🔌 **API Contracts**: `/specs/feature/blood-thinner-medication-tracker/contracts/`
+- 📚 **Documentation**: `/docs/` - API docs, deployment guides, user guides
 
 ### 2. Development Workflow
 ```bash
@@ -381,7 +382,10 @@ git push origin feature/medication-reminders
 
 ### 4. Deployment
 ```bash
-# Build production images
+# Build production images (using deployment scripts)
+./tools/scripts/build-docker.sh
+
+# Or manually
 docker build -f src/BloodThinnerTracker.Api/Dockerfile -t bloodthinner-api .
 docker build -f src/BloodThinnerTracker.Web/Dockerfile -t bloodthinner-web .
 
