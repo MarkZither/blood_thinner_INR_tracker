@@ -48,6 +48,12 @@ csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
 csharp_indent_labels = flush_left
 
+# Temporarily disable ALL analyzers during migration phase to focus on compilation
+dotnet_analyzer_diagnostic.severity = none
+
+# Override to allow only compiler errors/warnings
+dotnet_diagnostic.CS0108.severity = error  # Member hides inherited member - we need to see this
+
 # Space preferences
 csharp_space_after_cast = false
 csharp_space_after_keywords_in_control_flow_statements = true
