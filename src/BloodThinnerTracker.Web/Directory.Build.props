@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Disable warnings about redundant package references -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
+  </PropertyGroup>
+</Project>

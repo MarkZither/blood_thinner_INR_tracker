@@ -1,48 +1,31 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-	"name": "Blood Thinner INR Tracker (.NET 10)",
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-jammy",
+	"name": "C# (.NET)",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-preview",
 	"features": {
-		"ghcr.io/devcontainers/features/powershell:1": {},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
-		"ghcr.io/devcontainers/features/git:1": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-dotnettools.csharp",
-				"ms-dotnettools.dotnet-interactive-vscode",
-				"ms-dotnettools.vscode-dotnet-runtime",
-				"ms-vscode.powershell",
-				"bradlc.vscode-tailwindcss",
-				"ms-playwright.playwright",
-				"humao.rest-client"
-			],
-			"settings": {
-				"dotnet.defaultSolution": "BloodThinnerTracker.sln",
-				"omnisharp.defaultLaunchSolution": "BloodThinnerTracker.sln"
-			}
-		}
-	},
-	"postCreateCommand": "dotnet --version && dotnet workload install aspire android ios maccatalyst windows",
-	"forwardPorts": [5000, 5001, 5002, 8080, 15000],
-	"portsAttributes": {
-		"5000": {
-			"label": "Aspire Dashboard",
-			"onAutoForward": "openBrowser"
-		},
-		"5001": {
-			"label": "Blazor Web App"
-		},
-		"5002": {
-			"label": "API Backend"
-		},
-		"8080": {
-			"label": "MCP Server"
-		},
-		"15000": {
-			"label": "Aspire Dashboard Alt"
-		}
-	},
-	"remoteUser": "vscode"
+		"ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {},
+		"ghcr.io/devcontainers/features/powershell:1": {}
+	}
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [5000, 5001],
+	// "portsAttributes": {
+	//		"5001": {
+	//			"protocol": "https"
+	//		}
+	// }
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "dotnet restore",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
 }

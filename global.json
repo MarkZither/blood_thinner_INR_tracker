@@ -1,8 +1,8 @@
 {
   "sdk": {
-    "version": "10.0.0",
+    "version": "10.0.100-preview.7.25380.108",
     "rollForward": "latestMinor",
-    "allowPrerelease": false
+    "allowPrerelease": true
   },
   "msbuild-sdks": {
     "Microsoft.Build.CentralPackageVersions": "2.1.3"
