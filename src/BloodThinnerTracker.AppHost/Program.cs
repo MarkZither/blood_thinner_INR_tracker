@@ -6,23 +6,49 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-namespace BloodThinnerTracker.AppHost;
-
-/// <summary>
-/// Entry point for the Blood Thinner Tracker Aspire AppHost.
-/// Orchestrates all services in the distributed application.
-/// </summary>
-internal static class Program
+namespace BloodThinnerTracker.AppHost
 {
+    using BloodThinnerTracker.ServiceDefaults;
+
     /// <summary>
-    /// Main entry point for the application host.
+    /// Entry point for the Blood Thinner Tracker Application Host.
+    /// Provides basic service orchestration and configuration management.
+    /// NOTE: Full Aspire integration will be added in future development phases.
     /// </summary>
-    /// <param name="args">Command line arguments.</param>
-    /// <returns>Task representing the application lifetime.</returns>
-    public static async Task<int> Main(string[] args)
+    internal static class Program
     {
-        await Console.Out.WriteLineAsync("Blood Thinner Tracker AppHost - Coming Soon!");
-        await Console.Out.WriteLineAsync("Aspire orchestration will be configured in the next development phase.");
-        return 0;
+        /// <summary>
+        /// Main entry point for the application host.
+        /// </summary>
+        /// <param name="args">Command line arguments.</param>
+        /// <returns>Exit code (0 for success).</returns>
+        public static async Task<int> Main(string[] args)
+        {
+            await Console.Out.WriteLineAsync($"🩸 {ServiceDefaults.ApplicationName} v{ServiceDefaults.Version} - Application Host");
+            await Console.Out.WriteLineAsync("========================================");
+            await Console.Out.WriteLineAsync();
+
+            await Console.Out.WriteLineAsync("🚀 Services Available:");
+            await Console.Out.WriteLineAsync("  • BloodThinnerTracker.Api      - REST API (Port: 5000)");
+            await Console.Out.WriteLineAsync("  • BloodThinnerTracker.Web      - Blazor Web UI (Port: 5001)");
+            await Console.Out.WriteLineAsync("  • BloodThinnerTracker.Cli      - Command Line Tool");
+            await Console.Out.WriteLineAsync("  • BloodThinnerTracker.Mcp      - MCP Server (Port: 5002)");
+            await Console.Out.WriteLineAsync();
+
+            await Console.Out.WriteLineAsync("📋 Configuration:");
+            await Console.Out.WriteLineAsync($"  • Database: {ServiceDefaults.DefaultConnectionString}");
+            await Console.Out.WriteLineAsync($"  • CORS Policy: {ServiceDefaults.DefaultCorsPolicy}");
+            await Console.Out.WriteLineAsync();
+
+            await Console.Out.WriteLineAsync("⚠️  MEDICAL DISCLAIMER:");
+            await Console.Out.WriteLineAsync("   This software is for informational purposes only.");
+            await Console.Out.WriteLineAsync("   Always consult with qualified healthcare professionals for medical decisions.");
+            await Console.Out.WriteLineAsync();
+
+            await Console.Out.WriteLineAsync("🔧 Next Development Phase: Full .NET Aspire integration");
+            await Console.Out.WriteLineAsync("   Run individual services with: dotnet run --project <service>");
+
+            return 0;
+        }
     }
 }

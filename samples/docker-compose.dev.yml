@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # Blood Thinner Tracker API
+  bloodtracker-api:
+    build:
+      context: ..
+      dockerfile: src/BloodThinnerTracker.Api/Dockerfile.dev
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=dev-password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+      - ../src/BloodThinnerTracker.Api:/app/src:ro
+      - ./appsettings.Development.json:/app/appsettings.Development.json:ro
+    depends_on:
+      - postgres-db
+      - redis-cache
+    networks:
+      - bloodtracker-network
+
+  # Blazor Web Application
+  bloodtracker-web:
+    build:
+      context: ..
+      dockerfile: src/BloodThinnerTracker.Web/Dockerfile.dev
+    ports:
+      - "5002:80"
+      - "5003:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiBaseUrl=https://bloodtracker-api:443
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    depends_on:
+      - bloodtracker-api
+    networks:
+      - bloodtracker-network
+
+  # PostgreSQL Database
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: bloodtracker-postgres-dev
+    environment:
+      POSTGRES_DB: bloodtracker_dev
+      POSTGRES_USER: bloodtracker_user
+      POSTGRES_PASSWORD: dev_password_change_in_production
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - bloodtracker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bloodtracker_user -d bloodtracker_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis-cache:
+    image: redis:7-alpine
+    container_name: bloodtracker-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - bloodtracker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Application Host (Development Orchestrator)
+  bloodtracker-apphost:
+    build:
+      context: ..
+      dockerfile: src/BloodThinnerTracker.AppHost/Dockerfile.dev
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Services__Api__Url=http://bloodtracker-api:80
+      - Services__Web__Url=http://bloodtracker-web:80
+    depends_on:
+      - bloodtracker-api
+      - bloodtracker-web
+    networks:
+      - bloodtracker-network
+
+  # Mailhog (Email Testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: bloodtracker-mailhog-dev
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - bloodtracker-network
+
+  # Adminer (Database Admin)
+  adminer:
+    image: adminer:latest
+    container_name: bloodtracker-adminer-dev
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres-db
+    depends_on:
+      - postgres-db
+    networks:
+      - bloodtracker-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  bloodtracker-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Development helper commands:
+# 
+# Start all services:
+#   docker-compose -f docker-compose.dev.yml up -d
+# 
+# View logs:
+#   docker-compose -f docker-compose.dev.yml logs -f bloodtracker-api
+# 
+# Stop all services:
+#   docker-compose -f docker-compose.dev.yml down
+# 
+# Rebuild and start:
+#   docker-compose -f docker-compose.dev.yml up --build -d
+# 
+# Access services:
+#   API: https://localhost:5001
+#   Web: https://localhost:5003
+#   AppHost: http://localhost:8080
+#   Database Admin: http://localhost:8081
+#   Email Testing: http://localhost:8025
+# 
+# Database connection from host:
+#   Host: localhost
+#   Port: 5432
+#   Database: bloodtracker_dev
+#   Username: bloodtracker_user
+#   Password: dev_password_change_in_production

@@ -23,4 +23,20 @@ public static class ServiceDefaults
     /// Gets the default service version.
     /// </summary>
     public static string Version => "1.0.0";
+
+    /// <summary>
+    /// Gets the default connection string for the application database.
+    /// </summary>
+    public static string DefaultConnectionString => "Data Source=bloodtracker.db";
+
+    /// <summary>
+    /// Gets the default JWT secret key for development.
+    /// NOTE: In production, this should be configured via environment variables or secure configuration.
+    /// </summary>
+    public static string DefaultJwtSecret => "BloodTrackerSecretKey2024-ChangeInProduction";
+
+    /// <summary>
+    /// Gets the default CORS policy name.
+    /// </summary>
+    public static string DefaultCorsPolicy => "BloodTrackerCorsPolicy";
 }
