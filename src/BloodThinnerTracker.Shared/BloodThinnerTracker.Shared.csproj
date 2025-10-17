@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- SignalR client packages temporarily removed to resolve dependency conflicts -->
+    <!-- Will be added back once core API functionality is stable -->
+  </ItemGroup>
+
 </Project>

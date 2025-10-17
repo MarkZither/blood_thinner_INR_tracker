@@ -1,6 +1,190 @@
 @BloodThinnerTracker.Api_HostAddress = http://localhost:5026
 
+###################################################################
+# Blood Thinner INR Tracker API Tests
+# Comprehensive test suite for medical application endpoints
+###################################################################
+
+### Health Check
 GET {{BloodThinnerTracker.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
-###
+###################################################################
+# Authentication Endpoints
+###################################################################
+
+### Login
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "TestPassword123!",
+  "rememberMe": false
+}
+
+### Refresh Token (requires valid refresh token)
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "your_refresh_token_here"
+}
+
+### Get Current User (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/auth/me
+Authorization: Bearer your_token_here
+
+### Validate Token (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/auth/validate
+Authorization: Bearer your_token_here
+
+### Auth Health Check
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/auth/health
+
+### Logout (requires authentication)
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/auth/logout
+Authorization: Bearer your_token_here
+
+###################################################################
+# User Profile Endpoints
+###################################################################
+
+### Get User Profile (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/users/profile
+Authorization: Bearer your_token_here
+
+### Update User Profile (requires authentication)
+PUT {{BloodThinnerTracker.Api_HostAddress}}/api/users/profile
+Content-Type: application/json
+Authorization: Bearer your_token_here
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1980-01-01",
+  "timeZone": "America/New_York",
+  "preferredLanguage": "en-US",
+  "reminderAdvanceMinutes": 30
+}
+
+### Get Notification Settings (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/users/notifications
+Authorization: Bearer your_token_here
+
+### Update Notification Settings (requires authentication)
+PUT {{BloodThinnerTracker.Api_HostAddress}}/api/users/notifications
+Content-Type: application/json
+Authorization: Bearer your_token_here
+
+{
+  "isEmailNotificationsEnabled": true,
+  "isPushNotificationsEnabled": true,
+  "isSmsNotificationsEnabled": false
+}
+
+### Deactivate User Account (requires authentication)
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/users/deactivate
+Authorization: Bearer your_token_here
+
+###################################################################
+# Medication Endpoints
+###################################################################
+
+### Get All Medications (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/medications
+Authorization: Bearer your_token_here
+
+### Get Specific Medication (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/medications/1
+Authorization: Bearer your_token_here
+
+### Create New Medication (requires authentication)
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/medications
+Content-Type: application/json
+Authorization: Bearer your_token_here
+
+{
+  "name": "Warfarin",
+  "genericName": "Warfarin Sodium",
+  "brandName": "Coumadin",
+  "type": 0,
+  "dosage": 5.0,
+  "unit": "mg",
+  "frequency": "Once Daily",
+  "instructions": "Take with food",
+  "prescribedDate": "2024-01-01",
+  "prescribedBy": "Dr. Smith",
+  "strength": "5mg",
+  "form": "Tablet",
+  "color": "Blue",
+  "shape": "Round",
+  "imprint": "WRF 5",
+  "isBloodThinner": true,
+  "requiresINRMonitoring": true,
+  "inrTargetMin": 2.0,
+  "inrTargetMax": 3.0,
+  "minHoursBetweenDoses": 24,
+  "maxDailyDose": 10.0,
+  "storageInstructions": "Store at room temperature",
+  "contraindications": "Do not take with alcohol"
+}
+
+### Update Medication (requires authentication)
+PUT {{BloodThinnerTracker.Api_HostAddress}}/api/medications/1
+Content-Type: application/json
+Authorization: Bearer your_token_here
+
+{
+  "name": "Warfarin",
+  "genericName": "Warfarin Sodium",
+  "brandName": "Coumadin",
+  "type": 0,
+  "dosage": 7.5,
+  "unit": "mg",
+  "frequency": "Once Daily",
+  "instructions": "Take with food at dinner",
+  "prescribedDate": "2024-01-01",
+  "prescribedBy": "Dr. Smith",
+  "strength": "7.5mg",
+  "form": "Tablet",
+  "color": "Peach",
+  "shape": "Round",
+  "imprint": "WRF 7.5",
+  "isBloodThinner": true,
+  "requiresINRMonitoring": true,
+  "inrTargetMin": 2.0,
+  "inrTargetMax": 3.0,
+  "minHoursBetweenDoses": 24,
+  "maxDailyDose": 10.0,
+  "storageInstructions": "Store at room temperature",
+  "contraindications": "Do not take with alcohol"
+}
+
+### Deactivate Medication (requires authentication)
+POST {{BloodThinnerTracker.Api_HostAddress}}/api/medications/1/deactivate
+Authorization: Bearer your_token_here
+
+### Get Blood Thinner Medications Only (requires authentication)
+GET {{BloodThinnerTracker.Api_HostAddress}}/api/medications/blood-thinners
+Authorization: Bearer your_token_here
+
+###################################################################
+# Testing Instructions
+###################################################################
+
+# 1. First run the login endpoint to get an authentication token
+# 2. Copy the token from the response and replace "your_token_here" in subsequent requests
+# 3. For refresh token tests, use the refresh token from the login response
+# 4. Test endpoints in order: auth -> users -> medications
+# 5. Update medication IDs in the GET/PUT/DELETE requests as needed
+
+###################################################################
+# Expected Responses
+###################################################################
+
+# Authentication endpoints should return JWT tokens and user info
+# User endpoints should return/accept user profile and notification data
+# Medication endpoints should return medication objects with all medical properties
+# All protected endpoints should return 401 if no valid token provided
+# Medical data should enforce safety validations (dosage ranges, INR ranges)

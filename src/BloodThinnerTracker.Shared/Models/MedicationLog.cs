@@ -20,7 +20,9 @@ public class MedicationLog : MedicalEntityBase
     /// Gets or sets the related medication identifier.
     /// </summary>
     [Required]
-    public Guid MedicationId { get; set; }        /// <summary>
+    public string MedicationId { get; set; } = string.Empty;
+
+    /// <summary>
         /// Gets or sets the scheduled time when medication should have been taken.
         /// </summary>
         [Required]

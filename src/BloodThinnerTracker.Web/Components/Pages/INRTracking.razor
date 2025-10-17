@@ -1,0 +1,490 @@
+@page "/inr"
+@using BloodThinnerTracker.Shared.Models
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>INR Tracking - Blood Thinner Tracker</PageTitle>
+
+<div class="inr-container">
+    <!-- Medical Disclaimer -->
+    <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <div>
+                <strong>Critical Medical Information:</strong> INR (International Normalized Ratio) values are crucial for blood thinner management. 
+                Values outside your target range require immediate medical attention. Always consult your healthcare provider for INR interpretation and medication adjustments.
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                INR Tracking
+            </h1>
+            <p class="text-muted mb-0">Monitor your blood clotting levels and trends</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" @onclick="NavigateToAddINR">
+                <i class="fas fa-plus me-1"></i>Add INR Result
+            </button>
+        </div>
+    </div>
+
+    <!-- Current Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon @GetCurrentINRStatusClass() text-white mx-auto mb-2">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <h4 class="card-title mb-1">@(currentINR?.ToString("F1") ?? "N/A")</h4>
+                    <p class="card-text text-muted small mb-0">Current INR</p>
+                    @if (currentINRDate.HasValue)
+                    {
+                        <small class="text-muted">@currentINRDate.Value.ToString("MMM dd, yyyy")</small>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-info text-white mx-auto mb-2">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h4 class="card-title mb-1">@targetRange</h4>
+                    <p class="card-text text-muted small mb-0">Target Range</p>
+                    <small class="text-muted">Set by physician</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon bg-success text-white mx-auto mb-2">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <h4 class="card-title mb-1">@timeInRangePercentage%</h4>
+                    <p class="card-text text-muted small mb-0">Time in Range</p>
+                    <small class="text-muted">Last 3 months</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="stat-icon @GetNextTestStatusClass() text-white mx-auto mb-2">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h4 class="card-title mb-1">@daysUntilNextTest</h4>
+                    <p class="card-text text-muted small mb-0">Days Until Next Test</p>
+                    @if (nextTestDate.HasValue)
+                    {
+                        <small class="text-muted">@nextTestDate.Value.ToString("MMM dd, yyyy")</small>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INR Trend Chart -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    INR Trend Analysis
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn @(chartPeriod == "3m" ? "btn-primary" : "btn-outline-primary")" 
+                            @onclick="ChangeChartPeriod3M">3M</button>
+                    <button class="btn @(chartPeriod == "6m" ? "btn-primary" : "btn-outline-primary")" 
+                            @onclick="ChangeChartPeriod6M">6M</button>
+                    <button class="btn @(chartPeriod == "1y" ? "btn-primary" : "btn-outline-primary")" 
+                            @onclick="ChangeChartPeriod1Y">1Y</button>
+                    <button class="btn @(chartPeriod == "all" ? "btn-primary" : "btn-outline-primary")" 
+                            @onclick="ChangeChartPeriodAll">All</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (inrTests?.Any() == true)
+            {
+                <div id="inrTrendChart" style="height: 400px;"></div>
+                
+                <!-- Chart Legend -->
+                <div class="chart-legend mt-3">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <span class="legend-item">
+                                <span class="legend-color bg-success"></span>
+                                Target Range (@targetRange)
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="legend-item">
+                                <span class="legend-color bg-primary"></span>
+                                INR Values
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="legend-item">
+                                <span class="legend-color bg-warning"></span>
+                                Below Range (Risk of Clots)
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="legend-item">
+                                <span class="legend-color bg-danger"></span>
+                                Above Range (Risk of Bleeding)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-line text-muted fa-4x mb-3"></i>
+                    <h4 class="text-muted">No INR Data Available</h4>
+                    <p class="text-muted mb-4">Start tracking your INR levels to see trends and analysis</p>
+                    <button class="btn btn-primary" @onclick="NavigateToAddINR">
+                        <i class="fas fa-plus me-1"></i>Add Your First INR Result
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- INR History Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history text-primary me-2"></i>
+                    INR Test History
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ExportINRData">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-sm btn-primary" @onclick="NavigateToAddINR">
+                        <i class="fas fa-plus me-1"></i>Add Result
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (inrTests?.Any() == true)
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>INR Value</th>
+                                <th>Status</th>
+                                <th>Laboratory</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var test in inrTests.OrderByDescending(t => t.TestDate))
+                            {
+                                <tr class="@GetRowClass(test.INRValue)">
+                                    <td>
+                                        <strong>@test.TestDate.ToString("MMM dd, yyyy")</strong>
+                                        <br>
+                                        <small class="text-muted">@test.TestDate.ToString("HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <span class="inr-value @GetValueClass(test.INRValue)">
+                                            @test.INRValue.ToString("F1")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(test.INRValue)">
+                                            @GetStatusText(test.INRValue)
+                                        </span>
+                                    </td>
+                                    <td>@(test.Laboratory ?? "Not specified")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(test.Notes))
+                                        {
+                                            <span title="@test.Notes">
+                                                @(test.Notes.Length > 30 ? test.Notes.Substring(0, 30) + "..." : test.Notes)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No notes</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" @onclick="() => EditINRTest(test.Id)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" @onclick="() => DeleteINRTest(test.Id)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <nav aria-label="INR history pagination" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Previous</button>
+                            </li>
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                var page = i;
+                                <li class="page-item @(currentPage == page ? "active" : "")">
+                                    <button class="page-link" @onclick="() => ChangePage(page)">@(page)</button>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Next</button>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fas fa-flask text-muted fa-3x mb-3"></i>
+                    <h4 class="text-muted">No INR Tests Recorded</h4>
+                    <p class="text-muted mb-4">Start tracking your INR levels to monitor your blood thinner effectiveness</p>
+                    <button class="btn btn-primary" @onclick="NavigateToAddINR">
+                        <i class="fas fa-plus me-1"></i>Record Your First INR Test
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Current status data
+    private decimal? currentINR = 2.3m;
+    private DateTime? currentINRDate = DateTime.Today.AddDays(-5);
+    private string targetRange = "2.0-3.0";
+    private int timeInRangePercentage = 78;
+    private DateTime? nextTestDate = DateTime.Today.AddDays(10);
+    private int daysUntilNextTest = 10;
+
+    // Chart and filtering
+    private string chartPeriod = "3m";
+    
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages = 1;
+
+    // Data
+    private List<INRTest>? inrTests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadINRData();
+        await RenderChart();
+    }
+
+    private async Task LoadINRData()
+    {
+        // Mock data - replace with actual service calls
+        inrTests = new List<INRTest>
+        {
+            new INRTest
+            {
+                Id = "1",
+                UserId = "user1",
+                INRValue = 2.3m,
+                TestDate = DateTime.Today.AddDays(-5),
+                Laboratory = "Quest Diagnostics",
+                Notes = "Feeling good, no side effects"
+            },
+            new INRTest
+            {
+                Id = "2",
+                UserId = "user1",
+                INRValue = 2.8m,
+                TestDate = DateTime.Today.AddDays(-15),
+                Laboratory = "LabCorp",
+                Notes = "Slight bleeding when brushing teeth"
+            },
+            new INRTest
+            {
+                Id = "3",
+                UserId = "user1",
+                INRValue = 1.9m,
+                TestDate = DateTime.Today.AddDays(-25),
+                Laboratory = "Quest Diagnostics",
+                Notes = "Dose adjusted by physician"
+            },
+            new INRTest
+            {
+                Id = "4",
+                UserId = "user1",
+                INRValue = 2.1m,
+                TestDate = DateTime.Today.AddDays(-35),
+                Laboratory = "Hospital Lab",
+                Notes = "Routine check"
+            },
+            new INRTest
+            {
+                Id = "5",
+                UserId = "user1",
+                INRValue = 3.2m,
+                TestDate = DateTime.Today.AddDays(-45),
+                Laboratory = "Quest Diagnostics",
+                Notes = "High value - dose reduced"
+            }
+        };
+
+        // Calculate pagination
+        var totalItems = inrTests?.Count ?? 0;
+        totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+    }
+
+    private async Task RenderChart()
+    {
+        if (inrTests?.Any() != true) return;
+
+        // Filter data based on selected period
+        var filteredTests = FilterTestsByPeriod(inrTests, chartPeriod);
+        
+        var chartData = filteredTests.OrderBy(t => t.TestDate).Select(t => new
+        {
+            date = t.TestDate.ToString("yyyy-MM-dd"),
+            value = (double)t.INRValue,
+            targetMin = 2.0,
+            targetMax = 3.0
+        }).ToArray();
+
+        await JSRuntime.InvokeVoidAsync("renderINRTrendChart", "inrTrendChart", chartData);
+    }
+
+    private List<INRTest> FilterTestsByPeriod(List<INRTest> tests, string period)
+    {
+        var cutoffDate = period switch
+        {
+            "3m" => DateTime.Today.AddMonths(-3),
+            "6m" => DateTime.Today.AddMonths(-6),
+            "1y" => DateTime.Today.AddYears(-1),
+            _ => DateTime.MinValue
+        };
+
+        return tests.Where(t => t.TestDate >= cutoffDate).ToList();
+    }
+
+    private async Task ChangeChartPeriod(string period)
+    {
+        chartPeriod = period;
+        await RenderChart();
+        StateHasChanged();
+    }
+
+    private void ChangePage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    private void EditINRTest(string testId)
+    {
+        Navigation.NavigateTo($"/inr/edit/{testId}");
+    }
+
+    private void NavigateToAddINR()
+    {
+        Navigation.NavigateTo("/inr/add");
+    }
+
+    // Chart period methods
+    private async Task ChangeChartPeriod3M() => await ChangeChartPeriod("3m");
+    private async Task ChangeChartPeriod6M() => await ChangeChartPeriod("6m");
+    private async Task ChangeChartPeriod1Y() => await ChangeChartPeriod("1y");
+    private async Task ChangeChartPeriodAll() => await ChangeChartPeriod("all");
+
+    private async Task DeleteINRTest(string testId)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this INR test result?");
+        if (confirmed)
+        {
+            // TODO: Call API to delete test
+            await LoadINRData();
+            await RenderChart();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportINRData()
+    {
+        // TODO: Implement export functionality
+        await JSRuntime.InvokeVoidAsync("alert", "Export functionality coming soon!");
+    }
+
+    // Helper methods for styling
+    private string GetCurrentINRStatusClass()
+    {
+        if (currentINR == null) return "bg-secondary";
+        return (currentINR >= 2.0m && currentINR <= 3.0m) ? "bg-success" : 
+               (currentINR < 2.0m) ? "bg-warning" : "bg-danger";
+    }
+
+    private string GetNextTestStatusClass()
+    {
+        return daysUntilNextTest <= 3 ? "bg-warning" : 
+               daysUntilNextTest <= 7 ? "bg-info" : "bg-primary";
+    }
+
+    private string GetRowClass(decimal inrValue)
+    {
+        if (inrValue < 2.0m) return "table-warning";
+        if (inrValue > 3.0m) return "table-danger";
+        return "";
+    }
+
+    private string GetValueClass(decimal inrValue)
+    {
+        if (inrValue < 2.0m) return "text-warning fw-bold";
+        if (inrValue > 3.0m) return "text-danger fw-bold";
+        return "text-success fw-bold";
+    }
+
+    private string GetStatusBadgeClass(decimal inrValue)
+    {
+        if (inrValue < 2.0m) return "bg-warning";
+        if (inrValue > 3.0m) return "bg-danger";
+        return "bg-success";
+    }
+
+    private string GetStatusText(decimal inrValue)
+    {
+        if (inrValue < 2.0m) return "Below Range";
+        if (inrValue > 3.0m) return "Above Range";
+        return "In Range";
+    }
+}

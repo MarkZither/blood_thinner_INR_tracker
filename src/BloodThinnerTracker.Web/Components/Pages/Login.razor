@@ -1,0 +1,310 @@
+@page "/login"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Google
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Login> Logger
+
+<PageTitle>Login - Blood Thinner Tracker</PageTitle>
+
+<div class="min-vh-100 d-flex align-items-center bg-gradient">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <div class="mb-3">
+                            <i class="fas fa-heartbeat fa-3x text-light"></i>
+                        </div>
+                        <h3 class="mb-0">Blood Thinner Tracker</h3>
+                        <p class="mb-0 opacity-75">Secure Medical Login</p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrEmpty(_errorMessage))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                @_errorMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        <div class="mb-4">
+                            <h5 class="text-center mb-3">Sign in to your account</h5>
+                            <p class="text-muted text-center small">
+                                Choose your preferred login method
+                            </p>
+                        </div>
+
+                        <!-- Social Login Options -->
+                        <div class="d-grid gap-2 mb-4">
+                            <button type="button" class="btn btn-outline-primary btn-lg" 
+                                    @onclick="LoginWithAzureAD" disabled="@_isLoading">
+                                @if (_isLoading && _loginProvider == "Azure")
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="fab fa-microsoft me-2"></i>
+                                }
+                                Sign in with Microsoft
+                            </button>
+
+                            <button type="button" class="btn btn-outline-danger btn-lg" 
+                                    @onclick="LoginWithGoogle" disabled="@_isLoading">
+                                @if (_isLoading && _loginProvider == "Google")
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="fab fa-google me-2"></i>
+                                }
+                                Sign in with Google
+                            </button>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="position-relative mb-3">
+                                <hr class="text-muted">
+                                <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">
+                                    or continue with email
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Email/Password Form -->
+                        <EditForm Model="_loginModel" OnValidSubmit="HandleEmailLogin" class="needs-validation" novalidate>
+                            <DataAnnotationsValidator />
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i> Email Address
+                                </label>
+                                <InputText @bind-Value="_loginModel.Email" 
+                                          class="form-control form-control-lg" 
+                                          id="email"
+                                          placeholder="Enter your email"
+                                          disabled="@_isLoading" />
+                                <ValidationMessage For="@(() => _loginModel.Email)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i> Password
+                                </label>
+                                <div class="input-group">
+                                    <InputText @bind-Value="_loginModel.Password" 
+                                              type="@(_showPassword ? "text" : "password")"
+                                              class="form-control form-control-lg" 
+                                              id="password"
+                                              placeholder="Enter your password"
+                                              disabled="@_isLoading" />
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            @onclick="TogglePasswordVisibility">
+                                        <i class="fas @(_showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                </div>
+                                <ValidationMessage For="@(() => _loginModel.Password)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <InputCheckbox @bind-Value="_loginModel.RememberMe" 
+                                              class="form-check-input" 
+                                              id="rememberMe" />
+                                <label class="form-check-label" for="rememberMe">
+                                    Remember me on this device
+                                </label>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" disabled="@_isLoading">
+                                    @if (_isLoading && _loginProvider == "Email")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <text>Signing in</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sign-in-alt me-2"></i>
+                                        <text>Sign In</text>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+
+                    <div class="card-footer text-center py-3 bg-light">
+                        <p class="mb-2">
+                            <a href="/forgot-password" class="text-decoration-none">
+                                <i class="fas fa-question-circle me-1"></i>
+                                Forgot your password?
+                            </a>
+                        </p>
+                        <p class="mb-0">
+                            Don't have an account? 
+                            <a href="/register" class="text-decoration-none fw-bold">
+                                <i class="fas fa-user-plus me-1"></i>
+                                Sign up here
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Medical Disclaimer -->
+                <div class="card mt-3 border-warning">
+                    <div class="card-body text-center py-2">
+                        <small class="text-muted">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                            <strong>Medical Disclaimer:</strong> This application is for tracking purposes only. 
+                            Always consult your healthcare provider for medical decisions.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .form-control-lg {
+        padding: 0.75rem 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .card-header {
+        border-bottom: none;
+    }
+</style>
+
+@code {
+    private LoginModel _loginModel = new();
+    private bool _isLoading = false;
+    private bool _showPassword = false;
+    private string _errorMessage = string.Empty;
+    private string _loginProvider = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Clear any previous error messages
+        _errorMessage = string.Empty;
+        
+        // Check if user is already authenticated
+        // Implementation would depend on your authentication state provider
+    }
+
+    private async Task LoginWithAzureAD()
+    {
+        try
+        {
+            _isLoading = true;
+            _loginProvider = "Azure";
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // Redirect to Azure AD login
+            Navigation.NavigateTo("/auth/login/microsoft", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to initiate Microsoft login. Please try again.";
+            Logger.LogError(ex, "Azure AD login failed");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoginWithGoogle()
+    {
+        try
+        {
+            _isLoading = true;
+            _loginProvider = "Google";
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // Redirect to Google login
+            Navigation.NavigateTo("/auth/login/google", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to initiate Google login. Please try again.";
+            Logger.LogError(ex, "Google login failed");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEmailLogin()
+    {
+        try
+        {
+            _isLoading = true;
+            _loginProvider = "Email";
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Implement email/password authentication
+            // This would typically call your authentication API
+            
+            await Task.Delay(1000); // Simulate API call
+            
+            // For now, just show a message
+            _errorMessage = "Email/password authentication not yet implemented. Please use social login.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Login failed. Please check your credentials and try again.";
+            Logger.LogError(ex, "Email login failed for user: {Email}", _loginModel.Email);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        _showPassword = !_showPassword;
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; } = false;
+    }
+}

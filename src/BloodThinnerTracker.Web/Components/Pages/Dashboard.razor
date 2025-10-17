@@ -1,0 +1,431 @@
+@page "/dashboard"
+@using BloodThinnerTracker.Shared.Models
+@using System.Security.Claims
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Medical Dashboard - Blood Thinner Tracker</PageTitle>
+
+<div class="dashboard-container">
+    <!-- Medical Disclaimer Banner -->
+    <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <div>
+                <strong>Medical Disclaimer:</strong> This application is for informational purposes only and should not replace professional medical advice. 
+                Always consult your healthcare provider for medical decisions regarding blood thinner medications.
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="dashboard-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-1">
+                    <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                    Medical Dashboard
+                </h1>
+                <p class="text-muted mb-0">Monitor your blood thinner medications and INR levels</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="dashboard-sync-status">
+                    <span class="badge @GetSyncStatusClass() me-2">
+                        <i class="fas @GetSyncStatusIcon() me-1"></i>
+                        @GetSyncStatusText()
+                    </span>
+                    <small class="text-muted">Last sync: @lastSyncTime.ToString("MMM dd, HH:mm")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-primary text-white me-3">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-1">@activeMedicationsCount</h5>
+                        <p class="card-text text-muted small mb-0">Active Medications</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-success text-white me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-1">@todayAdherencePercentage%</h5>
+                        <p class="card-text text-muted small mb-0">Today's Adherence</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon @GetINRStatusClass() text-white me-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-1">@(lastINRValue?.ToString("F1") ?? "N/A")</h5>
+                        <p class="card-text text-muted small mb-0">Latest INR</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-warning text-white me-3">
+                        <i class="fas fa-calendar-clock"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-1">@upcomingRemindersCount</h5>
+                        <p class="card-text text-muted small mb-0">Upcoming Reminders</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row">
+        <!-- Left Column - Medications & Reminders -->
+        <div class="col-lg-8 mb-4">
+            <!-- Today's Medications -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-day text-primary me-2"></i>
+                            Today's Medications
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" @onclick="RefreshMedications">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button class="btn btn-primary" @onclick="NavigateToAddMedications">
+                                <i class="fas fa-plus me-1"></i>Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (todayMedications?.Any() == true)
+                    {
+                        <div class="medication-timeline">
+                            @foreach (var med in todayMedications.OrderBy(m => m.NextDoseTime))
+                            {
+                                <div class="medication-item @GetMedicationStatusClass(med) mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="medication-status-indicator me-3">
+                                            <i class="fas @GetMedicationStatusIcon(med)"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">@med.Name</h6>
+                                                    <p class="text-muted small mb-1">@med.Dosage @med.DosageUnit</p>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        @med.NextDoseTime?.ToString("HH:mm")
+                                                    </small>
+                                                </div>
+                                                <div class="medication-actions">
+                                                    @if (!med.IsTaken)
+                                                    {
+                                                        <button class="btn btn-sm btn-success" @onclick="() => MarkMedicationTaken(med.Id)">
+                                                            <i class="fas fa-check me-1"></i>Taken
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check me-1"></i>Completed
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-pills text-muted fa-3x mb-3"></i>
+                            <p class="text-muted mb-0">No medications scheduled for today</p>
+                            <button class="btn btn-primary mt-2" @onclick="NavigateToAddMedications">
+                                <i class="fas fa-plus me-1"></i>Add Your First Medication
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- INR Trend Chart -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            INR Trend (Last 30 Days)
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" @onclick="NavigateToAddINR">
+                                <i class="fas fa-plus me-1"></i>Add Result
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="inrChart" style="height: 300px;"></div>
+                    @if (recentINRTests?.Any() != true)
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line text-muted fa-3x mb-3"></i>
+                            <p class="text-muted mb-0">No INR test results recorded</p>
+                            <button class="btn btn-primary mt-2" @onclick="NavigateToAddINR">
+                                <i class="fas fa-plus me-1"></i>Add Your First INR Result
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Alerts & Upcoming -->
+        <div class="col-lg-4">
+            <!-- Critical Alerts -->
+            @if (criticalAlerts?.Any() == true)
+            {
+                <div class="card shadow-sm mb-4 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Critical Alerts
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var alert in criticalAlerts)
+                        {
+                            <div class="alert alert-danger mb-2">
+                                <strong>@alert.Type:</strong>
+                                <p class="mb-1">@alert.Message</p>
+                                <small class="text-muted">@alert.CreatedAt.ToString("MMM dd, HH:mm")</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Upcoming Reminders -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell text-primary me-2"></i>
+                        Upcoming Reminders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (upcomingReminders?.Any() == true)
+                    {
+                        @foreach (var reminder in upcomingReminders.Take(5))
+                        {
+                            <div class="reminder-item d-flex align-items-center mb-3">
+                                <div class="reminder-time text-center me-3">
+                                    <div class="time-display">@reminder.ScheduledTime.ToString("HH:mm")</div>
+                                    <small class="text-muted">@reminder.ScheduledTime.ToString("MMM dd")</small>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">@reminder.Title</h6>
+                                    <p class="text-muted small mb-0">@reminder.Description</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-bell text-muted fa-2x mb-2"></i>
+                            <p class="text-muted mb-0">No upcoming reminders</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt text-primary me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" @onclick="NavigateToMedicationLog">
+                            <i class="fas fa-pills me-2"></i>Log Medication
+                        </button>
+                        <button class="btn btn-success" @onclick="NavigateToAddINR">
+                            <i class="fas fa-chart-line me-2"></i>Record INR Test
+                        </button>
+                        <button class="btn btn-info" @onclick="NavigateToMedications">
+                            <i class="fas fa-list me-2"></i>View All Medications
+                        </button>
+                        <button class="btn btn-warning" @onclick="NavigateToINR">
+                            <i class="fas fa-history me-2"></i>INR History
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Data properties
+    private int activeMedicationsCount = 0;
+    private int todayAdherencePercentage = 0;
+    private decimal? lastINRValue = null;
+    private int upcomingRemindersCount = 0;
+    private DateTime lastSyncTime = DateTime.Now;
+
+    private List<TodayMedicationViewModel>? todayMedications;
+    private List<INRTest>? recentINRTests;
+    private List<AlertViewModel>? criticalAlerts;
+    private List<ReminderViewModel>? upcomingReminders;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+        await LoadINRChart();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // Mock data - replace with actual service calls
+        activeMedicationsCount = 3;
+        todayAdherencePercentage = 85;
+        lastINRValue = 2.3m;
+        upcomingRemindersCount = 2;
+
+        todayMedications = new List<TodayMedicationViewModel>
+        {
+            new() { Id = "1", Name = "Warfarin", Dosage = 5, DosageUnit = "mg", NextDoseTime = DateTime.Today.AddHours(8), IsTaken = false },
+            new() { Id = "2", Name = "Aspirin", Dosage = 81, DosageUnit = "mg", NextDoseTime = DateTime.Today.AddHours(20), IsTaken = true }
+        };
+
+        criticalAlerts = new List<AlertViewModel>
+        {
+            new() { Type = "Missed Dose", Message = "You missed your Warfarin dose yesterday evening", CreatedAt = DateTime.Now.AddHours(-2) }
+        };
+
+        upcomingReminders = new List<ReminderViewModel>
+        {
+            new() { Title = "Warfarin Dose", Description = "5mg - Take with food", ScheduledTime = DateTime.Today.AddHours(20) },
+            new() { Title = "INR Test", Description = "Scheduled lab appointment", ScheduledTime = DateTime.Today.AddDays(2).AddHours(9) }
+        };
+    }
+
+    private async Task LoadINRChart()
+    {
+        // Mock INR data for chart
+        var chartData = new[]
+        {
+            new { date = DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd"), value = 2.1 },
+            new { date = DateTime.Today.AddDays(-25).ToString("yyyy-MM-dd"), value = 2.4 },
+            new { date = DateTime.Today.AddDays(-20).ToString("yyyy-MM-dd"), value = 2.0 },
+            new { date = DateTime.Today.AddDays(-15).ToString("yyyy-MM-dd"), value = 2.6 },
+            new { date = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd"), value = 2.2 },
+            new { date = DateTime.Today.AddDays(-5).ToString("yyyy-MM-dd"), value = 2.3 }
+        };
+
+        await JSRuntime.InvokeVoidAsync("renderINRChart", "inrChart", chartData);
+    }
+
+    private async Task RefreshMedications()
+    {
+        // Refresh medication data
+        await LoadDashboardData();
+        StateHasChanged();
+    }
+
+    private async Task MarkMedicationTaken(string medicationId)
+    {
+        var medication = todayMedications?.FirstOrDefault(m => m.Id == medicationId);
+        if (medication != null)
+        {
+            medication.IsTaken = true;
+            // TODO: Call API to log medication
+            StateHasChanged();
+        }
+    }
+
+    // Navigation methods
+    private void NavigateToAddMedications() => Navigation.NavigateTo("/medications/add");
+    private void NavigateToAddINR() => Navigation.NavigateTo("/inr/add");
+    private void NavigateToMedicationLog() => Navigation.NavigateTo("/medications/log");
+    private void NavigateToMedications() => Navigation.NavigateTo("/medications");
+    private void NavigateToINR() => Navigation.NavigateTo("/inr");
+
+    // Helper methods for styling
+    private string GetSyncStatusClass() => "bg-success";
+    private string GetSyncStatusIcon() => "fa-sync";
+    private string GetSyncStatusText() => "Synced";
+
+    private string GetINRStatusClass()
+    {
+        if (lastINRValue == null) return "bg-secondary";
+        return lastINRValue >= 2.0m && lastINRValue <= 3.0m ? "bg-success" : "bg-warning";
+    }
+
+    private string GetMedicationStatusClass(TodayMedicationViewModel med)
+    {
+        return med.IsTaken ? "medication-taken" : "medication-pending";
+    }
+
+    private string GetMedicationStatusIcon(TodayMedicationViewModel med)
+    {
+        return med.IsTaken ? "fa-check-circle text-success" : "fa-clock text-warning";
+    }
+
+    // View models
+    public class TodayMedicationViewModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Dosage { get; set; }
+        public string DosageUnit { get; set; } = string.Empty;
+        public DateTime? NextDoseTime { get; set; }
+        public bool IsTaken { get; set; }
+    }
+
+    public class AlertViewModel
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class ReminderViewModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime ScheduledTime { get; set; }
+    }
+}

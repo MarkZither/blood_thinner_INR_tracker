@@ -14,7 +14,7 @@ public interface IMedicalEntity
     /// <summary>
     /// Gets or sets the unique identifier for this entity.
     /// </summary>
-    Guid Id { get; set; }
+    string Id { get; set; }
 
     /// <summary>
     /// Gets or sets when this record was created.
@@ -57,7 +57,7 @@ public abstract class MedicalEntityBase : IMedicalEntity
     /// Gets or sets the unique identifier for this entity.
     /// </summary>
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>
     /// Gets or sets when this record was created.
@@ -105,7 +105,7 @@ public class AuditLog
     /// Gets or sets the unique identifier for this audit log entry.
     /// </summary>
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>
     /// Gets or sets the name of the entity that was changed.

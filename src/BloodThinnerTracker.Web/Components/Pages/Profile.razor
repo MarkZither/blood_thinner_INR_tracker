@@ -1,0 +1,683 @@
+@page "/profile"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Profile> Logger
+
+<PageTitle>Profile - Blood Thinner Tracker</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Profile</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 col-lg-3">
+            <!-- Profile Navigation -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-cog me-2"></i>
+                        Account Settings
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <button type="button" 
+                            class="list-group-item list-group-item-action @(_activeTab == "profile" ? "active" : "")"
+                            @onclick="SetProfileTab">
+                        <i class="fas fa-user me-2"></i>
+                        Personal Information
+                    </button>
+                    <button type="button" 
+                            class="list-group-item list-group-item-action @(_activeTab == "medical" ? "active" : "")"
+                            @onclick="SetMedicalTab">
+                        <i class="fas fa-heartbeat me-2"></i>
+                        Medical Settings
+                    </button>
+                    <button type="button" 
+                            class="list-group-item list-group-item-action @(_activeTab == "notifications" ? "active" : "")"
+                            @onclick="SetNotificationsTab">
+                        <i class="fas fa-bell me-2"></i>
+                        Notifications
+                    </button>
+                    <button type="button" 
+                            class="list-group-item list-group-item-action @(_activeTab == "security" ? "active" : "")"
+                            @onclick="SetSecurityTab">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security
+                    </button>
+                    <button type="button" 
+                            class="list-group-item list-group-item-action @(_activeTab == "data" ? "active" : "")"
+                            @onclick="SetDataTab">
+                        <i class="fas fa-database me-2"></i>
+                        Data Management
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 col-lg-9">
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    @_successMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @_errorMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- Personal Information Tab -->
+            @if (_activeTab == "profile")
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            Personal Information
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="_profileModel" OnValidSubmit="SaveProfile">
+                            <DataAnnotationsValidator />
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">First Name</label>
+                                    <InputText @bind-Value="_profileModel.FirstName" 
+                                              class="form-control" 
+                                              id="firstName"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _profileModel.FirstName)" class="text-danger small" />
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">Last Name</label>
+                                    <InputText @bind-Value="_profileModel.LastName" 
+                                              class="form-control" 
+                                              id="lastName"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _profileModel.LastName)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <InputText @bind-Value="_profileModel.Email" 
+                                          class="form-control" 
+                                          id="email"
+                                          type="email"
+                                          disabled="@_isLoading" />
+                                <ValidationMessage For="@(() => _profileModel.Email)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="dateOfBirth" class="form-label">Date of Birth</label>
+                                <InputDate @bind-Value="_profileModel.DateOfBirth" 
+                                          class="form-control" 
+                                          id="dateOfBirth"
+                                          disabled="@_isLoading" />
+                                <ValidationMessage For="@(() => _profileModel.DateOfBirth)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Timezone</label>
+                                <InputSelect @bind-Value="_profileModel.Timezone" class="form-select" id="timezone" disabled="@_isLoading">
+                                    <option value="">Select Timezone</option>
+                                    <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                                    <option value="America/Chicago">Central Time (CST/CDT)</option>
+                                    <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                                    <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                                    <option value="Europe/London">Greenwich Mean Time (GMT)</option>
+                                    <option value="Europe/Paris">Central European Time (CET)</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _profileModel.Timezone)" class="text-danger small" />
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary" disabled="@_isLoading">
+                                    @if (_isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-save me-2"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+
+            <!-- Medical Settings Tab -->
+            @if (_activeTab == "medical")
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-heartbeat me-2"></i>
+                            Medical Settings
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="_medicalModel" OnValidSubmit="SaveMedicalSettings">
+                            <DataAnnotationsValidator />
+                            
+                            <div class="mb-4">
+                                <h5 class="text-primary">Target INR Range</h5>
+                                <p class="text-muted small">
+                                    Your healthcare provider determines your target INR range based on your condition.
+                                </p>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="targetINRMin" class="form-label">Minimum INR</label>
+                                        <InputNumber @bind-Value="_medicalModel.TargetINRMin" 
+                                                   class="form-control" 
+                                                   id="targetINRMin"
+                                                   step="0.1"
+                                                   disabled="@_isLoading" />
+                                        <ValidationMessage For="@(() => _medicalModel.TargetINRMin)" class="text-danger small" />
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="targetINRMax" class="form-label">Maximum INR</label>
+                                        <InputNumber @bind-Value="_medicalModel.TargetINRMax" 
+                                                   class="form-control" 
+                                                   step="0.1"
+                                                   disabled="@_isLoading" />
+                                        <ValidationMessage For="@(() => _medicalModel.TargetINRMax)" class="text-danger small" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h5 class="text-primary">Medication Preferences</h5>
+                                <div class="mb-3">
+                                    <label for="primaryMedication" class="form-label">Primary Blood Thinner</label>
+                                    <InputSelect @bind-Value="_medicalModel.PrimaryMedication" class="form-select" id="primaryMedication" disabled="@_isLoading">
+                                        <option value="">Select Medication</option>
+                                        <option value="Warfarin">Warfarin (Coumadin)</option>
+                                        <option value="Apixaban">Apixaban (Eliquis)</option>
+                                        <option value="Rivaroxaban">Rivaroxaban (Xarelto)</option>
+                                        <option value="Dabigatran">Dabigatran (Pradaxa)</option>
+                                        <option value="Edoxaban">Edoxaban (Savaysa)</option>
+                                        <option value="Other">Other</option>
+                                    </InputSelect>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="_medicalModel.EnableMedicationReminders" 
+                                                  class="form-check-input" 
+                                                  id="enableMedicationReminders" />
+                                    <label class="form-check-label" for="enableMedicationReminders">
+                                        Enable medication reminders
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <InputCheckbox @bind-Value="_medicalModel.EnableINRReminders" 
+                                                  class="form-check-input" 
+                                                  id="enableINRReminders" />
+                                    <label class="form-check-label" for="enableINRReminders">
+                                        Enable INR test reminders
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary" disabled="@_isLoading">
+                                    @if (_isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-save me-2"></i>
+                                    Save Medical Settings
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+
+            <!-- Notifications Tab -->
+            @if (_activeTab == "notifications")
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-bell me-2"></i>
+                            Notification Preferences
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="_notificationModel" OnValidSubmit="SaveNotificationSettings">
+                            <div class="mb-4">
+                                <h5 class="text-primary">Email Notifications</h5>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailMedicationReminders" 
+                                                  class="form-check-input" 
+                                                  id="emailMedicationReminders" />
+                                    <label class="form-check-label" for="emailMedicationReminders">
+                                        Medication reminders
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailINRReminders" 
+                                                  class="form-check-input" 
+                                                  id="emailINRReminders" />
+                                    <label class="form-check-label" for="emailINRReminders">
+                                        INR test reminders
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailCriticalAlerts" 
+                                                  class="form-check-input" 
+                                                  id="emailCriticalAlerts" />
+                                    <label class="form-check-label" for="emailCriticalAlerts">
+                                        Critical alerts (out-of-range INR)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h5 class="text-primary">Push Notifications</h5>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.PushMedicationReminders" 
+                                                  class="form-check-input" 
+                                                  id="pushMedicationReminders" />
+                                    <label class="form-check-label" for="pushMedicationReminders">
+                                        Medication reminders
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.PushINRReminders" 
+                                                  class="form-check-input" 
+                                                  id="pushINRReminders" />
+                                    <label class="form-check-label" for="pushINRReminders">
+                                        INR test reminders
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <InputCheckbox @bind-Value="_notificationModel.PushCriticalAlerts" 
+                                                  class="form-check-input" 
+                                                  id="pushCriticalAlerts" />
+                                    <label class="form-check-label" for="pushCriticalAlerts">
+                                        Critical alerts
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary" disabled="@_isLoading">
+                                    <i class="fas fa-save me-2"></i>
+                                    Save Notification Settings
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+
+            <!-- Security Tab -->
+            @if (_activeTab == "security")
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Security Settings
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h5 class="text-primary">Change Password</h5>
+                            <EditForm Model="_passwordModel" OnValidSubmit="ChangePassword">
+                                <DataAnnotationsValidator />
+                                
+                                <div class="mb-3">
+                                    <label for="currentPassword" class="form-label">Current Password</label>
+                                    <InputText @bind-Value="_passwordModel.CurrentPassword" 
+                                              type="password"
+                                              class="form-control" 
+                                              id="currentPassword"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _passwordModel.CurrentPassword)" class="text-danger small" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="newPassword" class="form-label">New Password</label>
+                                    <InputText @bind-Value="_passwordModel.NewPassword" 
+                                              type="password"
+                                              class="form-control" 
+                                              id="newPassword"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _passwordModel.NewPassword)" class="text-danger small" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                                    <InputText @bind-Value="_passwordModel.ConfirmNewPassword" 
+                                              type="password"
+                                              class="form-control" 
+                                              id="confirmNewPassword"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _passwordModel.ConfirmNewPassword)" class="text-danger small" />
+                                </div>
+
+                                <button type="submit" class="btn btn-warning" disabled="@_isLoading">
+                                    @if (_isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-key me-2"></i>
+                                    Change Password
+                                </button>
+                            </EditForm>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-4">
+                            <h5 class="text-primary">Two-Factor Authentication</h5>
+                            <p class="text-muted">Add an extra layer of security to your account.</p>
+                            <button type="button" class="btn btn-outline-primary">
+                                <i class="fas fa-mobile-alt me-2"></i>
+                                Setup 2FA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Data Management Tab -->
+            @if (_activeTab == "data")
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-database me-2"></i>
+                            Data Management
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h5 class="text-primary">Export Your Data</h5>
+                            <p class="text-muted">Download a copy of your medical data for your records.</p>
+                            <button type="button" class="btn btn-outline-info">
+                                <i class="fas fa-download me-2"></i>
+                                Export Data
+                            </button>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-4">
+                            <h5 class="text-danger">Danger Zone</h5>
+                            <p class="text-muted">These actions cannot be undone.</p>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-warning me-2">
+                                    <i class="fas fa-trash-alt me-2"></i>
+                                    Clear All Data
+                                </button>
+                                <small class="text-muted">Remove all your medical records (keep account)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-danger">
+                                    <i class="fas fa-user-times me-2"></i>
+                                    Delete Account
+                                </button>
+                                <small class="text-muted">Permanently delete your account and all data</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _activeTab = "profile";
+    private bool _isLoading = false;
+    private string _errorMessage = string.Empty;
+    private string _successMessage = string.Empty;
+
+    private ProfileModel _profileModel = new();
+    private MedicalModel _medicalModel = new();
+    private NotificationModel _notificationModel = new();
+    private PasswordModel _passwordModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load user data
+        await LoadUserData();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        _activeTab = tab;
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+    }
+
+    // Tab navigation methods
+    private void SetProfileTab() => SetActiveTab("profile");
+    private void SetMedicalTab() => SetActiveTab("medical");
+    private void SetNotificationsTab() => SetActiveTab("notifications");
+    private void SetSecurityTab() => SetActiveTab("security");
+    private void SetDataTab() => SetActiveTab("data");
+
+    private async Task LoadUserData()
+    {
+        try
+        {
+            // TODO: Load actual user data from API
+            _profileModel = new ProfileModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                Email = "john.doe@example.com",
+                DateOfBirth = new DateTime(1980, 1, 15),
+                Timezone = "America/New_York"
+            };
+
+            _medicalModel = new MedicalModel
+            {
+                TargetINRMin = 2.0m,
+                TargetINRMax = 3.0m,
+                PrimaryMedication = "Warfarin",
+                EnableMedicationReminders = true,
+                EnableINRReminders = true
+            };
+
+            _notificationModel = new NotificationModel
+            {
+                EmailMedicationReminders = true,
+                EmailINRReminders = true,
+                EmailCriticalAlerts = true,
+                PushMedicationReminders = true,
+                PushINRReminders = true,
+                PushCriticalAlerts = true
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load user data");
+            _errorMessage = "Failed to load profile data.";
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Save profile to API
+            await Task.Delay(1000);
+
+            _successMessage = "Profile updated successfully.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save profile");
+            _errorMessage = "Failed to save profile changes.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveMedicalSettings()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Save medical settings to API
+            await Task.Delay(1000);
+
+            _successMessage = "Medical settings updated successfully.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save medical settings");
+            _errorMessage = "Failed to save medical settings.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveNotificationSettings()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Save notification settings to API  
+            await Task.Delay(1000);
+
+            _successMessage = "Notification settings updated successfully.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save notification settings");
+            _errorMessage = "Failed to save notification settings.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Change password via API
+            await Task.Delay(1000);
+
+            _successMessage = "Password changed successfully.";
+            _passwordModel = new PasswordModel();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to change password");
+            _errorMessage = "Failed to change password.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class ProfileModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date of birth is required")]
+        public DateTime? DateOfBirth { get; set; }
+
+        public string Timezone { get; set; } = string.Empty;
+    }
+
+    public class MedicalModel
+    {
+        [Range(0.5, 8.0, ErrorMessage = "INR minimum must be between 0.5 and 8.0")]
+        public decimal TargetINRMin { get; set; }
+
+        [Range(0.5, 8.0, ErrorMessage = "INR maximum must be between 0.5 and 8.0")]
+        public decimal TargetINRMax { get; set; }
+
+        public string PrimaryMedication { get; set; } = string.Empty;
+        public bool EnableMedicationReminders { get; set; }
+        public bool EnableINRReminders { get; set; }
+    }
+
+    public class NotificationModel
+    {
+        public bool EmailMedicationReminders { get; set; }
+        public bool EmailINRReminders { get; set; }
+        public bool EmailCriticalAlerts { get; set; }
+        public bool PushMedicationReminders { get; set; }
+        public bool PushINRReminders { get; set; }
+        public bool PushCriticalAlerts { get; set; }
+    }
+
+    public class PasswordModel
+    {
+        [Required(ErrorMessage = "Current password is required")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "New password is required")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm new password")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match")]
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+}

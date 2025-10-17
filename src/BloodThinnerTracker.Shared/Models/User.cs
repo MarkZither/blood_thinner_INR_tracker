@@ -150,8 +150,42 @@ public class User : MedicalEntityBase
         /// <summary>
         /// Gets or sets user preferences as JSON.
         /// </summary>
-        [Column(TypeName = "nvarchar(max)")]
+        [StringLength(4000)]
+        [Column(TypeName = "nvarchar(4000)")]
         public string? Preferences { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether email notifications are enabled.
+        /// </summary>
+        public bool IsEmailNotificationsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether SMS notifications are enabled.
+        /// </summary>
+        public bool IsSmsNotificationsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether push notifications are enabled.
+        /// </summary>
+        public bool IsPushNotificationsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the preferred language for the user interface.
+        /// </summary>
+        [StringLength(10)]
+        [Column(TypeName = "varchar(10)")]
+        public string PreferredLanguage { get; set; } = "en";
+
+        /// <summary>
+        /// Gets or sets how many minutes in advance to send medication reminders.
+        /// </summary>
+        [Range(0, 1440, ErrorMessage = "Reminder advance time must be between 0 and 1440 minutes")]
+        public int ReminderAdvanceMinutes { get; set; } = 30;
+
+        /// <summary>
+        /// Gets or sets when the user profile was completed.
+        /// </summary>
+        public DateTime? ProfileCompletedAt { get; set; }
 
         // Navigation properties for medical data relationships
 

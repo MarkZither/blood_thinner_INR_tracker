@@ -1,23 +1,196 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<!-- Navigation Header -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="/">
+            <i class="fas fa-heartbeat me-2"></i>
+            Blood Thinner Tracker
+        </a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">
+                        <i class="fas fa-tachometer-alt me-1"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/inr-tracking">
+                        <i class="fas fa-chart-line me-1"></i>
+                        INR Tracking
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/medication-log">
+                        <i class="fas fa-pills me-1"></i>
+                        Medication Log
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" 
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        Reports
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/reports/inr-trends">
+                            <i class="fas fa-line-chart me-2"></i>INR Trends
+                        </a></li>
+                        <li><a class="dropdown-item" href="/reports/medication-adherence">
+                            <i class="fas fa-check-circle me-2"></i>Medication Adherence
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/reports/export">
+                            <i class="fas fa-download me-2"></i>Export Data
+                        </a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <div class="d-flex">
+                <!-- Notifications -->
+                <button class="btn btn-outline-light me-2" type="button" 
+                        data-bs-toggle="offcanvas" data-bs-target="#notificationsOffcanvas">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge bg-danger ms-1">3</span>
+                </button>
+                
+                <!-- User Menu -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle me-1"></i>
+                        John Doe
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/profile">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a></li>
+                        <li><a class="dropdown-item" href="/profile">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/help">
+                            <i class="fas fa-question-circle me-2"></i>Help & Support
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
+    </div>
+</nav>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+<!-- Notifications Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="notificationsOffcanvas">
+    <div class="offcanvas-header bg-primary text-white">
+        <h5 class="offcanvas-title">
+            <i class="fas fa-bell me-2"></i>
+            Notifications
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush">
+            <div class="list-group-item d-flex align-items-start">
+                <div class="me-3 text-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">INR Result Out of Range</h6>
+                    <p class="mb-1 text-muted small">Your latest INR of 3.5 is above target range.</p>
+                    <small class="text-muted">2 hours ago</small>
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-start">
+                <div class="me-3 text-info">
+                    <i class="fas fa-pills"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">Medication Reminder</h6>
+                    <p class="mb-1 text-muted small">Time to take your evening Warfarin dose.</p>
+                    <small class="text-muted">1 hour ago</small>
+                </div>
+            </div>
+            <div class="list-group-item d-flex align-items-start">
+                <div class="me-3 text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">INR Test Scheduled</h6>
+                    <p class="mb-1 text-muted small">Your next INR test is scheduled for tomorrow at 9:00 AM.</p>
+                    <small class="text-muted">3 hours ago</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center p-3 border-top">
+            <a href="/notifications" class="btn btn-outline-primary btn-sm">
+                View All Notifications
+            </a>
+        </div>
+    </div>
 </div>
 
+<!-- Main Content -->
+<main class="main-content">
+    @Body
+</main>
+
+<!-- Footer -->
+<footer class="footer bg-light border-top mt-5">
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="fw-bold text-primary">
+                    <i class="fas fa-heartbeat me-2"></i>
+                    Blood Thinner Tracker
+                </h6>
+                <p class="text-muted small mb-0">
+                    Your personal medication and INR tracking companion.
+                </p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="mb-2">
+                    <a href="/privacy" class="text-decoration-none me-3">Privacy Policy</a>
+                    <a href="/terms" class="text-decoration-none me-3">Terms of Service</a>
+                    <a href="/help" class="text-decoration-none">Support</a>
+                </div>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Your medical data is secure and private.
+                </p>
+            </div>
+        </div>
+        
+        <hr class="my-3">
+        
+        <div class="text-center">
+            <div class="alert alert-warning alert-sm mb-0" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Medical Disclaimer:</strong> This application is for tracking purposes only. 
+                Always consult your healthcare provider for medical decisions and treatment adjustments.
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Error UI -->
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <div class="alert alert-danger m-3" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        An unhandled error has occurred.
+        <a href="." class="btn btn-outline-danger btn-sm ms-2">Reload Page</a>
+        <button class="btn-close float-end" onclick="document.getElementById('blazor-error-ui').style.display='none'"></button>
+    </div>
 </div>

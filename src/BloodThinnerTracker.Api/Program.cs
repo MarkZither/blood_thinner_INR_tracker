@@ -1,5 +1,6 @@
 using BloodThinnerTracker.Api.Services;
 using BloodThinnerTracker.Api.Services.Authentication;
+using BloodThinnerTracker.Api.Hubs;
 using BloodThinnerTracker.Shared.Models.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -29,7 +30,22 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Add CORS for web client
+// Add SignalR for real-time medical notifications
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+});
+
+// Add medical notification service
+builder.Services.AddScoped<BloodThinnerTracker.Api.Hubs.IMedicalNotificationService, BloodThinnerTracker.Api.Hubs.MedicalNotificationService>();
+
+// Add background service for medical reminders
+builder.Services.AddHostedService<MedicalReminderService>();
+
+// Add CORS for web client with SignalR support
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("MedicalAppPolicy", policy =>
@@ -42,7 +58,7 @@ builder.Services.AddCors(options =>
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials();
+            .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -83,6 +99,9 @@ app.UseAuthorization();
 
 // Map controllers
 app.MapControllers();
+
+// Map SignalR hub for medical notifications
+app.MapHub<BloodThinnerTracker.Api.Hubs.MedicalNotificationHub>("/hubs/medical-notifications");
 
 // Health check endpoints for medical application monitoring
 app.MapHealthChecks("/health");

@@ -1,0 +1,471 @@
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Register> Logger
+
+<PageTitle>Register - Blood Thinner Tracker</PageTitle>
+
+<div class="min-vh-100 d-flex align-items-center bg-gradient">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-success text-white text-center py-4">
+                        <div class="mb-3">
+                            <i class="fas fa-user-plus fa-3x text-light"></i>
+                        </div>
+                        <h3 class="mb-0">Create Your Account</h3>
+                        <p class="mb-0 opacity-75">Join Blood Thinner Tracker</p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrEmpty(_errorMessage))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                @_errorMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_successMessage))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                @_successMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        <!-- Social Registration Options -->
+                        <div class="d-grid gap-2 mb-4">
+                            <button type="button" class="btn btn-outline-primary btn-lg" 
+                                    @onclick="RegisterWithAzureAD" disabled="@_isLoading">
+                                @if (_isLoading && _registrationProvider == "Azure")
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="fab fa-microsoft me-2"></i>
+                                }
+                                Sign up with Microsoft
+                            </button>
+
+                            <button type="button" class="btn btn-outline-danger btn-lg" 
+                                    @onclick="RegisterWithGoogle" disabled="@_isLoading">
+                                @if (_isLoading && _registrationProvider == "Google")
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="fab fa-google me-2"></i>
+                                }
+                                Sign up with Google
+                            </button>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="position-relative mb-3">
+                                <hr class="text-muted">
+                                <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">
+                                    or create account with email
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Registration Form -->
+                        <EditForm Model="_registerModel" OnValidSubmit="HandleEmailRegistration" class="needs-validation" novalidate>
+                            <DataAnnotationsValidator />
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">
+                                        <i class="fas fa-user me-1"></i> First Name
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <InputText @bind-Value="_registerModel.FirstName" 
+                                              class="form-control" 
+                                              id="firstName"
+                                              placeholder="Enter first name"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _registerModel.FirstName)" class="text-danger small" />
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">
+                                        <i class="fas fa-user me-1"></i> Last Name
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <InputText @bind-Value="_registerModel.LastName" 
+                                              class="form-control" 
+                                              id="lastName"
+                                              placeholder="Enter last name"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _registerModel.LastName)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i> Email Address
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <InputText @bind-Value="_registerModel.Email" 
+                                          class="form-control" 
+                                          id="email"
+                                          type="email"
+                                          placeholder="Enter your email address"
+                                          disabled="@_isLoading" />
+                                <ValidationMessage For="@(() => _registerModel.Email)" class="text-danger small" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="fas fa-lock me-1"></i> Password
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <InputText @bind-Value="_registerModel.Password" 
+                                                  type="@(_showPassword ? "text" : "password")"
+                                                  class="form-control" 
+                                                  id="password"
+                                                  placeholder="Create password"
+                                                  disabled="@_isLoading" />
+                                        <button type="button" class="btn btn-outline-secondary" 
+                                                @onclick="TogglePasswordVisibility">
+                                            <i class="fas @(_showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                        </button>
+                                    </div>
+                                    <ValidationMessage For="@(() => _registerModel.Password)" class="text-danger small" />
+                                    <div class="form-text">
+                                        <small>Password must be at least 8 characters with letters, numbers, and symbols</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirmPassword" class="form-label">
+                                        <i class="fas fa-lock me-1"></i> Confirm Password
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <InputText @bind-Value="_registerModel.ConfirmPassword" 
+                                              type="@(_showPassword ? "text" : "password")"
+                                              class="form-control" 
+                                              id="confirmPassword"
+                                              placeholder="Confirm password"
+                                              disabled="@_isLoading" />
+                                    <ValidationMessage For="@(() => _registerModel.ConfirmPassword)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="dateOfBirth" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i> Date of Birth
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <InputDate @bind-Value="_registerModel.DateOfBirth" 
+                                          class="form-control" 
+                                          id="dateOfBirth"
+                                          disabled="@_isLoading" />
+                                <ValidationMessage For="@(() => _registerModel.DateOfBirth)" class="text-danger small" />
+                                <div class="form-text">
+                                    <small>Required for medication safety calculations</small>
+                                </div>
+                            </div>
+
+                            <!-- Medical Information -->
+                            <div class="card border-info mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-heartbeat me-2"></i>
+                                    Medical Information (Optional)
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="targetINRMin" class="form-label">
+                                            <i class="fas fa-bullseye me-1"></i> Target INR Range
+                                        </label>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <InputNumber @bind-Value="_registerModel.TargetINRMin" 
+                                                           class="form-control" 
+                                                           id="targetINRMin"
+                                                           placeholder="Min (e.g., 2.0)"
+                                                           step="0.1"
+                                                           disabled="@_isLoading" />
+                                                <small class="form-text">Minimum</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <InputNumber @bind-Value="_registerModel.TargetINRMax" 
+                                                           class="form-control" 
+                                                           placeholder="Max (e.g., 3.0)"
+                                                           step="0.1"
+                                                           disabled="@_isLoading" />
+                                                <small class="form-text">Maximum</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-text">
+                                            <small>Your healthcare provider will determine your target INR range</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms and Privacy -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="_registerModel.AgreeToTerms" 
+                                                  class="form-check-input" 
+                                                  id="agreeToTerms" />
+                                    <label class="form-check-label" for="agreeToTerms">
+                                        I agree to the <a href="/terms" target="_blank" class="text-decoration-none">Terms of Service</a> 
+                                        and <a href="/privacy" target="_blank" class="text-decoration-none">Privacy Policy</a>
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                </div>
+                                <ValidationMessage For="@(() => _registerModel.AgreeToTerms)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="_registerModel.AgreeToMedicalDisclaimer" 
+                                                  class="form-check-input" 
+                                                  id="agreeToMedicalDisclaimer" />
+                                    <label class="form-check-label" for="agreeToMedicalDisclaimer">
+                                        I understand this app is for tracking only and does not replace professional medical advice
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                </div>
+                                <ValidationMessage For="@(() => _registerModel.AgreeToMedicalDisclaimer)" class="text-danger small" />
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg" disabled="@_isLoading">
+                                    @if (_isLoading && _registrationProvider == "Email")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <text>Creating Account</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-user-plus me-2"></i>
+                                        <text>Create Account</text>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+
+                    <div class="card-footer text-center py-3 bg-light">
+                        <p class="mb-0">
+                            Already have an account? 
+                            <a href="/login" class="text-decoration-none fw-bold">
+                                <i class="fas fa-sign-in-alt me-1"></i>
+                                Sign in here
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Medical Disclaimer -->
+                <div class="card mt-3 border-warning">
+                    <div class="card-body text-center py-2">
+                        <small class="text-muted">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                            <strong>Medical Disclaimer:</strong> This application is for tracking purposes only. 
+                            Always consult your healthcare provider for medical decisions and treatment plans.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .form-control {
+        padding: 0.75rem 1rem;
+    }
+    
+    .card-header {
+        border-bottom: none;
+    }
+    
+    .form-text small {
+        color: #6c757d;
+    }
+</style>
+
+@code {
+    private RegisterModel _registerModel = new();
+    private bool _isLoading = false;
+    private bool _showPassword = false;
+    private string _errorMessage = string.Empty;
+    private string _successMessage = string.Empty;
+    private string _registrationProvider = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Clear any previous messages
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+        
+        // Set default INR range
+        _registerModel.TargetINRMin = 2.0m;
+        _registerModel.TargetINRMax = 3.0m;
+    }
+
+    private async Task RegisterWithAzureAD()
+    {
+        try
+        {
+            _isLoading = true;
+            _registrationProvider = "Azure";
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // Redirect to Azure AD registration
+            Navigation.NavigateTo("/auth/register/microsoft", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to initiate Microsoft registration. Please try again.";
+            Logger.LogError(ex, "Azure AD registration failed");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RegisterWithGoogle()
+    {
+        try
+        {
+            _isLoading = true;
+            _registrationProvider = "Google";
+            _errorMessage = string.Empty;
+            StateHasChanged();
+
+            // Redirect to Google registration
+            Navigation.NavigateTo("/auth/register/google", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to initiate Google registration. Please try again.";
+            Logger.LogError(ex, "Google registration failed");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEmailRegistration()
+    {
+        try
+        {
+            _isLoading = true;
+            _registrationProvider = "Email";
+            _errorMessage = string.Empty;
+            _successMessage = string.Empty;
+            StateHasChanged();
+
+            // TODO: Implement email/password registration
+            // This would typically call your registration API
+            
+            await Task.Delay(1500); // Simulate API call
+            
+            _successMessage = "Registration successful! Please check your email to verify your account.";
+            
+            // Clear the form
+            _registerModel = new RegisterModel
+            {
+                TargetINRMin = 2.0m,
+                TargetINRMax = 3.0m
+            };
+            
+            // Redirect to login after delay
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Registration failed. Please check your information and try again.";
+            Logger.LogError(ex, "Email registration failed for user: {Email}", _registerModel.Email);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        _showPassword = !_showPassword;
+    }
+
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(50, ErrorMessage = "First name cannot exceed 50 characters")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$", 
+            ErrorMessage = "Password must contain uppercase, lowercase, number, and special character")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm your password")]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date of birth is required")]
+        [Range(typeof(DateTime), "1900-01-01", "2010-12-31", ErrorMessage = "Please enter a valid date of birth")]
+        public DateTime? DateOfBirth { get; set; }
+
+        [Range(0.5, 8.0, ErrorMessage = "INR minimum must be between 0.5 and 8.0")]
+        public decimal? TargetINRMin { get; set; }
+
+        [Range(0.5, 8.0, ErrorMessage = "INR maximum must be between 0.5 and 8.0")]
+        public decimal? TargetINRMax { get; set; }
+
+        [Required(ErrorMessage = "You must agree to the terms and privacy policy")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the terms and privacy policy")]
+        public bool AgreeToTerms { get; set; } = false;
+
+        [Required(ErrorMessage = "You must acknowledge the medical disclaimer")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must acknowledge the medical disclaimer")]
+        public bool AgreeToMedicalDisclaimer { get; set; } = false;
+    }
+}

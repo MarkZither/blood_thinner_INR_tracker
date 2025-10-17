@@ -1,0 +1,513 @@
+@page "/medications"
+@using BloodThinnerTracker.Shared.Models
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Medications - Blood Thinner Tracker</PageTitle>
+
+<div class="medications-container">
+    <!-- Medical Disclaimer -->
+    <div class="alert alert-info medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+                <strong>Important:</strong> Always consult your healthcare provider before making changes to your medication regimen. 
+                This tool is for tracking purposes only and should not replace professional medical advice.
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="fas fa-pills text-primary me-2"></i>
+                My Medications
+            </h1>
+            <p class="text-muted mb-0">Manage your blood thinner medications and schedules</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" @onclick="NavigateToAddMedications">
+                <i class="fas fa-plus me-1"></i>Add Medication
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter and Search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Search Medications</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Search by name or type..." 
+                               @bind="searchTerm" @oninput="OnSearchChanged" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Filter by Status</label>
+                    <select class="form-select" value="@statusFilter" @onchange="OnFilterChanged">
+                        <option value="all">All Medications</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                        <option value="blood-thinners">Blood Thinners Only</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sort by</label>
+                    <select class="form-select" value="@sortBy" @onchange="OnSortChanged">
+                        <option value="name">Name</option>
+                        <option value="date">Date Added</option>
+                        <option value="frequency">Frequency</option>
+                        <option value="type">Type</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medications List -->
+    @if (filteredMedications?.Any() == true)
+    {
+        <div class="row">
+            @foreach (var medication in filteredMedications)
+            {
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card medication-card h-100 @GetMedicationCardClass(medication)">
+                        <div class="card-header bg-white border-bottom-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title mb-1">@medication.Name</h5>
+                                    @if (!string.IsNullOrEmpty(medication.BrandName))
+                                    {
+                                        <small class="text-muted">@medication.BrandName</small>
+                                    }
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" @onclick="() => EditMedication(medication.Id)">
+                                            <i class="fas fa-edit me-2"></i>Edit
+                                        </a></li>
+                                        <li><a class="dropdown-item" @onclick="() => ViewHistory(medication.Id)">
+                                            <i class="fas fa-history me-2"></i>View History
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" @onclick="() => DeactivateMedication(medication.Id)">
+                                            <i class="fas fa-pause me-2"></i>Deactivate
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Medication Details -->
+                            <div class="medication-details mb-3">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="detail-item">
+                                            <div class="detail-value">@medication.Dosage</div>
+                                            <div class="detail-label">@medication.DosageUnit</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="detail-item">
+                                            <div class="detail-value">@GetFrequencyDisplay(medication.Frequency)</div>
+                                            <div class="detail-label">Frequency</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="detail-item">
+                                            <div class="detail-value">
+                                                <span class="badge @GetTypeClass(medication.Type)">
+                                                    @medication.Type.ToString()
+                                                </span>
+                                            </div>
+                                            <div class="detail-label">Type</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Schedule -->
+                            @if (!string.IsNullOrEmpty(medication.ScheduledTimes))
+                            {
+                                <div class="medication-schedule mb-3">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-clock me-1"></i>Schedule
+                                    </h6>
+                                    <div class="schedule-times">
+                                        @foreach (var time in GetScheduledTimes(medication.ScheduledTimes))
+                                        {
+                                            <span class="badge bg-light text-dark me-1">@time</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Special Warnings for Blood Thinners -->
+                            @if (medication.Type == MedicationType.Warfarin)
+                            {
+                                <div class="alert alert-warning py-2 mb-3">
+                                    <small>
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        <strong>Warfarin:</strong> Requires regular INR monitoring
+                                    </small>
+                                </div>
+                            }
+
+                            <!-- Instructions -->
+                            @if (!string.IsNullOrEmpty(medication.Instructions))
+                            {
+                                <div class="medication-instructions mb-3">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-info-circle me-1"></i>Instructions
+                                    </h6>
+                                    <p class="small text-muted mb-0">@medication.Instructions</p>
+                                </div>
+                            }
+
+                            <!-- Status and Actions -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge @GetStatusBadgeClass(medication.IsActive)">
+                                        @(medication.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                    @if (medication.RemindersEnabled)
+                                    {
+                                        <span class="badge bg-info ms-1">
+                                            <i class="fas fa-bell me-1"></i>Reminders On
+                                        </span>
+                                    }
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => LogDose(medication.Id)">
+                                        <i class="fas fa-plus me-1"></i>Log Dose
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span>
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Started: @medication.StartDate.ToString("MMM dd, yyyy")
+                                </span>
+                                @if (medication.EndDate.HasValue)
+                                {
+                                    <span>
+                                        <i class="fas fa-calendar-times me-1"></i>
+                                        Ends: @medication.EndDate.Value.ToString("MMM dd, yyyy")
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Medications pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Previous</button>
+                    </li>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        var page = i;
+                        <li class="page-item @(currentPage == page ? "active" : "")">
+                            <button class="page-link" @onclick="() => ChangePage(page)">@(page)</button>
+                        </li>
+                    }
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Next</button>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <!-- Empty State -->
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-pills text-muted fa-4x mb-3"></i>
+                <h4 class="text-muted">No Medications Found</h4>
+                @if (string.IsNullOrEmpty(searchTerm) && statusFilter == "all")
+                {
+                    <p class="text-muted mb-4">Get started by adding your first medication</p>
+                    <button class="btn btn-primary" @onclick="NavigateToAddMedications">
+                        <i class="fas fa-plus me-1"></i>Add Your First Medication
+                    </button>
+                }
+                else
+                {
+                    <p class="text-muted mb-4">Try adjusting your search or filter criteria</p>
+                    <button class="btn btn-outline-primary" @onclick="ClearFilters">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Filter and search properties
+    private string searchTerm = string.Empty;
+    private string statusFilter = "all";
+    private string sortBy = "name";
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalPages = 1;
+
+    // Data properties
+    private List<Medication>? allMedications;
+    private List<Medication>? filteredMedications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedications();
+        ApplyFilters();
+    }
+
+    private async Task LoadMedications()
+    {
+        // Mock data - replace with actual service calls
+        allMedications = new List<Medication>
+        {
+            new Medication
+            {
+                Id = "1",
+                Name = "Warfarin",
+                BrandName = "Coumadin",
+                Dosage = 5,
+                DosageUnit = "mg",
+                Type = MedicationType.Warfarin,
+                Frequency = MedicationFrequency.OnceDaily,
+                ScheduledTimes = "[\"08:00\"]",
+                IsActive = true,
+                StartDate = DateTime.Today.AddDays(-30),
+                Instructions = "Take with food. Avoid green leafy vegetables.",
+                RemindersEnabled = true
+            },
+            new Medication
+            {
+                Id = "2",
+                Name = "Rivaroxaban",
+                BrandName = "Xarelto",
+                Dosage = 20,
+                DosageUnit = "mg",
+                Type = MedicationType.DOAC,
+                Frequency = MedicationFrequency.OnceDaily,
+                ScheduledTimes = "[\"20:00\"]",
+                IsActive = true,
+                StartDate = DateTime.Today.AddDays(-60),
+                Instructions = "Take with evening meal.",
+                RemindersEnabled = true
+            },
+            new Medication
+            {
+                Id = "3",
+                Name = "Aspirin",
+                BrandName = "Bayer",
+                Dosage = 81,
+                DosageUnit = "mg",
+                Type = MedicationType.Antiplatelet,
+                Frequency = MedicationFrequency.OnceDaily,
+                ScheduledTimes = "[\"08:00\"]",
+                IsActive = false,
+                StartDate = DateTime.Today.AddDays(-90),
+                EndDate = DateTime.Today.AddDays(-10),
+                Instructions = "Take with food to reduce stomach irritation.",
+                RemindersEnabled = false
+            }
+        };
+    }
+
+    private void ApplyFilters()
+    {
+        if (allMedications == null)
+        {
+            filteredMedications = new List<Medication>();
+            return;
+        }
+
+        var query = allMedications.AsQueryable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(m => 
+                m.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (m.BrandName != null && m.BrandName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                m.Type.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply status filter
+        query = statusFilter switch
+        {
+            "active" => query.Where(m => m.IsActive),
+            "inactive" => query.Where(m => !m.IsActive),
+            "blood-thinners" => query.Where(m => m.Type == MedicationType.Warfarin || m.Type == MedicationType.DOAC || m.Type == MedicationType.Heparin || m.Type == MedicationType.LMWH),
+            _ => query
+        };
+
+        // Apply sorting
+        query = sortBy switch
+        {
+            "date" => query.OrderByDescending(m => m.CreatedAt),
+            "frequency" => query.OrderBy(m => m.Frequency),
+            "type" => query.OrderBy(m => m.Type),
+            _ => query.OrderBy(m => m.Name)
+        };
+
+        var allFiltered = query.ToList();
+        totalPages = (int)Math.Ceiling((double)allFiltered.Count / pageSize);
+        
+        filteredMedications = allFiltered
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        statusFilter = e.Value?.ToString() ?? "all";
+        currentPage = 1;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private async Task OnSortChanged(ChangeEventArgs e)
+    {
+        sortBy = e.Value?.ToString() ?? "name";
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        statusFilter = "all";
+        sortBy = "name";
+        currentPage = 1;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ChangePage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            ApplyFilters();
+            StateHasChanged();
+        }
+    }
+
+    // Navigation methods
+    private void NavigateToAddMedications() => Navigation.NavigateTo("/medications/add");
+
+    private void EditMedication(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/edit/{medicationId}");
+    }
+
+    private void ViewHistory(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/history");
+    }
+
+    private void LogDose(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/log");
+    }
+
+    private async Task DeactivateMedication(string medicationId)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to deactivate this medication?");
+        if (confirmed)
+        {
+            // TODO: Call API to deactivate medication
+            await LoadMedications();
+            ApplyFilters();
+            StateHasChanged();
+        }
+    }
+
+    // Helper methods
+    private string GetMedicationCardClass(Medication medication)
+    {
+        return medication.IsActive ? "border-success" : "border-secondary";
+    }
+
+    private string GetTypeClass(MedicationType type)
+    {
+        return type switch
+        {
+            MedicationType.Warfarin => "bg-danger",
+            MedicationType.DOAC => "bg-warning",
+            MedicationType.Heparin => "bg-info",
+            MedicationType.LMWH => "bg-info",
+            MedicationType.Antiplatelet => "bg-secondary",
+            _ => "bg-dark"
+        };
+    }
+
+    private string GetStatusBadgeClass(bool isActive)
+    {
+        return isActive ? "bg-success" : "bg-secondary";
+    }
+
+    private string GetFrequencyDisplay(MedicationFrequency frequency)
+    {
+        return frequency switch
+        {
+            MedicationFrequency.OnceDaily => "1x/day",
+            MedicationFrequency.TwiceDaily => "2x/day",
+            MedicationFrequency.ThreeTimesDaily => "3x/day",
+            MedicationFrequency.FourTimesDaily => "4x/day",
+            MedicationFrequency.EveryOtherDay => "Every other day",
+            MedicationFrequency.Weekly => "Weekly",
+            MedicationFrequency.AsNeeded => "As needed",
+            _ => "Custom"
+        };
+    }
+
+    private List<string> GetScheduledTimes(string scheduledTimesJson)
+    {
+        try
+        {
+            var times = System.Text.Json.JsonSerializer.Deserialize<string[]>(scheduledTimesJson);
+            return times?.ToList() ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+}

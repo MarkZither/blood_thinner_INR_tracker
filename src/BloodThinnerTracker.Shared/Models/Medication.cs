@@ -59,6 +59,98 @@ public class Medication : MedicalEntityBase
         public string DosageUnit { get; set; } = "mg";
 
         /// <summary>
+        /// Gets or sets the medication strength as a numeric value.
+        /// </summary>
+        [Range(0.01, 1000, ErrorMessage = "Strength must be between 0.01 and 1000")]
+        [Column(TypeName = "decimal(10,3)")]
+        public decimal? Strength { get; set; }
+
+        /// <summary>
+        /// Gets or sets the medication unit for strength.
+        /// </summary>
+        [StringLength(20)]
+        [Column(TypeName = "varchar(20)")]
+        public string? Unit { get; set; }
+
+        /// <summary>
+        /// Gets or sets the medication form (tablet, capsule, liquid, injection).
+        /// </summary>
+        [StringLength(50)]
+        [Column(TypeName = "varchar(50)")]
+        public string? Form { get; set; }
+
+        /// <summary>
+        /// Gets or sets the medication color for identification.
+        /// </summary>
+        [StringLength(50)]
+        [Column(TypeName = "varchar(50)")]
+        public string? Color { get; set; }
+
+        /// <summary>
+        /// Gets or sets the medication shape for identification.
+        /// </summary>
+        [StringLength(50)]
+        [Column(TypeName = "varchar(50)")]
+        public string? Shape { get; set; }
+
+        /// <summary>
+        /// Gets or sets the medication imprint/markings.
+        /// </summary>
+        [StringLength(100)]
+        [Column(TypeName = "varchar(100)")]
+        public string? Imprint { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this is a blood thinner medication.
+        /// </summary>
+        public bool IsBloodThinner { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets contraindications for this medication.
+        /// </summary>
+        [StringLength(1000)]
+        [Column(TypeName = "nvarchar(1000)")]
+        public string? Contraindications { get; set; }
+
+        /// <summary>
+        /// Gets or sets storage instructions for the medication.
+        /// </summary>
+        [StringLength(500)]
+        [Column(TypeName = "nvarchar(500)")]
+        public string? StorageInstructions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum daily dose allowed.
+        /// </summary>
+        [Column(TypeName = "decimal(10,3)")]
+        public decimal MaxDailyDose { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the minimum hours required between doses.
+        /// </summary>
+        [Range(1, 168, ErrorMessage = "Minimum hours between doses must be between 1 and 168")]
+        public int MinHoursBetweenDoses { get; set; } = 6;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this medication requires INR monitoring.
+        /// </summary>
+        public bool RequiresINRMonitoring { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the minimum target INR value for this medication.
+        /// </summary>
+        [Range(0.5, 8.0, ErrorMessage = "INR target minimum must be between 0.5 and 8.0")]
+        [Column(TypeName = "decimal(3,1)")]
+        public decimal? INRTargetMin { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum target INR value for this medication.
+        /// </summary>
+        [Range(0.5, 8.0, ErrorMessage = "INR target maximum must be between 0.5 and 8.0")]
+        [Column(TypeName = "decimal(3,1)")]
+        public decimal? INRTargetMax { get; set; }
+
+        /// <summary>
         /// Gets or sets the medication frequency (how often to take).
         /// </summary>
         [Required]

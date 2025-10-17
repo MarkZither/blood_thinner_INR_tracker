@@ -3,6 +3,7 @@ using System;
 using BloodThinnerTracker.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BloodThinnerTracker.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251016173947_CreateMedicalEntitiesFixed")]
+    partial class CreateMedicalEntitiesFixed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0-preview.7.25380.108");
@@ -324,14 +327,6 @@ namespace BloodThinnerTracker.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Color")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Contraindications")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -362,26 +357,12 @@ namespace BloodThinnerTracker.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Form")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
                     b.Property<int>("Frequency")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("GenericName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal?>("INRTargetMax")
-                        .HasColumnType("decimal(3,1)");
-
-                    b.Property<decimal?>("INRTargetMin")
-                        .HasColumnType("decimal(3,1)");
-
-                    b.Property<string>("Imprint")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Instructions")
                         .HasMaxLength(500)
@@ -390,16 +371,7 @@ namespace BloodThinnerTracker.Api.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsBloodThinner")
-                        .HasColumnType("INTEGER");
-
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("MaxDailyDose")
-                        .HasColumnType("decimal(10,3)");
-
-                    b.Property<int>("MinHoursBetweenDoses")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -432,15 +404,8 @@ namespace BloodThinnerTracker.Api.Migrations
                     b.Property<bool>("RemindersEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("RequiresINRMonitoring")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("ScheduledTimes")
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Shape")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("SideEffects")
                         .HasMaxLength(500)
@@ -449,19 +414,8 @@ namespace BloodThinnerTracker.Api.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("StorageInstructions")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal?>("Strength")
-                        .HasColumnType("decimal(10,3)");
-
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -642,15 +596,6 @@ namespace BloodThinnerTracker.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsEmailNotificationsEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsPushNotificationsEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsSmsNotificationsEnabled")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("TEXT");
 
@@ -674,17 +619,6 @@ namespace BloodThinnerTracker.Api.Migrations
                     b.Property<string>("Preferences")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
-
-                    b.Property<string>("PreferredLanguage")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
-                    b.Property<DateTime?>("ProfileCompletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ReminderAdvanceMinutes")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Role")
                         .HasMaxLength(20)

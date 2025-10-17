@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell x:Class="BloodThinnerTracker.Mobile.AppShell"
+       xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:BloodThinnerTracker.Mobile.Views"
+       Title="Blood Thinner Tracker"
+       FlyoutBackgroundColor="{StaticResource Primary}">
+
+    <!-- Shell Styles -->
+    <Shell.Resources>
+        <ResourceDictionary>
+            <Style x:Key="BaseStyle" TargetType="Element">
+                <Setter Property="Shell.BackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="Shell.ForegroundColor" Value="{StaticResource TextWhite}" />
+                <Setter Property="Shell.TitleColor" Value="{StaticResource TextWhite}" />
+                <Setter Property="Shell.DisabledColor" Value="#B4FFFFFF" />
+                <Setter Property="Shell.UnselectedColor" Value="#95FFFFFF" />
+                <Setter Property="Shell.TabBarBackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="Shell.TabBarForegroundColor" Value="{StaticResource TextWhite}"/>
+                <Setter Property="Shell.TabBarUnselectedColor" Value="#95FFFFFF"/>
+                <Setter Property="Shell.TabBarTitleColor" Value="{StaticResource TextWhite}"/>
+            </Style>
+            <Style TargetType="TabBar" BasedOn="{StaticResource BaseStyle}" />
+            <Style TargetType="FlyoutItem" BasedOn="{StaticResource BaseStyle}" />
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <!-- Flyout Header -->
+    <Shell.FlyoutHeaderTemplate>
+        <DataTemplate>
+            <Grid BackgroundColor="{StaticResource PrimaryDark}" HeightRequest="200">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                
+                <StackLayout Grid.Row="0" 
+                           VerticalOptions="Center" 
+                           HorizontalOptions="Center"
+                           Spacing="10">
+                    <Image Source="app_icon.png" 
+                           HeightRequest="60" 
+                           WidthRequest="60"
+                           Aspect="AspectFit" />
+                    <Label Text="Blood Thinner Tracker" 
+                           FontSize="{StaticResource FontSizeXLarge}"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextWhite}"
+                           HorizontalOptions="Center" />
+                </StackLayout>
+                
+                <StackLayout Grid.Row="1" 
+                           Orientation="Horizontal" 
+                           Margin="20,0,20,20"
+                           HorizontalOptions="Start">
+                    <Image Source="user_avatar.png" 
+                           HeightRequest="40" 
+                           WidthRequest="40"
+                           Aspect="AspectFill"
+                           BackgroundColor="{StaticResource Light}"
+                           Clip="Ellipse" />
+                    <StackLayout Spacing="2" VerticalOptions="Center">
+                        <Label Text="John Doe" 
+                               FontSize="{StaticResource FontSizeMedium}"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextWhite}" />
+                        <Label Text="john.doe@example.com" 
+                               FontSize="{StaticResource FontSizeSmall}"
+                               TextColor="#95FFFFFF" />
+                    </StackLayout>
+                </StackLayout>
+            </Grid>
+        </DataTemplate>
+    </Shell.FlyoutHeaderTemplate>
+
+    <!-- Main Navigation Tabs -->
+    <TabBar>
+        <!-- Dashboard Tab -->
+        <ShellContent Title="Dashboard"
+                      Icon="home_icon.png"
+                      ContentTemplate="{DataTemplate local:DashboardPage}"
+                      Route="dashboard" />
+
+        <!-- Medication Tab -->
+        <ShellContent Title="Medication"
+                      Icon="pills_icon.png"
+                      ContentTemplate="{DataTemplate local:MedicationPage}"
+                      Route="medication" />
+
+        <!-- INR Tracking Tab -->
+        <ShellContent Title="INR"
+                      Icon="chart_icon.png"
+                      ContentTemplate="{DataTemplate local:INRTrackingPage}"
+                      Route="inr" />
+
+        <!-- Profile Tab -->
+        <ShellContent Title="Profile"
+                      Icon="profile_icon.png"
+                      ContentTemplate="{DataTemplate local:ProfilePage}"
+                      Route="profile" />
+    </TabBar>
+
+    <!-- Flyout Menu Items -->
+    <FlyoutItem Title="Reports" Icon="report_icon.png">
+        <ShellContent ContentTemplate="{DataTemplate local:ReportsPage}" Route="reports" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Settings" Icon="settings_icon.png">
+        <ShellContent ContentTemplate="{DataTemplate local:SettingsPage}" Route="settings" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Help & Support" Icon="help_icon.png">
+        <ShellContent ContentTemplate="{DataTemplate local:HelpPage}" Route="help" />
+    </FlyoutItem>
+
+    <!-- Flyout Footer -->
+    <Shell.FlyoutFooterTemplate>
+        <DataTemplate>
+            <StackLayout Margin="20" Spacing="10">
+                <Button Text="Sync Data" 
+                        BackgroundColor="{StaticResource Secondary}"
+                        TextColor="{StaticResource TextWhite}"
+                        CornerRadius="{StaticResource BorderRadiusMedium}"
+                        Command="{Binding SyncCommand}" />
+                
+                <Button Text="Emergency Contact" 
+                        BackgroundColor="{StaticResource Danger}"
+                        TextColor="{StaticResource TextWhite}"
+                        CornerRadius="{StaticResource BorderRadiusMedium}"
+                        Command="{Binding EmergencyContactCommand}" />
+                
+                <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="5">
+                    <Label Text="🩸" FontSize="{StaticResource FontSizeMedium}" />
+                    <Label Text="Stay Safe, Stay Healthy" 
+                           FontSize="{StaticResource FontSizeSmall}"
+                           TextColor="{StaticResource TextMuted}"
+                           HorizontalOptions="Center" />
+                </StackLayout>
+            </StackLayout>
+        </DataTemplate>
+    </Shell.FlyoutFooterTemplate>
+
+</Shell>
