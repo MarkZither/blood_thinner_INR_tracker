@@ -1,4 +1,4 @@
-@BloodThinnerTracker.Api_HostAddress = http://localhost:5026
+@BloodThinnerTracker_Api_HostAddress = http://localhost:5026
 
 ###################################################################
 # Blood Thinner INR Tracker API Tests
@@ -6,7 +6,7 @@
 ###################################################################
 
 ### Health Check
-GET {{BloodThinnerTracker.Api_HostAddress}}/weatherforecast/
+GET {{BloodThinnerTracker_Api_HostAddress}}/health
 Accept: application/json
 
 ###################################################################
@@ -14,7 +14,7 @@ Accept: application/json
 ###################################################################
 
 ### Login
-POST {{BloodThinnerTracker.Api_HostAddress}}/api/auth/login
+POST {{BloodThinnerTracker_Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
@@ -24,7 +24,7 @@ Content-Type: application/json
 }
 
 ### Refresh Token (requires valid refresh token)
-POST {{BloodThinnerTracker.Api_HostAddress}}/api/auth/refresh
+POST {{BloodThinnerTracker_Api_HostAddress}}/api/auth/refresh
 Content-Type: application/json
 
 {

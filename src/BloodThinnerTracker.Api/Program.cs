@@ -5,6 +5,7 @@ using BloodThinnerTracker.Shared.Models.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 using System.Text;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
@@ -78,6 +79,15 @@ await app.Services.EnsureDatabaseAsync();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("Blood Thinner Tracker API")
+            .WithTheme(ScalarTheme.Mars)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+            .WithPreferredScheme("Bearer")
+            .WithApiKeyAuthentication(x => x.Token = "your-api-key");
+    });
     app.UseDeveloperExceptionPage();
 }
 else
@@ -119,8 +129,12 @@ app.MapGet("/disclaimer", () => new
 .WithName("GetMedicalDisclaimer")
 .WithSummary("Medical application disclaimer and compliance information");
 
-// Default route with medical safety information
-app.MapGet("/", () => new
+// Default route redirects to Scalar API documentation
+app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+    .ExcludeFromDescription();
+
+// Legacy info endpoint
+app.MapGet("/info", () => new
 {
     Application = "Blood Thinner Medication & INR Tracker API",
     Version = "1.0.0",
@@ -129,6 +143,7 @@ app.MapGet("/", () => new
     MedicalDisclaimer = "⚠️ This is a medical application. Always consult healthcare providers for medical advice.",
     Endpoints = new
     {
+        ApiDocumentation = "/scalar/v1",
         Health = "/health",
         Disclaimer = "/disclaimer",
         OpenAPI = app.Environment.IsDevelopment() ? "/openapi/v1.json" : "Available in development only"
