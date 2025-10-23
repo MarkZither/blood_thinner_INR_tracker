@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using BloodThinnerTracker.Shared.Models;
 using BloodThinnerTracker.Shared.Models.Authentication;
 using BloodThinnerTracker.Api.Data;
 
@@ -15,28 +16,22 @@ namespace BloodThinnerTracker.Api.Services.Authentication;
 public interface IAuthenticationService
 {
     /// <summary>
-    /// Authenticate user with email and password
-    /// </summary>
-    /// <param name="request">Login request</param>
-    /// <returns>Authentication response with tokens</returns>
-    Task<AuthenticationResponse?> AuthenticateAsync(LoginRequest request);
-
-    /// <summary>
     /// Authenticate user with external provider (Azure AD, Google)
     /// </summary>
     /// <param name="provider">Provider name</param>
     /// <param name="externalId">External user ID</param>
     /// <param name="email">User email</param>
     /// <param name="name">User name</param>
+    /// <param name="deviceId">Optional device ID for token tracking</param>
     /// <returns>Authentication response with tokens</returns>
-    Task<AuthenticationResponse?> AuthenticateExternalAsync(string provider, string externalId, string email, string name);
+    Task<AuthenticationResponse?> AuthenticateExternalAsync(string provider, string externalId, string email, string name, string? deviceId = null);
 
     /// <summary>
     /// Refresh access token using refresh token
     /// </summary>
-    /// <param name="request">Refresh token request</param>
+    /// <param name="refreshToken">Refresh token string</param>
     /// <returns>New authentication response</returns>
-    Task<AuthenticationResponse?> RefreshTokenAsync(RefreshTokenRequest request);
+    Task<AuthenticationResponse?> RefreshTokenAsync(string refreshToken);
 
     /// <summary>
     /// Revoke refresh token
@@ -69,7 +64,7 @@ public class AuthenticationService : IAuthenticationService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenService _jwtTokenService;
-    private readonly IPasswordHasher<object> _passwordHasher;
+    private readonly IIdTokenValidationService _idTokenValidationService;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly AuthenticationConfig _authConfig;
 
@@ -79,97 +74,90 @@ public class AuthenticationService : IAuthenticationService
     public AuthenticationService(
         ApplicationDbContext context,
         IJwtTokenService jwtTokenService,
-        IPasswordHasher<object> passwordHasher,
+        IIdTokenValidationService idTokenValidationService,
         ILogger<AuthenticationService> logger,
         AuthenticationConfig authConfig)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
-        _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+        _idTokenValidationService = idTokenValidationService ?? throw new ArgumentNullException(nameof(idTokenValidationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _authConfig = authConfig ?? throw new ArgumentNullException(nameof(authConfig));
     }
 
     /// <summary>
-    /// Authenticate user with email and password for medical data access
-    /// </summary>
-    public async Task<AuthenticationResponse?> AuthenticateAsync(LoginRequest request)
-    {
-        try
-        {
-            _logger.LogInformation("Authentication attempt for user {Email}", request.Email);
-
-            // TODO: Implement user lookup and password verification
-            // This is a placeholder implementation until User entity is created
-            var user = new UserInfo
-            {
-                Id = Guid.NewGuid().ToString(),
-                Email = request.Email,
-                Name = request.Email.Split('@')[0],
-                Role = "Patient",
-                Provider = "Local",
-                TimeZone = "UTC",
-                LastLogin = DateTime.UtcNow
-            };
-
-            var permissions = await GetUserPermissionsAsync(user.Id);
-            var accessToken = _jwtTokenService.GenerateAccessToken(user, permissions);
-            var refreshToken = _jwtTokenService.GenerateRefreshToken();
-
-            // TODO: Store refresh token in database
-            await LogAuthenticationEventAsync(user.Id, "Login", "Success", request.DeviceId);
-
-            _logger.LogInformation("User {UserId} authenticated successfully", user.Id);
-
-            return new AuthenticationResponse
-            {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken,
-                TokenType = "Bearer",
-                ExpiresIn = _authConfig.Jwt.AccessTokenExpirationMinutes * 60,
-                User = user,
-                Permissions = permissions,
-                RequiresMfa = _authConfig.MedicalSecurity.RequireMfa
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Authentication failed for user {Email}", request.Email);
-            await LogAuthenticationEventAsync(request.Email, "Login", "Failed", request.DeviceId);
-            return null;
-        }
-    }
-
-    /// <summary>
     /// Authenticate user with external provider (Azure AD, Google)
+    /// Uses ID token validation and auto-creates users on first login
     /// </summary>
-    public async Task<AuthenticationResponse?> AuthenticateExternalAsync(string provider, string externalId, string email, string name)
+    public async Task<AuthenticationResponse?> AuthenticateExternalAsync(string provider, string externalId, string email, string name, string? deviceId = null)
     {
         try
         {
             _logger.LogInformation("External authentication attempt for {Email} via {Provider}", email, provider);
 
-            // TODO: Implement external user lookup or creation
-            // This is a placeholder implementation until User entity is created
-            var user = new UserInfo
+            // Look up existing user by ExternalUserId
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ExternalUserId == externalId && u.AuthProvider == provider);
+
+            User user;
+            bool isNewUser = false;
+
+            if (existingUser == null)
             {
-                Id = Guid.NewGuid().ToString(),
-                Email = email,
-                Name = name,
-                Role = "Patient",
-                Provider = provider,
-                TimeZone = "UTC",
-                LastLogin = DateTime.UtcNow
+                // Auto-create user on first OAuth login (per T015e requirement)
+                _logger.LogInformation("Creating new user account for {Email} via {Provider}", email, provider);
+                
+                user = new User
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Email = email,
+                    Name = name,
+                    AuthProvider = provider,
+                    ExternalUserId = externalId,
+                    Role = UserRole.Patient,
+                    TimeZone = "UTC", // TODO: Detect from device in T019a
+                    LastLoginAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                    IsDeleted = false
+                };
+
+                _context.Users.Add(user);
+                isNewUser = true;
+            }
+            else
+            {
+                // Update existing user's last login timestamp
+                user = existingUser;
+                user.LastLoginAt = DateTime.UtcNow;
+                user.UpdatedAt = DateTime.UtcNow;
+                _context.Users.Update(user);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Create UserInfo for JWT token
+            var userInfo = new UserInfo
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Name = user.Name,
+                Role = user.Role.ToString(),
+                Provider = user.AuthProvider,
+                TimeZone = user.TimeZone,
+                LastLogin = user.LastLoginAt ?? DateTime.UtcNow
             };
 
             var permissions = await GetUserPermissionsAsync(user.Id);
-            var accessToken = _jwtTokenService.GenerateAccessToken(user, permissions);
+            var accessToken = _jwtTokenService.GenerateAccessToken(userInfo, permissions);
             var refreshToken = _jwtTokenService.GenerateRefreshToken();
 
-            // TODO: Store refresh token in database
-            await LogAuthenticationEventAsync(user.Id, "ExternalLogin", "Success", null);
+            // Store refresh token in database (T011d)
+            await StoreRefreshTokenAsync(user.Id, refreshToken, deviceId);
+            await LogAuthenticationEventAsync(user.Id, isNewUser ? "NewUserCreated" : "ExternalLogin", "Success", null);
 
-            _logger.LogInformation("User {UserId} authenticated via {Provider}", user.Id, provider);
+            _logger.LogInformation("User {UserId} authenticated via {Provider} (New: {IsNew})", user.Id, provider, isNewUser);
 
             return new AuthenticationResponse
             {
@@ -177,7 +165,7 @@ public class AuthenticationService : IAuthenticationService
                 RefreshToken = refreshToken,
                 TokenType = "Bearer",
                 ExpiresIn = _authConfig.Jwt.AccessTokenExpirationMinutes * 60,
-                User = user,
+                User = userInfo,
                 Permissions = permissions,
                 RequiresMfa = _authConfig.MedicalSecurity.RequireMfa
             };
@@ -193,18 +181,83 @@ public class AuthenticationService : IAuthenticationService
     /// <summary>
     /// Refresh access token using refresh token
     /// </summary>
-    public async Task<AuthenticationResponse?> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<AuthenticationResponse?> RefreshTokenAsync(string refreshToken)
     {
         try
         {
-            _logger.LogDebug("Token refresh attempt for refresh token");
+            _logger.LogDebug("Token refresh attempt");
 
-            // TODO: Implement refresh token validation against database
-            // This is a placeholder implementation until RefreshToken entity is created
+            // Hash the refresh token to find it in the database
+            var tokenHash = HashToken(refreshToken);
 
-            // For now, return null to indicate refresh token is invalid
-            _logger.LogWarning("Refresh token validation not implemented yet");
-            return null;
+            // Find the refresh token in the database
+            var storedToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash);
+
+            if (storedToken == null)
+            {
+                _logger.LogWarning("Refresh token not found in database");
+                return null;
+            }
+
+            // Validate token is still active (not expired or revoked)
+            if (!storedToken.IsActive)
+            {
+                _logger.LogWarning("Refresh token is inactive (expired or revoked) for user {UserId}", storedToken.UserId);
+                return null;
+            }
+
+            var user = storedToken.User;
+            if (user == null || !user.IsActive || user.IsDeleted)
+            {
+                _logger.LogWarning("User {UserId} is inactive or deleted", storedToken.UserId);
+                return null;
+            }
+
+            // Update last login timestamp
+            user.LastLoginAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.UtcNow;
+            _context.Users.Update(user);
+
+            // Create UserInfo for new JWT token
+            var userInfo = new UserInfo
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Name = user.Name,
+                Role = user.Role.ToString(),
+                Provider = user.AuthProvider,
+                TimeZone = user.TimeZone,
+                LastLogin = user.LastLoginAt ?? DateTime.UtcNow
+            };
+
+            var permissions = await GetUserPermissionsAsync(user.Id);
+            var newAccessToken = _jwtTokenService.GenerateAccessToken(userInfo, permissions);
+            var newRefreshToken = _jwtTokenService.GenerateRefreshToken();
+
+            // Revoke old refresh token
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevocationReason = "Replaced with new refresh token";
+            _context.RefreshTokens.Update(storedToken);
+
+            // Store new refresh token
+            await StoreRefreshTokenAsync(user.Id, newRefreshToken, storedToken.DeviceId);
+            await _context.SaveChangesAsync();
+
+            await LogAuthenticationEventAsync(user.Id, "TokenRefresh", "Success", storedToken.DeviceId);
+            _logger.LogInformation("Token refreshed successfully for user {UserId}", user.Id);
+
+            return new AuthenticationResponse
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken,
+                TokenType = "Bearer",
+                ExpiresIn = _authConfig.Jwt.AccessTokenExpirationMinutes * 60,
+                User = userInfo,
+                Permissions = permissions,
+                RequiresMfa = _authConfig.MedicalSecurity.RequireMfa
+            };
         }
         catch (Exception ex)
         {
@@ -222,10 +275,28 @@ public class AuthenticationService : IAuthenticationService
         {
             _logger.LogInformation("Revoking refresh token");
 
-            // TODO: Implement refresh token revocation in database
-            // This is a placeholder implementation until RefreshToken entity is created
+            // Hash the refresh token to find it in the database
+            var tokenHash = HashToken(refreshToken);
 
-            await LogAuthenticationEventAsync("unknown", "TokenRevoke", "Success", null);
+            // Find the refresh token in the database
+            var storedToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash);
+
+            if (storedToken == null)
+            {
+                _logger.LogWarning("Refresh token not found for revocation");
+                return false;
+            }
+
+            // Mark token as revoked
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevocationReason = "User logout";
+            _context.RefreshTokens.Update(storedToken);
+            await _context.SaveChangesAsync();
+
+            await LogAuthenticationEventAsync(storedToken.UserId, "TokenRevoke", "Success", storedToken.DeviceId);
+            _logger.LogInformation("Refresh token revoked for user {UserId}", storedToken.UserId);
+            
             return true;
         }
         catch (Exception ex)
@@ -283,6 +354,38 @@ public class AuthenticationService : IAuthenticationService
             _logger.LogError(ex, "Session validation failed for user {UserId}", userId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Store refresh token in database with secure hashing
+    /// </summary>
+    private async Task StoreRefreshTokenAsync(string userId, string refreshToken, string? deviceId)
+    {
+        var tokenHash = HashToken(refreshToken);
+        var expiresAt = DateTime.UtcNow.AddDays(7); // NFR-002: 7-day refresh token lifetime
+
+        var refreshTokenEntity = new RefreshToken
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserId = userId,
+            TokenHash = tokenHash,
+            DeviceId = deviceId,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = expiresAt
+        };
+
+        _context.RefreshTokens.Add(refreshTokenEntity);
+        _logger.LogDebug("Stored refresh token for user {UserId}, device {DeviceId}", userId, deviceId);
+    }
+
+    /// <summary>
+    /// Hash refresh token for secure storage (SHA-256)
+    /// </summary>
+    private string HashToken(string token)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToBase64String(hashBytes);
     }
 
     /// <summary>

@@ -52,13 +52,74 @@
 
 ## Phase 3: [US1] Cross-Device Account Setup & Data Sync
 
-- [ ] T015 [US1] Implement user registration and login endpoints in src/BloodThinnerTracker.Api/Controllers/AuthController.cs <!-- INCOMPLETE: Placeholder /login endpoint exists but accepts any email/password. Need OAuth2 endpoints instead. See docs/OAUTH_GAP_ANALYSIS.md -->
+- [ ] T015 [US1] Implement OAuth2 redirect endpoints for web authentication and Swagger testing (FR-001, FR-022) in src/BloodThinnerTracker.Api/Controllers/AuthController.cs <!-- INCOMPLETE: Placeholder /login endpoint exists but accepts any email/password. Need OAuth2 endpoints instead. See docs/OAUTH_GAP_ANALYSIS.md -->
   - [ ] T015a Remove password-based /api/auth/login endpoint and LoginRequest model
   - [ ] T015b Add OAuth2 web flow initiation endpoint (GET /api/auth/external/{provider}) - redirects to Google/Azure AD consent page (MERGED from T010b)
+    - Generate CSRF state parameter (random GUID), store in distributed cache with 5-minute expiration
+    - Build authorization URL with: client_id, redirect_uri (/api/auth/callback/{provider}), response_type=code, scope=openid email profile, state
+    - Return HTTP 302 redirect to OAuth provider authorization URL
   - [ ] T015c Add OAuth2 callback handler (GET /api/auth/callback/{provider}) - exchanges authorization code for tokens (MERGED from T010c)
+    - Validate state parameter matches cached value (CSRF protection)
+    - Exchange authorization code for access token + ID token via provider token endpoint
+    - Validate ID token using existing IdTokenValidationService (T010d)
+    - Call AuthenticateExternalAsync to create/update user and generate JWT tokens
+    - Return JSON response with JWT access token + refresh token OR redirect to web UI with tokens in URL fragment (#access_token=...&refresh_token=...)
   - [ ] T015d Add OAuth2 mobile endpoint for ID token exchange (POST /api/auth/external/mobile) - validates ID token from platform-native auth using T010d validation service
   - [ ] T015e Implement automatic user creation on first OAuth login: Check if ExternalUserId exists, create new User if not, update LastLoginAt
   - [ ] T015f **COMPLETED BY T010g** - ExternalUserId field added via User entity migration in T010g
+  - [ ] T015g Update Swagger configuration in Program.cs to enable OAuth2 authorization UI:
+    ```csharp
+    builder.Services.AddSwaggerGen(options => {
+        options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme {
+            Type = SecuritySchemeType.OAuth2,
+            Flows = new OpenApiOAuthFlows {
+                AuthorizationCode = new OpenApiOAuthFlow {
+                    AuthorizationUrl = new Uri("/api/auth/external/google", UriKind.Relative),
+                    TokenUrl = new Uri("/api/auth/callback/google", UriKind.Relative),
+                    Scopes = new Dictionary<string, string> {
+                        { "openid", "OpenID Connect" },
+                        { "email", "Email address" },
+                        { "profile", "User profile" }
+                    }
+                }
+            }
+        });
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement {
+            {
+                new OpenApiSecurityScheme {
+                    Reference = new OpenApiReference {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "oauth2"
+                    }
+                },
+                new[] { "openid", "email", "profile" }
+            }
+        });
+    });
+    ```
+    **NOTE**: T015g is DEFERRED - Project uses Scalar with built-in .NET 10 OpenAPI (no Swashbuckle). Scalar has native authentication UI.
+  - [ ] T015h Add distributed cache for state parameter storage (use MemoryCache for development, Redis for production)
+  - [ ] T015i Create OAuth test page for developer self-service JWT token generation (see specs/tasks/T015i-oauth-test-page.md)
+    - Self-contained HTML page at `/oauth-test.html` with OAuth login buttons
+    - Enhance OAuthCallback to detect test page requests and redirect with token in query string
+    - Token display with one-click copy functionality
+    - Error handling with user-friendly messages
+    - Scalar integration instructions
+    - Comprehensive developer documentation in docs/OAUTH_TESTING_GUIDE.md
+  - [ ] T015j Add custom OAuth instructions to Scalar UI (see specs/tasks/T015j-scalar-oauth-instructions.md)
+    - Custom API description with "Authentication Required" header
+    - Step-by-step quick start guide (5 steps)
+    - Direct link to `/oauth-test.html` for token generation
+    - Links to documentation (QUICK_START, OAUTH_TESTING, AUTHENTICATION_TESTING)
+    - Medical disclaimer in API documentation
+  - [ ] T015k Configure User Secrets for OAuth credentials (see specs/tasks/T015k-user-secrets-oauth.md)
+    - Initialize User Secrets for BloodThinnerTracker.Api project
+    - Configure Google OAuth credentials (ClientId, ClientSecret) via dotnet user-secrets
+    - Configure Azure AD OAuth credentials (TenantId, ClientId, ClientSecret) via dotnet user-secrets
+    - Update appsettings.Development.json with placeholder values and comments
+    - Create comprehensive setup guide in docs/USER_SECRETS_SETUP.md
+    - Document OAuth provider registration steps (Google Cloud Console, Azure Portal)
+    - No OAuth credentials committed to Git (security requirement)
 - [ ] T016 [P] [US1] Implement device registration and sync endpoints in src/BloodThinnerTracker.Api/Controllers/DeviceController.cs <!-- DeviceController not found - CREATE NEW -->
   - [ ] T016a Create DeviceController with endpoints: POST /api/devices/register, GET /api/devices, DELETE /api/devices/{id}
   - [ ] T016b Implement device fingerprinting logic (platform, OS version, app version, device ID)
@@ -132,6 +193,62 @@
 - [ ] T038 [P] [US5] Implement UI for missed dose warnings and recovery in src/BloodThinnerTracker.Mobile/Pages/ and src/BloodThinnerTracker.Web/Pages/
 - [ ] T039 [P] [US5] Add tests for missed dose scenarios in tests/BloodThinnerTracker.Api.Tests/
 
+## Phase 8: Authentication Enhancement (OAuth Redirect + mTLS)
+
+### T046: Mutual TLS (mTLS) Certificate-Based Authentication (FR-022)
+**Purpose**: Enable API testing without OAuth user interaction and support future healthcare integrations  
+**Priority**: MEDIUM (after T015 OAuth redirect)  
+**Dependencies**: T010d (IdTokenValidationService), T011d (RefreshToken entity)  
+**Estimated Effort**: 2-3 hours
+
+- [ ] T046 [P] Implement mutual TLS (mTLS) authentication for testing and integration partners in src/BloodThinnerTracker.Api/
+  - [ ] T046a Install NuGet package: `dotnet add package Microsoft.AspNetCore.Authentication.Certificate`
+  - [ ] T046b Create IntegrationPartner entity with fields: Id (guid), Name (string), CertificateSubject (string), CertificateThumbprint (string), IsActive (bool), CreatedAt (DateTime), Permissions (JSON string array - e.g., ["medication:read", "inr:read"])
+  - [ ] T046c Add IntegrationPartner to ApplicationDbContext and create migration
+  - [ ] T046d Add certificate authentication in Program.cs:
+    ```csharp
+    builder.Services.AddAuthentication()
+        .AddCertificate("Certificate", options => {
+            options.AllowedCertificateTypes = CertificateTypes.SelfSigned | CertificateTypes.Chained;
+            options.RevocationMode = X509RevocationMode.Online;
+            options.Events = new CertificateAuthenticationEvents {
+                OnCertificateValidated = async context => {
+                    var cert = context.ClientCertificate;
+                    var validationService = context.HttpContext.RequestServices
+                        .GetRequiredService<ICertificateValidationService>();
+                    var partner = await validationService.ValidateAndGetPartnerAsync(cert);
+                    if (partner?.IsActive == true) {
+                        var claims = new[] {
+                            new Claim(ClaimTypes.Name, partner.Name),
+                            new Claim("PartnerId", partner.Id.ToString()),
+                            new Claim("AuthMethod", "mTLS")
+                        };
+                        context.Principal = new ClaimsPrincipal(
+                            new ClaimsIdentity(claims, "Certificate"));
+                        context.Success();
+                    } else {
+                        context.Fail("Certificate not registered or inactive");
+                    }
+                }
+            };
+        });
+    ```
+  - [ ] T046e Create ICertificateValidationService interface with methods:
+    - `Task<IntegrationPartner?> ValidateAndGetPartnerAsync(X509Certificate2 cert)`
+    - `Task<bool> ValidateCertificateAsync(X509Certificate2 cert)` - checks expiry, CA trust, revocation (OCSP)
+    - `Task<IntegrationPartner?> GetPartnerByCertificateAsync(string subject, string thumbprint)`
+  - [ ] T046f Implement CertificateValidationService in src/BloodThinnerTracker.Api/Services/
+  - [ ] T046g Create admin endpoints in src/BloodThinnerTracker.Api/Controllers/IntegrationPartnerController.cs:
+    - `POST /api/admin/integration-partners` - Register new partner with certificate details
+    - `PUT /api/admin/integration-partners/{id}/revoke` - Revoke partner access
+    - `GET /api/admin/integration-partners` - List all partners with status
+    - `DELETE /api/admin/integration-partners/{id}` - Remove partner registration
+  - [ ] T046h Add [Authorize(AuthenticationSchemes = "Bearer,Certificate")] to API controllers to accept both OAuth and mTLS
+  - [ ] T046i Create certificate generation script: tools/scripts/generate-test-cert.ps1 (PowerShell) and generate-test-cert.sh (Bash)
+  - [ ] T046j Add certificate testing documentation to docs/AUTHENTICATION_TESTING_GUIDE.md with curl examples
+  - [ ] T046k Add integration tests for mTLS authentication in tests/BloodThinnerTracker.Api.Tests/CertificateAuthTests.cs
+  - [ ] T046l Add security audit logging for all mTLS authentication attempts (success/failure) in ApplicationDbContext with CertificateAuditLog entity
+
 ## Final Phase: Polish & Cross-Cutting Concerns
 
 - [ ] T040 Add accessibility (WCAG 2.1 AA) checks to all UI projects
@@ -156,18 +273,29 @@
 - US1 (Account & Sync) → US2, US3, US4, US5 (all depend on account setup and sync)
 - US2 (Medication Reminders) → US4 (history/trends), US5 (missed dose)
 - US3 (INR Reminders) → US4 (history/trends)
+- **Authentication Phasing**:
+  - T010d (ID token validation) → T015d (mobile OAuth endpoint) - SHARED SERVICE
+  - T011d (refresh token entity) → T015c (OAuth callback stores refresh tokens)
+  - T015 (OAuth redirect) → T018c (Web UI auth state provider)
+  - T015 (OAuth redirect) → T015g (Swagger OAuth configuration)
+  - T015 (OAuth redirect) → T046 (mTLS optional, but improves testing workflow)
 
 ## Parallel Execution Examples
 
 - T002, T003, T004, T005, T006 can be done in parallel after T001
 - Within each user story phase, [P] tasks can be executed in parallel (e.g., T016, T017, T018, T019)
 - Test tasks ([P] in Tests/) can be run in parallel with implementation tasks after endpoints are stubbed
+- **T015 and T046 are independent** - T046 (mTLS) can be developed in parallel with T015 (OAuth redirect) after T010d/T011d complete
 
 ## Implementation Strategy
 
 - MVP: Complete all tasks for US1 (T015–T020) to deliver cross-device account setup and data sync
 - Incremental delivery: Each user story phase is independently testable and can be released as a complete increment
 - Parallelize foundational and [P] tasks to accelerate delivery
+- **Authentication Rollout**:
+  1. **Phase 1 (DONE)**: T010d ID token validation + T011d refresh tokens → Mobile OAuth working ✅
+  2. **Phase 2 (NEXT)**: T015 OAuth redirect → Swagger testing + Web UI authentication ⏳
+  3. **Phase 3 (FUTURE)**: T046 mTLS → Automated testing + future integrations ⏳
 
 ---
 

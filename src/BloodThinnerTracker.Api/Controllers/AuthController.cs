@@ -3,7 +3,11 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Claims;
+using System.Text;
+using System.Security.Cryptography;
+using System.Web;
 using BloodThinnerTracker.Shared.Models.Authentication;
 using BloodThinnerTracker.Api.Services.Authentication;
 
@@ -22,61 +26,363 @@ namespace BloodThinnerTracker.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authenticationService;
+    private readonly IIdTokenValidationService _idTokenValidationService;
     private readonly ILogger<AuthController> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IDistributedCache _cache;
 
     /// <summary>
     /// Initialize authentication controller
     /// </summary>
     public AuthController(
         IAuthenticationService authenticationService,
-        ILogger<AuthController> logger)
+        IIdTokenValidationService idTokenValidationService,
+        ILogger<AuthController> logger,
+        IConfiguration configuration,
+        IDistributedCache cache)
     {
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+        _idTokenValidationService = idTokenValidationService ?? throw new ArgumentNullException(nameof(idTokenValidationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
     /// <summary>
-    /// Authenticate user with email and password
+    /// Initiate OAuth2 authentication flow (redirect to provider)
     /// </summary>
-    /// <param name="request">Login credentials</param>
-    /// <returns>Authentication response with JWT tokens</returns>
-    /// <response code="200">Login successful, returns JWT tokens and user info</response>
-    /// <response code="400">Invalid request format</response>
-    /// <response code="401">Invalid credentials</response>
-    /// <response code="429">Too many login attempts</response>
-    [HttpPost("login")]
+    /// <param name="provider">OAuth provider (google or azuread)</param>
+    /// <param name="redirectUri">Optional callback URI (defaults to /api/auth/callback/{provider})</param>
+    /// <returns>Redirect to OAuth provider consent page</returns>
+    /// <response code="302">Redirect to OAuth provider</response>
+    /// <response code="400">Invalid provider</response>
+    [HttpGet("external/{provider}")]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ExternalLogin(
+        [FromRoute] string provider,
+        [FromQuery] string? redirectUri = null)
+    {
+        try
+        {
+            // Validate provider
+            provider = provider.ToLowerInvariant();
+            if (provider != "google" && provider != "azuread")
+            {
+                _logger.LogWarning("Invalid OAuth provider requested: {Provider}", provider);
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid Provider",
+                    Detail = $"Provider '{provider}' is not supported. Use 'google' or 'azuread'.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Generate CSRF state parameter
+            var csrfToken = GenerateState();
+            
+            // Build state parameter: csrfToken|finalRedirectUri
+            // This allows us to redirect user after OAuth completes
+            var state = string.IsNullOrEmpty(redirectUri) 
+                ? csrfToken 
+                : $"{csrfToken}|{redirectUri}";
+            
+            // Store state in distributed cache with 5-minute expiration
+            var cacheKey = $"oauth_state:{csrfToken}";
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            };
+            await _cache.SetStringAsync(cacheKey, state, cacheOptions);
+
+            // Build authorization URL (always uses /api/auth/callback/{provider})
+            var authUrl = BuildAuthorizationUrl(provider, state);
+            
+            _logger.LogInformation("Initiating OAuth2 flow for provider {Provider} with state {State}", provider, state);
+            
+            return Redirect(authUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error initiating OAuth2 flow for provider {Provider}", provider);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "OAuth Error",
+                Detail = "Failed to initiate OAuth2 authentication",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// OAuth2 callback handler (receives authorization code from provider)
+    /// </summary>
+    /// <param name="provider">OAuth provider (google or azuread)</param>
+    /// <param name="code">Authorization code from provider</param>
+    /// <param name="state">CSRF state parameter</param>
+    /// <param name="error">Error from provider (if any)</param>
+    /// <returns>Authentication response with JWT tokens or error</returns>
+    /// <response code="200">OAuth callback successful, returns JWT tokens</response>
+    /// <response code="400">Invalid callback parameters</response>
+    /// <response code="401">OAuth authentication failed</response>
+    [HttpGet("callback/{provider}")]
     [ProducesResponseType(typeof(AuthenticationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
-    public async Task<ActionResult<AuthenticationResponse>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<AuthenticationResponse>> OAuthCallback(
+        [FromRoute] string provider,
+        [FromQuery] string? code = null,
+        [FromQuery] string? state = null,
+        [FromQuery] string? error = null)
+    {
+        try
+        {
+            // Handle provider error
+            if (!string.IsNullOrEmpty(error))
+            {
+                _logger.LogWarning("OAuth provider returned error: {Error}", error);
+                
+                // Check if this is a test page callback
+                if (!string.IsNullOrEmpty(state))
+                {
+                    var errorStateParts = state.Split('|');
+                    if (errorStateParts.Length >= 2 && errorStateParts[1].EndsWith("/oauth-test.html", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Redirect($"{errorStateParts[1]}?error={Uri.EscapeDataString(error)}");
+                    }
+                }
+                
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "OAuth Error",
+                    Detail = $"OAuth provider returned error: {error}",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            // Validate required parameters
+            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
+            {
+                _logger.LogWarning("OAuth callback missing required parameters");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid Callback",
+                    Detail = "Missing required parameters: code and state",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Extract CSRF token from state (format: csrfToken or csrfToken|redirectUri)
+            var stateParts = state.Split('|');
+            var csrfToken = stateParts[0];
+            var finalRedirectUri = stateParts.Length > 1 ? stateParts[1] : null;
+
+            // Validate CSRF state parameter
+            var cacheKey = $"oauth_state:{csrfToken}";
+            var cachedState = await _cache.GetStringAsync(cacheKey);
+            if (cachedState != state)
+            {
+                _logger.LogWarning("OAuth state parameter mismatch - possible CSRF attack. Expected: {Expected}, Got: {Got}", 
+                    cachedState, state);
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid State",
+                    Detail = "State parameter validation failed (CSRF protection)",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Remove used state from cache
+            await _cache.RemoveAsync(cacheKey);
+
+            // Exchange authorization code for ID token
+            var idToken = await ExchangeCodeForIdTokenAsync(provider, code);
+            if (string.IsNullOrEmpty(idToken))
+            {
+                _logger.LogWarning("Failed to exchange authorization code for ID token");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Token Exchange Failed",
+                    Detail = "Could not exchange authorization code for ID token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            // Validate ID token and extract claims
+            IdTokenValidationResult validationResult;
+            if (provider == "google")
+            {
+                validationResult = await _idTokenValidationService.ValidateGoogleTokenAsync(idToken);
+            }
+            else // azuread
+            {
+                validationResult = await _idTokenValidationService.ValidateAzureAdTokenAsync(idToken);
+            }
+
+            if (!validationResult.IsValid || string.IsNullOrEmpty(validationResult.ExternalUserId))
+            {
+                _logger.LogWarning("ID token validation failed: {Error}", validationResult.ErrorMessage);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Token Validation Failed",
+                    Detail = validationResult.ErrorMessage ?? "Invalid ID token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            // Authenticate using validated claims
+            var deviceId = $"web-{Guid.NewGuid()}";
+            
+            // Ensure we have a valid external user ID
+            if (string.IsNullOrEmpty(validationResult.ExternalUserId))
+            {
+                _logger.LogWarning("Token validation succeeded but ExternalUserId is missing for provider {Provider}", provider);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Token Validation Failed",
+                    Detail = "User identifier (oid/sub claim) is missing from ID token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+            
+            _logger.LogDebug("Calling AuthenticateExternalAsync with Provider={Provider}, ExternalUserId={ExternalUserId}, Email={Email}, Name={Name}",
+                validationResult.Provider,
+                validationResult.ExternalUserId,
+                validationResult.Email ?? "(null)",
+                validationResult.Name ?? "(null)");
+            
+            var response = await _authenticationService.AuthenticateExternalAsync(
+                validationResult.Provider!,
+                validationResult.ExternalUserId!,
+                validationResult.Email ?? string.Empty,
+                validationResult.Name ?? string.Empty,
+                deviceId);
+
+            if (response == null)
+            {
+                _logger.LogWarning("OAuth authentication failed for provider {Provider} - AuthenticateExternalAsync returned null", provider);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Authentication Failed",
+                    Detail = "Could not authenticate with provided OAuth token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            _logger.LogInformation("OAuth authentication successful for user {UserId} via {Provider}", 
+                response.User.Id, provider);
+            
+            // Check if there's a final redirect URI (e.g., /oauth-test.html)
+            if (!string.IsNullOrEmpty(finalRedirectUri))
+            {
+                if (finalRedirectUri.EndsWith("/oauth-test.html", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Return to test page with token in query string for easy copy/paste
+                    var testPageUrl = $"{finalRedirectUri}?token={response.AccessToken}";
+                    return Redirect(testPageUrl);
+                }
+                
+                // For other redirect URIs, append token as query parameter
+                var separator = finalRedirectUri.Contains('?') ? '&' : '?';
+                return Redirect($"{finalRedirectUri}{separator}token={response.AccessToken}");
+            }
+            
+            // Normal OAuth flow - return JSON response
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing OAuth callback for provider {Provider}", provider);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Callback Error",
+                Detail = "An error occurred processing the OAuth callback",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Mobile OAuth2 endpoint (ID token exchange flow)
+    /// </summary>
+    /// <param name="request">External login request with ID token</param>
+    /// <returns>Authentication response with JWT tokens</returns>
+    /// <response code="200">Authentication successful</response>
+    /// <response code="400">Invalid request</response>
+    /// <response code="401">Authentication failed</response>
+    [HttpPost("external/mobile")]
+    [ProducesResponseType(typeof(AuthenticationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthenticationResponse>> ExternalMobileLogin([FromBody] ExternalLoginRequest request)
     {
         try
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid login request format for {Email}", request.Email);
+                _logger.LogWarning("Invalid external mobile login request");
                 return BadRequest(ModelState);
             }
 
-            var response = await _authenticationService.AuthenticateAsync(request);
-            if (response == null)
+            // Validate ID token based on provider
+            IdTokenValidationResult validationResult;
+            if (request.Provider == "Google")
             {
-                _logger.LogWarning("Authentication failed for user {Email}", request.Email);
+                validationResult = await _idTokenValidationService.ValidateGoogleTokenAsync(request.IdToken);
+            }
+            else if (request.Provider == "AzureAD")
+            {
+                validationResult = await _idTokenValidationService.ValidateAzureAdTokenAsync(request.IdToken);
+            }
+            else
+            {
+                _logger.LogWarning("Unsupported provider: {Provider}", request.Provider);
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid Provider",
+                    Detail = $"Provider '{request.Provider}' is not supported",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            if (!validationResult.IsValid || string.IsNullOrEmpty(validationResult.ExternalUserId))
+            {
+                _logger.LogWarning("ID token validation failed: {Error}", validationResult.ErrorMessage);
                 return Unauthorized(new ProblemDetails
                 {
-                    Title = "Authentication Failed",
-                    Detail = "Invalid email or password",
+                    Title = "Token Validation Failed",
+                    Detail = validationResult.ErrorMessage ?? "Invalid ID token",
                     Status = StatusCodes.Status401Unauthorized
                 });
             }
 
-            _logger.LogInformation("User {UserId} logged in successfully", response.User.Id);
+            // Authenticate using validated claims
+            var response = await _authenticationService.AuthenticateExternalAsync(
+                validationResult.Provider!,
+                validationResult.ExternalUserId,
+                validationResult.Email ?? string.Empty,
+                validationResult.Name ?? string.Empty,
+                request.DeviceId);
+
+            if (response == null)
+            {
+                _logger.LogWarning("External authentication failed for provider {Provider}", request.Provider);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Authentication Failed",
+                    Detail = "Could not authenticate with provided ID token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            _logger.LogInformation("Mobile OAuth authentication successful for user {UserId} via {Provider}", 
+                response.User.Id, request.Provider);
+            
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during login for {Email}", request.Email);
+            _logger.LogError(ex, "Error during external mobile login");
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "Internal Server Error",
@@ -85,6 +391,141 @@ public class AuthController : ControllerBase
             });
         }
     }
+
+    #region Helper Methods
+
+    private string GenerateState()
+    {
+        var randomBytes = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        return Convert.ToBase64String(randomBytes)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .Replace("=", "");
+    }
+
+    private string BuildAuthorizationUrl(string provider, string state)
+    {
+        var baseUrl = Request.Scheme + "://" + Request.Host;
+        // OAuth callback always points to /api/auth/callback/{provider}
+        // The final redirect URI is encoded in the state parameter
+        var callback = $"{baseUrl}/api/auth/callback/{provider}";
+
+        if (provider == "google")
+        {
+            var clientId = _configuration["Authentication:Google:ClientId"];
+            var scopes = string.Join(" ", _configuration.GetSection("Authentication:Google:Scopes").Get<string[]>() 
+                ?? new[] { "openid", "profile", "email" });
+
+            var queryParams = HttpUtility.ParseQueryString(string.Empty);
+            queryParams["client_id"] = clientId;
+            queryParams["redirect_uri"] = callback;
+            queryParams["response_type"] = "code";
+            queryParams["scope"] = scopes;
+            queryParams["state"] = state;
+            queryParams["access_type"] = "offline";
+            queryParams["prompt"] = "consent";
+
+            return $"https://accounts.google.com/o/oauth2/v2/auth?{queryParams}";
+        }
+        else if (provider == "azuread")
+        {
+            var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
+            var clientId = _configuration["Authentication:AzureAd:ClientId"];
+            var scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() 
+                ?? new[] { "openid", "profile", "email" });
+
+            var queryParams = HttpUtility.ParseQueryString(string.Empty);
+            queryParams["client_id"] = clientId;
+            queryParams["redirect_uri"] = callback;
+            queryParams["response_type"] = "code";
+            queryParams["scope"] = scopes;
+            queryParams["state"] = state;
+            queryParams["prompt"] = "select_account";
+
+            var instance = _configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+            return $"{instance}{tenantId}/oauth2/v2.0/authorize?{queryParams}";
+        }
+
+        throw new ArgumentException($"Unsupported provider: {provider}");
+    }
+
+    private async Task<string?> ExchangeCodeForIdTokenAsync(string provider, string code)
+    {
+        var baseUrl = Request.Scheme + "://" + Request.Host;
+        var redirectUri = $"{baseUrl}/api/auth/callback/{provider}";
+
+        using var httpClient = new HttpClient();
+
+        if (provider == "google")
+        {
+            var clientId = _configuration["Authentication:Google:ClientId"];
+            var clientSecret = _configuration["Authentication:Google:ClientSecret"];
+
+            var tokenRequest = new Dictionary<string, string>
+            {
+                ["code"] = code,
+                ["client_id"] = clientId!,
+                ["client_secret"] = clientSecret!,
+                ["redirect_uri"] = redirectUri,
+                ["grant_type"] = "authorization_code"
+            };
+
+            var tokenResponse = await httpClient.PostAsync(
+                "https://oauth2.googleapis.com/token",
+                new FormUrlEncodedContent(tokenRequest));
+
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                _logger.LogWarning("Google token exchange failed: {Status} - {Error}", 
+                    tokenResponse.StatusCode, errorContent);
+                return null;
+            }
+
+            var tokenData = await tokenResponse.Content.ReadFromJsonAsync<GoogleTokenResponse>();
+            return tokenData?.IdToken;
+        }
+        else if (provider == "azuread")
+        {
+            var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
+            var clientId = _configuration["Authentication:AzureAd:ClientId"];
+            var clientSecret = _configuration["Authentication:AzureAd:ClientSecret"];
+
+            var tokenRequest = new Dictionary<string, string>
+            {
+                ["code"] = code,
+                ["client_id"] = clientId!,
+                ["client_secret"] = clientSecret!,
+                ["redirect_uri"] = redirectUri,
+                ["grant_type"] = "authorization_code",
+                ["scope"] = "openid profile email"
+            };
+
+            var instance = _configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+            var tokenResponse = await httpClient.PostAsync(
+                $"{instance}{tenantId}/oauth2/v2.0/token",
+                new FormUrlEncodedContent(tokenRequest));
+
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                _logger.LogWarning("Azure AD token exchange failed: {Status} - {Error}", 
+                    tokenResponse.StatusCode, errorContent);
+                return null;
+            }
+
+            var tokenData = await tokenResponse.Content.ReadFromJsonAsync<AzureAdTokenResponse>();
+            return tokenData?.IdToken;
+        }
+
+        return null;
+    }
+
+    #endregion
 
     /// <summary>
     /// Refresh access token using refresh token
@@ -108,7 +549,7 @@ public class AuthController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            var response = await _authenticationService.RefreshTokenAsync(request);
+            var response = await _authenticationService.RefreshTokenAsync(request.RefreshToken);
             if (response == null)
             {
                 _logger.LogWarning("Token refresh failed for refresh token");

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Test Page - Blood Thinner Tracker API</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+            color: #856404;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .section h2::before {
+            content: "→";
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-google {
+            background: #4285f4;
+            color: white;
+        }
+        .btn-google:hover {
+            background: #357ae8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+        }
+        .btn-azure {
+            background: #00a4ef;
+            color: white;
+        }
+        .btn-azure:hover {
+            background: #0078d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+        }
+        .token-display {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        .token-display.show {
+            display: block;
+        }
+        .token-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .token-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .btn-copy {
+            padding: 6px 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-copy:hover {
+            background: #218838;
+        }
+        .btn-copy.copied {
+            background: #6c757d;
+        }
+        .token-text {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 12px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #212529;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        .instructions code {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            color: #721c24;
+            font-size: 14px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 OAuth Test Page</h1>
+        <p class="subtitle">Get a JWT token for testing the Blood Thinner Tracker API</p>
+        
+        <div class="warning">
+            ⚠️ <strong>Development Only:</strong> This page is for API testing purposes only. Not for production use.
+        </div>
+
+        <div class="section">
+            <h2>Step 1: Choose OAuth Provider</h2>
+            <div class="button-group">
+                <button class="btn-google" onclick="loginWithGoogle()">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                        <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+                        <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+                    </svg>
+                    Login with Google
+                </button>
+                <button class="btn-azure" onclick="loginWithAzure()">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                        <path fill="#00BCF2" d="M28.088 4H9.913L0 35.999h18.088z"/>
+                        <path fill="#0078D4" d="M12.163 12.163h23.674L48 35.999H24.326z"/>
+                        <path fill="#00188F" d="M9.913 9.913h28.087L48 48H0z"/>
+                    </svg>
+                    Login with Azure AD
+                </button>
+            </div>
+        </div>
+
+        <div class="token-display" id="tokenDisplay">
+            <div class="token-header">
+                <span class="token-label">✅ JWT Token (paste this into Scalar)</span>
+                <button class="btn-copy" id="copyBtn" onclick="copyToken()">Copy</button>
+            </div>
+            <div class="token-text" id="tokenText"></div>
+        </div>
+
+        <div class="error" id="errorDisplay"></div>
+
+        <div class="section">
+            <h2>Step 2: Use Token in Scalar</h2>
+            <div class="instructions">
+                <strong>After getting your token above:</strong>
+                <ol>
+                    <li>Navigate to <code>/scalar/v1</code> in your browser</li>
+                    <li>Click the <strong>"Authenticate"</strong> button (top right)</li>
+                    <li>Select <strong>"bearer"</strong> authentication scheme</li>
+                    <li>Paste your JWT token from above</li>
+                    <li>Click <strong>"Authorize"</strong></li>
+                    <li>Test any protected API endpoint! 🚀</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get the current origin for redirects
+        const redirectUri = window.location.origin;
+
+        function loginWithGoogle() {
+            const url = `/api/auth/external/google?redirectUri=${encodeURIComponent(redirectUri + '/oauth-test.html')}`;
+            window.location.href = url;
+        }
+
+        function loginWithAzure() {
+            const url = `/api/auth/external/azuread?redirectUri=${encodeURIComponent(redirectUri + '/oauth-test.html')}`;
+            window.location.href = url;
+        }
+
+        function copyToken() {
+            const tokenText = document.getElementById('tokenText').textContent;
+            navigator.clipboard.writeText(tokenText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Check if we have a token in the URL (returned from OAuth callback)
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+
+            if (token) {
+                // Display the token
+                document.getElementById('tokenText').textContent = token;
+                document.getElementById('tokenDisplay').classList.add('show');
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (error) {
+                // Display error
+                const errorDiv = document.getElementById('errorDisplay');
+                errorDiv.textContent = `❌ OAuth Error: ${error}${errorDescription ? ' - ' + errorDescription : ''}`;
+                errorDiv.classList.add('show');
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
+</body>
+</html>

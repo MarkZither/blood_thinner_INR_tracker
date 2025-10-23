@@ -1,7 +1,21 @@
 # Data Model: Blood Thinner Medication & INR Tracker
 
 **Created**: 2025-10-15  
+**Updated**: 2025-10-23  
 **Purpose**: Entity definitions, relationships, and data architecture
+
+---
+
+## Entity Inheritance Architecture
+
+All medical data entities inherit from `MedicalEntityBase` which implements `IMedicalEntity`:
+
+- **IMedicalEntity**: Interface requiring `Id`, `CreatedAt`, `UpdatedAt`, `UserId`, `IsDeleted`, `DeletedAt`
+- **MedicalEntityBase**: Abstract base class providing common medical data features
+- **Special Case - User**: Inherits from `MedicalEntityBase` but represents the user itself, NOT medical data belonging to a user
+  - **Important**: `User` entities are **excluded** from medical entity validation that requires `UserId`
+  - The `User.Id` property identifies the user; there is no separate `UserId` for User entities
+  - Database validation in `ApplicationDbContext` explicitly excludes `User` from `UserId` requirements
 
 ---
 
@@ -9,15 +23,21 @@
 
 ### User
 ```csharp
-public class User
+// User inherits from MedicalEntityBase but is NOT medical data
+// It IS the user entity - excluded from UserId validation
+public class User : MedicalEntityBase
 {
-    public Guid Id { get; set; }
+    // Inherited from MedicalEntityBase:
+    // public string Id { get; set; }  // User's unique identifier
+    // public DateTime CreatedAt { get; set; }
+    // public DateTime UpdatedAt { get; set; }
+    // public bool IsDeleted { get; set; }
+    // Note: UserId property is inherited but not used for User entities
+    
     public string Email { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset LastLoginAt { get; set; }
-    public bool IsActive { get; set; }
     public string TimeZone { get; set; }
     
     // Navigation Properties
@@ -312,6 +332,15 @@ User (1) ────────────── (*) Medication
 - **TakenDateTime**: If Status = Taken, must be within 24 hours of ScheduledDateTime  
 - **Status**: Required, valid enum value
 - **DeviceId**: Required for audit purposes
+
+### Medical Entity Validation (ApplicationDbContext)
+- **All IMedicalEntity implementations** (except User) must have:
+  - Valid `UserId` that references an existing User
+  - Valid `CreatedAt` timestamp
+- **User Entity Exception**: 
+  - `User` is explicitly excluded from `UserId` validation
+  - `User` IS the user, not medical data belonging to a user
+  - Implemented in `ApplicationDbContext.ValidateMedicalBusinessRules()` via `e.Entity is not User` filter
 
 ### Security Constraints
 - All entities except AuditLog support soft deletes (IsActive/IsDeleted flags)

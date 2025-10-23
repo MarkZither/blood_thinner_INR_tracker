@@ -5,6 +5,7 @@ using BloodThinnerTracker.Shared.Models.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
 using System.Text;
 
@@ -29,7 +30,61 @@ builder.Services.AddHttpContextAccessor();
 
 // Add API services
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+
+// Add OpenAPI generation with custom documentation
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "Blood Thinner Tracker API";
+        document.Info.Version = "v1";
+        document.Info.Description = """
+            # 🔐 Authentication Required
+            
+            This API uses **OAuth 2.0 authentication** with JWT bearer tokens.
+            
+            ## Quick Start: Get Your Token (30 seconds)
+            
+            1. **Get a JWT Token**: Open [/oauth-test.html](/oauth-test.html) in a new tab
+            2. **Login**: Click "Login with Google" or "Login with Azure AD"
+            3. **Copy Token**: Click the "Copy Token" button after successful login
+            4. **Use Token in Scalar**: 
+               - For each API request, click the "Headers" tab
+               - Add header: `Authorization`
+               - Value: `Bearer {paste-your-token-here}`
+            5. **Send Request**: Your request will now include authentication
+            
+            ✅ **You're authenticated!** The API will recognize you as the logged-in user.
+            
+            ## 📚 Documentation
+            
+            - **OAuth Testing Guide**: [OAUTH_TESTING_GUIDE.md](https://github.com/MarkZither/blood_thinner_INR_tracker/blob/main/docs/OAUTH_TESTING_GUIDE.md)
+            - **Authentication Guide**: [AUTHENTICATION_TESTING_GUIDE.md](https://github.com/MarkZither/blood_thinner_INR_tracker/blob/main/docs/AUTHENTICATION_TESTING_GUIDE.md)
+            
+            ## 🏥 Medical Application Disclaimer
+            
+            ⚠️ **This application handles medical data and is for informational purposes only.**
+            
+            - Always consult healthcare professionals for medical decisions
+            - This system is for medication tracking purposes only
+            - Not a substitute for professional medical advice
+            - Complies with healthcare data protection measures
+            
+            ## 🔒 Security Features
+            
+            - Medical data encryption (AES-256)
+            - Audit logging for compliance
+            - User data isolation
+            - OWASP security guidelines
+            - Healthcare data protection
+            """;
+        
+        return Task.CompletedTask;
+    });
+});
+
+// Add distributed cache for OAuth state parameter storage
+builder.Services.AddDistributedMemoryCache(); // Use Redis in production: builder.Services.AddStackExchangeRedisCache(...)
 
 // Add SignalR for real-time medical notifications
 builder.Services.AddSignalR(options =>
@@ -82,11 +137,20 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(options =>
     {
         options
-            .WithTitle("Blood Thinner Tracker API")
+            .WithTitle("Blood Thinner Tracker API - JWT Authentication Required")
             .WithTheme(ScalarTheme.Mars)
             .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
-            .WithPreferredScheme("Bearer")
-            .WithApiKeyAuthentication(x => x.Token = "your-api-key");
+            .WithModels(false); // Hide schemas section for cleaner UI
+
+        // Note: To test authenticated endpoints in Scalar:
+        // 1. Visit /oauth-test.html to get a JWT token
+        // 2. In Scalar UI, for each request:
+        //    - Click "Headers" tab
+        //    - Add header: Authorization
+        //    - Value: Bearer {paste-your-token-here}
+        // 3. Send request - it will include your auth token
+        //
+        // See docs/OAUTH_TESTING_GUIDE.md for detailed instructions
     });
     app.UseDeveloperExceptionPage();
 }
@@ -99,6 +163,9 @@ else
 // Security middleware
 app.UseHttpsRedirection();
 app.UseCors("MedicalAppPolicy");
+
+// Static files middleware (serves wwwroot/oauth-test.html and other static content)
+app.UseStaticFiles();
 
 // Medical application routes
 app.UseRouting();

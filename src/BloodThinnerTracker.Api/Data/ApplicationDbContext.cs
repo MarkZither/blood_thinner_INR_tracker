@@ -68,6 +68,11 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     /// </summary>
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
 
+    /// <summary>
+    /// Refresh tokens for JWT authentication (OAuth2 token persistence).
+    /// </summary>
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -205,6 +210,23 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
             //       .HasForeignKey(e => e.ParentScheduleId)
             //       .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => new { e.UserId, e.ScheduledDate });
+        });
+
+        // Configure RefreshToken entity for OAuth2 token persistence
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TokenHash).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.ExpiresAt).IsRequired();
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.ExpiresAt });
+            entity.HasIndex(e => e.CreatedAt);
         });
         
         _logger.LogDebug("Global query filters configured for medical data isolation");
@@ -477,6 +499,7 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     {
         var medicalEntities = ChangeTracker.Entries()
             .Where(e => e.Entity is IMedicalEntity && 
+                       e.Entity is not User &&  // Exclude User - it IS the user, not medical data belonging to a user
                        (e.State == EntityState.Added || e.State == EntityState.Modified))
             .Select(e => e.Entity as IMedicalEntity)
             .Where(e => e != null);

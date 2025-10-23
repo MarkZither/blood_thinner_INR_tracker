@@ -41,6 +41,9 @@ public static class AuthenticationExtensions
         // Add password hasher for local authentication
         services.AddScoped<IPasswordHasher<object>, PasswordHasher<object>>();
 
+        // Add ID token validation service for OAuth2
+        services.AddScoped<IIdTokenValidationService, IdTokenValidationService>();
+
         // Add JWT token service
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 

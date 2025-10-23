@@ -67,9 +67,10 @@ As a blood thinner patient, I need to view my medication dosage history and INR 
 
 **Acceptance Scenarios**:
 
-1. **Given** I have logged medication doses for several days, **When** I view the medication history, **Then** I see a chart showing my dosage over time
-2. **Given** I have recorded INR levels over several tests, **When** I view the INR history, **Then** I see a line chart showing my INR trends with target ranges
+1. **Given** I have logged medication doses for several days, **When** I view the medication history, **Then** I see a bar chart showing my dosage over time with selectable time ranges (7, 30, 90 days, or custom)
+2. **Given** I have recorded INR levels over several tests, **When** I view the INR history, **Then** I see a line chart showing my INR trends with 7-day moving averages, color-coded indicators, and selectable time ranges
 3. **Given** I want to share data with my doctor, **When** I select a date range, **Then** I can export or share a summary of my medication and INR data
+4. **Given** I am viewing a chart, **When** I select a different time range, **Then** the chart updates to show data for the selected period
 
 ---
 
@@ -102,22 +103,41 @@ As a blood thinner patient, I need clear guidance when I miss doses or am outsid
 
 ### Functional Requirements
 
-- **FR-001**: System MUST require OAuth2 authentication (via Azure AD or Google) before accessing any medication or INR data. NO password-based authentication permitted. Web applications use OAuth2 redirect flow; mobile applications use platform-native OAuth with ID token exchange.
-- **FR-002**: System MUST send daily notifications at user-configured times for medication reminders with 99.9% delivery reliability (tracked per T044a notification monitoring)
-- **FR-003**: System MUST allow users to configure INR test reminder frequency (daily, weekly, bi-weekly, monthly, custom)
-- **FR-004**: System MUST log medication doses with timestamps and associate with authenticated user
-- **FR-005**: System MUST log INR test results with test dates and associate with authenticated user
-- **FR-006**: System MUST synchronize user data across multiple devices within 30 seconds
-- **FR-007**: System MUST display a warning (not a hard block) advising against taking medication more than 12 hours after scheduled time, recommending user wait for next scheduled dose (see T025 for UI implementation)
-- **FR-008**: System MUST display historical medication doses in chart format
-- **FR-009**: System MUST display historical INR levels in chart format with trend indicators
+- **FR-001**: System MUST require OAuth2 authentication (via Azure AD or Google) before accessing any medication or INR data. NO password-based authentication permitted. Web applications use OAuth2 redirect flow; mobile applications use platform-native OAuth with ID token exchange. On OAuth provider failure or timeout, system shall display user-friendly error message and allow retry or selection of alternate provider. On user cancellation during OAuth flow, system shall return to login screen without error.
+- **FR-002**: System MUST send daily notifications at user-configured times for medication reminders with 99.9% delivery reliability measured over rolling 7-day periods (tracked per T044a notification monitoring). For platforms without native push notification support (Console, Web without service workers), system shall use in-app polling notifications or browser-based alerts as fallback. On mobile platforms, system MUST use OS-level background notification services (APNs for iOS, FCM for Android) to ensure delivery even when app is force-closed or in background.
+- **FR-003**: System MUST allow users to configure INR test reminder frequency (daily, weekly, bi-weekly, monthly, custom) and modify existing schedules at any time with changes taking effect on next scheduled reminder.
+- **FR-004**: System MUST log medication doses with timestamps and associate with authenticated user. Dosage amounts must be positive decimal numbers with supported units: mg (milligrams), mcg (micrograms), mL (milliliters), or tablets. Users may edit or delete medication log entries within 24 hours of creation to correct data entry errors; audit trail shall preserve original values. System MUST prevent logging more than one dose per day for same medication (single daily dosage constraint).
+- **FR-005**: System MUST log INR test results with test dates and associate with authenticated user. Users may edit or delete INR test entries within 24 hours of creation to correct data entry errors; audit trail shall preserve original values.
+- **FR-006**: System MUST synchronize user data across multiple devices within 30 seconds under normal network conditions. On network failure, system shall queue changes locally and retry synchronization with exponential backoff (1s, 2s, 4s, 8s intervals) until connection restored. System shall achieve 99% synchronization success rate measured over rolling 7-day periods; on synchronization failures (1% tolerance), system shall display warning notification to user indicating data may not be current on all devices. On synchronization conflicts (same record edited on multiple devices), system shall apply last-write-wins strategy with conflict notification shown to user. System shall support maximum of 10 active registered devices per user account.
+- **FR-007**: System MUST display a warning (not a hard block) advising against taking medication more than 12 hours after scheduled time, recommending user wait for next scheduled dose (see T025 for UI implementation). Medication scheduled at exactly 12 hours 0 minutes shall NOT trigger warning (boundary: warning only for >12:00:00).
+- **FR-008**: System MUST display historical medication doses in chart format (bar chart preferred) with selectable time ranges: 7 days, 30 days, 90 days, or custom date range.
+- **FR-009**: System MUST display historical INR levels in chart format (line chart) with trend indicators calculated as 7-day moving averages, with visual color coding (green=stable within range, yellow=rising trend, red=declining trend or outside target range). Selectable time ranges: 7 days, 30 days, 90 days, or custom date range.
 - **FR-010**: System MUST validate INR value ranges (0.5-8.0) and flag outlier values (INR <1.5 or >4.5) for healthcare provider review (see T029a for validation logic)
 - **FR-011**: System MUST track missed doses and display them in medication history
 - **FR-012**: System MUST allow users to export medication and INR data for sharing with healthcare providers
-- **FR-013**: System MUST display medical disclaimer prominently on every screen showing health data or recommendations (all platforms: Web, Mobile, Console - see T014 for implementation tracking)
-- **FR-014**: System MUST prevent accidental dismissal of medication reminders by requiring explicit confirmation dialog before dismissing without logging dose (see T024)
-- **FR-015**: System MUST maintain user sessions across app restarts using secure OAuth2 refresh token storage to minimize login friction (see T017a)
-- **FR-016**: System MUST handle timezone changes (travel) and daylight saving time transitions by maintaining medication schedules in user's current local timezone (see T019a for DST handling implementation)
+- **FR-013**: System MUST display medical disclaimer prominently on every screen showing health data or recommendations (all platforms: Web, Mobile, Console - see T014 for implementation tracking). Disclaimer must appear in header or footer with minimum 12pt font size and high contrast (WCAG AA compliant).
+- **FR-014**: System MUST prevent accidental dismissal of medication reminders by requiring explicit confirmation dialog before dismissing without logging dose (see T024). Dialog must include clear options: "Log Dose Now", "Snooze Reminder", "Dismiss" with warning text for dismiss action.
+- **FR-015**: System MUST maintain user sessions across app restarts using secure OAuth2 refresh token storage (platform keychains/secure storage: iOS Keychain, Android Keystore, Windows Credential Manager) with AES-256 encryption to minimize login friction (see T017a). Access tokens have 15-minute lifetime and shall be automatically refreshed when remaining lifetime is less than 5 minutes. Session timeout is 7 days of inactivity (no API calls), after which user must re-authenticate. On refresh token expiration or failure, system shall prompt user to re-authenticate while preserving any unsynchronized local data.
+- **FR-016**: System MUST handle timezone changes (travel) and daylight saving time transitions by maintaining medication schedules in user's current local timezone (see T019a for DST handling implementation). System shall detect device timezone automatically and notify users of timezone adjustments. All schedules stored in UTC in database, all timestamps displayed in user's current local timezone with consistent formatting across all datetime fields. Medication reminder times MUST be restricted to 03:00-23:30 local time range (midnight 00:00-02:59 not permitted to avoid timezone/DST transition ambiguity - medication recommended for evening administration). All health data stored locally on devices MUST be encrypted at rest using AES-256 encryption (platform-specific: iOS Data Protection, Android EncryptedSharedPreferences, Windows DPAPI).
+- **FR-017**: System MUST retain all user health data indefinitely by default. Data older than 1 year shall be flagged for optional archival to separate storage while remaining accessible to users through "View Archive" functionality.
+- **FR-018**: System MUST encrypt all network transmissions using TLS 1.2 or higher for API communications between client devices and backend services.
+- **FR-019**: System MUST comply with WCAG 2.1 Level AA accessibility standards across all platforms, including but not limited to: sufficient color contrast ratios (4.5:1 for normal text, 3:1 for large text), keyboard navigation support for all interactive elements, and screen reader compatibility with proper ARIA labels and semantic HTML. Medical disclaimer (FR-013) and safety warnings (FR-007, FR-010) must be accessible to screen readers with proper announcement priority.
+- **FR-020**: System MUST provide user-friendly error messages for all failure scenarios using plain language without technical jargon. Error messages shall include: clear description of what went wrong, actionable guidance on how to resolve the issue, and contact information for support if user cannot resolve independently.
+- **FR-021**: System SHOULD maintain local data backups on each device to enable recovery from accidental data deletion or device failure. Users may export full data backup via FR-012 export functionality for manual restoration if needed. Cloud-based automatic backup is out of scope for MVP.
+- **FR-022**: System MUST support multiple authentication methods for different use cases:
+  - **End Users**: OAuth2 only (Azure AD, Google) via web redirect flow or mobile ID token exchange (FR-001)
+  - **Testing & Integration**: Mutual TLS (mTLS) using X.509 client certificates for:
+    - Development and testing tools (Swagger, Postman, automated tests)
+    - CI/CD pipelines and integration testing
+    - Future healthcare system integrations (HL7/FHIR, EMR systems)
+    - Internal service-to-service communication
+  - **API Testing**: API MUST provide OAuth2 redirect endpoints (`/api/auth/external/{provider}`, `/api/auth/callback/{provider}`) to support Swagger UI OAuth2 authorization and backend-driven authentication flows for web applications
+  - mTLS authentication requires valid client certificate with subject matching registered integration partner; certificate validation includes: not expired, trusted CA chain, certificate revocation check (OCSP). Failed mTLS attempts shall be logged for security monitoring.
+
+### Non-Functional Requirements
+
+- **NFR-001**: Offline mode - System shall queue medication and INR log entries locally when network unavailable, with visual indicator showing offline status and pending sync count. All queued data shall synchronize automatically when connection restored (see FR-006 for sync reliability).
+- **NFR-002**: Session management - Access tokens expire after 15 minutes; automatic refresh occurs when <5 minutes remaining. Session timeout after 7 days of inactivity requires re-authentication (see FR-015).
 
 ### Key Entities *(include if feature involves data)*
 
