@@ -24,16 +24,16 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/bloodtracker-api"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{env.DOTNET_ROOT}}/bloodtracker-api
 
   deploy:
     runs-on: windows-latest
