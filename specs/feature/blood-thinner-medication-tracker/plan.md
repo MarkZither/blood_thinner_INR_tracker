@@ -146,6 +146,8 @@ blood_thinner_INR_tracker/
 ✅ Database indexes and constraints for performance  
 ✅ Entity Framework migration strategy
 
+**Entity Naming Convention**: Some entities use abbreviated names (e.g., `Device` instead of `UserDevice`) to maintain cleaner code and reduce verbosity in database queries. The relationship to User is established through navigation properties and foreign keys rather than through the entity name itself. Full semantic clarity is provided through XML documentation comments.
+
 ### API Contract Specifications Completed ✅
 ✅ Authentication endpoints (OAuth2 + JWT, device registration)  
 ✅ Medication CRUD operations with validation and safety checks  
@@ -158,7 +160,7 @@ blood_thinner_INR_tracker/
 ### Development Environment Setup Completed ✅
 ✅ .NET 10 installation guide with Aspire workload  
 ✅ Database setup (Docker PostgreSQL + Redis, SQLite fallback)  
-✅ OAuth provider configuration (Azure AD + Google)  
+⚠️ OAuth provider configuration (Azure AD + Google) - **PARTIAL**: Middleware configured but not wired to endpoints. No actual OAuth2 flow implemented. See `docs/OAUTH_GAP_ANALYSIS.md`  
 ✅ Multi-platform testing framework (xUnit, Playwright, BUnit)  
 ✅ Container orchestration with Aspire dashboard  
 ✅ API documentation with Swagger/Scalar integration  
@@ -172,7 +174,8 @@ blood_thinner_INR_tracker/
 ### Core Implementation Areas
 1. **Backend API Development**
    - ASP.NET Core Web API with Entity Framework
-   - Authentication middleware and JWT validation
+   - **OAuth2 authentication with Azure AD and Google** (NO password-based auth - OAuth2 only)
+   - JWT token issuance for authenticated OAuth2 users
    - Real-time SignalR hubs for notifications
    - Health checks and observability integration
 

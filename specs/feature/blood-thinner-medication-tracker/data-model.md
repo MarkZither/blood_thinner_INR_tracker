@@ -56,6 +56,7 @@ public class MedicationSchedule
     public Guid Id { get; set; }
     public Guid MedicationId { get; set; }
     public TimeOnly ScheduledTime { get; set; }    // Daily time (e.g., 8:00 AM)
+    public string TimeZoneId { get; set; } = "UTC"; // IANA timezone (e.g., "America/New_York")
     public DayOfWeek[] ScheduledDays { get; set; }  // JSON array of days
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

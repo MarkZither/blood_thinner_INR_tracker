@@ -17,9 +17,11 @@ As a blood thinner patient, I need to create an account and have my medication a
 
 **Acceptance Scenarios**:
 
-1. **Given** I am a new user, **When** I open the app, **Then** I can create an account with email and password
-2. **Given** I have an account, **When** I log medication data on my phone, **Then** I can see the same data when I access the app on my tablet
-3. **Given** I am logged in on multiple devices, **When** I update data on one device, **Then** the changes appear on other devices within 30 seconds
+1. **Given** I am a new user on web, **When** I click "Sign in with Microsoft/Google", **Then** I am redirected to the provider's OAuth2 consent page, authenticate, and return to the app logged in (web redirect flow)
+2. **Given** I am a new user on mobile, **When** I tap "Sign in with Microsoft/Google", **Then** the platform-native authentication opens, I authenticate, and the app exchanges the ID token for JWT access tokens (mobile ID token exchange flow - see docs/OAUTH_FLOW_REFERENCE.md)
+3. **Given** I have an account, **When** I log medication data on my phone, **Then** I can see the same data when I access the app on my tablet
+4. **Given** I am logged in on multiple devices, **When** I update data on one device, **Then** the changes appear on other devices within 30 seconds
+5. **Given** time changes due to daylight saving or timezone travel, **When** the system calculates my next medication reminder, **Then** it adjusts to maintain the same local time in my current timezone (see T019a)
 
 ---
 
@@ -89,40 +91,41 @@ As a blood thinner patient, I need clear guidance when I miss doses or am outsid
 
 ### Edge Cases
 
-- What happens when user changes time zones while traveling?
-- How does the system handle daylight saving time transitions?
-- What occurs when user tries to log multiple doses for the same day?
-- How does the app behave when device notifications are disabled?
-- What happens if user enters an invalid or dangerous INR value (e.g., negative numbers, extremely high values)?
-- How should the app handle very long periods without logging (weeks or months)?
+- What happens when user changes time zones while traveling? → **Handled by T019a**: Medication schedules maintain local time in current timezone
+- How does the system handle daylight saving time transitions? → **Handled by T019a**: DST transitions preserve medication reminder local times
+- What occurs when user tries to log multiple doses for the same day? → **To be specified**: Business rule needed for duplicate dose detection
+- How does the app behave when device notifications are disabled? → **Handled by T024a**: Fallback UI warnings when notifications disabled
+- What happens if user enters an invalid or dangerous INR value (e.g., negative numbers, extremely high values)? → **Handled by T029a**: Validation enforces 0.5-8.0 range, flags outliers <1.5 or >4.5
+- How should the app handle very long periods without logging (weeks or months)? → **To be specified**: Re-engagement strategy and data gap handling needed
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST require user authentication before accessing any medication or INR data
-- **FR-002**: System MUST send daily notifications at user-configured times for medication reminders
+- **FR-001**: System MUST require OAuth2 authentication (via Azure AD or Google) before accessing any medication or INR data. NO password-based authentication permitted. Web applications use OAuth2 redirect flow; mobile applications use platform-native OAuth with ID token exchange.
+- **FR-002**: System MUST send daily notifications at user-configured times for medication reminders with 99.9% delivery reliability (tracked per T044a notification monitoring)
 - **FR-003**: System MUST allow users to configure INR test reminder frequency (daily, weekly, bi-weekly, monthly, custom)
 - **FR-004**: System MUST log medication doses with timestamps and associate with authenticated user
 - **FR-005**: System MUST log INR test results with test dates and associate with authenticated user
 - **FR-006**: System MUST synchronize user data across multiple devices within 30 seconds
-- **FR-007**: System MUST warn users against taking medication more than 12 hours after scheduled time
+- **FR-007**: System MUST display a warning (not a hard block) advising against taking medication more than 12 hours after scheduled time, recommending user wait for next scheduled dose (see T025 for UI implementation)
 - **FR-008**: System MUST display historical medication doses in chart format
 - **FR-009**: System MUST display historical INR levels in chart format with trend indicators
-- **FR-010**: System MUST validate INR value ranges (0.5-8.0) and flag unusual values
+- **FR-010**: System MUST validate INR value ranges (0.5-8.0) and flag outlier values (INR <1.5 or >4.5) for healthcare provider review (see T029a for validation logic)
 - **FR-011**: System MUST track missed doses and display them in medication history
 - **FR-012**: System MUST allow users to export medication and INR data for sharing with healthcare providers
-- **FR-013**: System MUST display medical disclaimer prominently stating app is not medically approved
-- **FR-014**: System MUST prevent accidental dismissal of medication reminders without logging dose
-- **FR-015**: System MUST maintain user sessions across app restarts to minimize login friction
+- **FR-013**: System MUST display medical disclaimer prominently on every screen showing health data or recommendations (all platforms: Web, Mobile, Console - see T014 for implementation tracking)
+- **FR-014**: System MUST prevent accidental dismissal of medication reminders by requiring explicit confirmation dialog before dismissing without logging dose (see T024)
+- **FR-015**: System MUST maintain user sessions across app restarts using secure OAuth2 refresh token storage to minimize login friction (see T017a)
+- **FR-016**: System MUST handle timezone changes (travel) and daylight saving time transitions by maintaining medication schedules in user's current local timezone (see T019a for DST handling implementation)
 
 ### Key Entities *(include if feature involves data)*
 
-- **User Account**: Authenticated individual with email, password, device registrations, timezone settings
+- **User Account**: OAuth2-authenticated individual (via Azure AD or Google) with ExternalUserId, AuthProvider (Google/AzureAD), email, device registrations, timezone settings. NO password field - authentication handled entirely through OAuth2 providers.
 - **Medication Schedule**: User-specific daily reminder time, dosage amount, timezone-aware scheduling
-- **Medication Log**: Recorded dose entries with timestamp, dosage amount, user association, missed dose indicators
-- **INR Schedule**: User-configured testing frequency (daily/weekly/biweekly/monthly/custom), next test date calculation
-- **INR Log**: Recorded INR values with test date, result value, user association, trend calculations
+- **Medication Log** (MedicationLog entity): Recorded dose entries with timestamp, dosage amount, user association, missed dose indicators
+- **INR Schedule** (INRSchedule entity): User-configured testing frequency (daily/weekly/biweekly/monthly/custom), next test date calculation
+- **INR Test** (INRTest entity - formerly "INR Log"): Recorded INR values with test date, result value (validated 0.5-8.0 range), user association, trend calculations, outlier flags
 - **Device Registration**: User's registered devices for cross-platform data synchronization
 - **Notification Settings**: User preferences for reminder timing, notification types, snooze options
 
