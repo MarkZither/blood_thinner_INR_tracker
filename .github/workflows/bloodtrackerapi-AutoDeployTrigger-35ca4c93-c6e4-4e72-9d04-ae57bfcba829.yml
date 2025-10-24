@@ -7,7 +7,9 @@ on:
     branches: 
       [ feature/blood-thinner-medication-tracker ]
     paths:
-    - '**'
+    - 'src/BloodThinnerTracker.Api/**'
+    - 'src/BloodThinnerTracker.Shared/**'
+    - 'src/BloodThinnerTracker.ServiceDefaults/**'
     - '.github/workflows/bloodtrackerapi-AutoDeployTrigger-35ca4c93-c6e4-4e72-9d04-ae57bfcba829.yml'
 
   # Allow manual trigger 
@@ -34,16 +36,15 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
+          acrBuild: true
+          appSourcePath: ${{ github.workspace }}/src/BloodThinnerTracker.Api
           registryUrl: 
           registryUsername: ${{ secrets.BLOODTRACKERAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.BLOODTRACKERAPI_REGISTRY_PASSWORD }}
           containerAppName: bloodtrackerapi
           resourceGroup: FreeNorthEurope
           imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
+          targetPort: 5234
+          ingress: external
 
 
