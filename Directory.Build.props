@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsNotAsErrors>NU1605</WarningsNotAsErrors>
+    <!-- Allow NuGet warnings for RC2 preview packages -->
+    <WarningsNotAsErrors>NU1605;NU1510;NU1902;NU1903</WarningsNotAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
 

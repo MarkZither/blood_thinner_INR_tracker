@@ -1,0 +1,204 @@
+@page "/reports/inr-trends"
+@using BloodThinnerTracker.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<PageTitle>INR Trends Report</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="bi bi-graph-up"></i> INR Trends Report
+            </h1>
+            <p class="text-muted">
+                View your INR trends over time to track your blood thinner management.
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Latest INR</h6>
+                    <h3 class="mb-0">@(latestInr?.INRValue.ToString("F1") ?? "--")</h3>
+                    <small class="text-muted">@(latestInr?.TestDate.ToString("MMM dd, yyyy") ?? "No data")</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Average INR (30d)</h6>
+                    <h3 class="mb-0">@(averageInr?.ToString("F1") ?? "--")</h3>
+                    <small class="text-muted">@testCount tests</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Target Range</h6>
+                    <h3 class="mb-0">@targetRange</h3>
+                    <small class="text-muted">Therapeutic window</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">In Range</h6>
+                    <h3 class="mb-0">@inRangePercentage%</h3>
+                    <small class="text-muted">Last 30 days</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">INR Trend Chart</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 7 ? "active" : "")" 
+                                @onclick="() => LoadData(7)">7 Days</button>
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 30 ? "active" : "")" 
+                                @onclick="() => LoadData(30)">30 Days</button>
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 90 ? "active" : "")" 
+                                @onclick="() => LoadData(90)">90 Days</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading INR data...</p>
+                        </div>
+                    }
+                    else if (tests == null || !tests.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No INR test data available for the selected time range.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chart-container" style="position: relative; height:400px">
+                            <!-- Placeholder for chart - integrate with Chart.js or similar library -->
+                            <canvas id="inrTrendChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Test History</h5>
+                </div>
+                <div class="card-body">
+                    @if (tests == null || !tests.Any())
+                    {
+                        <p class="text-muted">No test history available.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>INR Value</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var test in tests.OrderByDescending(t => t.TestDate))
+                                    {
+                                        <tr>
+                                            <td>@test.TestDate.ToString("MMM dd, yyyy")</td>
+                                            <td><strong>@test.INRValue.ToString("F1")</strong></td>
+                                            <td>
+                                                @if (test.INRValue < 1.5m)
+                                                {
+                                                    <span class="badge bg-warning">Below Range</span>
+                                                }
+                                                else if (test.INRValue > 4.5m)
+                                                {
+                                                    <span class="badge bg-danger">Above Range</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">In Range</span>
+                                                }
+                                            </td>
+                                            <td>@(test.Notes ?? "--")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<INRTest>? tests;
+    private INRTest? latestInr;
+    private decimal? averageInr;
+    private int testCount;
+    private string targetRange = "2.0 - 3.0";
+    private int inRangePercentage;
+    private int selectedRange = 30;
+    private bool isLoading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private ILogger<INRTrendsReport> Logger { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData(selectedRange);
+    }
+
+    private async Task LoadData(int days)
+    {
+        selectedRange = days;
+        isLoading = true;
+
+        try
+        {
+            // TODO: Connect to API endpoint GET /api/inr?days={days}
+            var fromDate = DateTime.UtcNow.AddDays(-days);
+            tests = await Http.GetFromJsonAsync<List<INRTest>>($"/api/inr?from={fromDate:yyyy-MM-dd}");
+
+            if (tests != null && tests.Any())
+            {
+                latestInr = tests.OrderByDescending(t => t.TestDate).FirstOrDefault();
+                averageInr = tests.Average(t => t.INRValue);
+                testCount = tests.Count;
+                inRangePercentage = (int)((tests.Count(t => t.INRValue >= 2.0m && t.INRValue <= 3.0m) / (decimal)tests.Count) * 100);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading INR trend data for {Days} days", days);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

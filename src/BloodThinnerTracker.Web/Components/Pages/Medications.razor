@@ -1,7 +1,12 @@
 @page "/medications"
 @using BloodThinnerTracker.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @rendermode InteractiveServer
 
 <PageTitle>Medications - Blood Thinner Tracker</PageTitle>
@@ -288,56 +293,32 @@
 
     private async Task LoadMedications()
     {
-        // Mock data - replace with actual service calls
-        allMedications = new List<Medication>
+        try
         {
-            new Medication
+            // Load all medications from API (including inactive for filtering)
+            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/medications?includeInactive=true");
+            
+            if (medications != null)
             {
-                Id = "1",
-                Name = "Warfarin",
-                BrandName = "Coumadin",
-                Dosage = 5,
-                DosageUnit = "mg",
-                Type = MedicationType.Warfarin,
-                Frequency = MedicationFrequency.OnceDaily,
-                ScheduledTimes = "[\"08:00\"]",
-                IsActive = true,
-                StartDate = DateTime.Today.AddDays(-30),
-                Instructions = "Take with food. Avoid green leafy vegetables.",
-                RemindersEnabled = true
-            },
-            new Medication
-            {
-                Id = "2",
-                Name = "Rivaroxaban",
-                BrandName = "Xarelto",
-                Dosage = 20,
-                DosageUnit = "mg",
-                Type = MedicationType.DOAC,
-                Frequency = MedicationFrequency.OnceDaily,
-                ScheduledTimes = "[\"20:00\"]",
-                IsActive = true,
-                StartDate = DateTime.Today.AddDays(-60),
-                Instructions = "Take with evening meal.",
-                RemindersEnabled = true
-            },
-            new Medication
-            {
-                Id = "3",
-                Name = "Aspirin",
-                BrandName = "Bayer",
-                Dosage = 81,
-                DosageUnit = "mg",
-                Type = MedicationType.Antiplatelet,
-                Frequency = MedicationFrequency.OnceDaily,
-                ScheduledTimes = "[\"08:00\"]",
-                IsActive = false,
-                StartDate = DateTime.Today.AddDays(-90),
-                EndDate = DateTime.Today.AddDays(-10),
-                Instructions = "Take with food to reduce stomach irritation.",
-                RemindersEnabled = false
+                allMedications = medications;
+                Snackbar.Add($"Loaded {medications.Count} medications", Severity.Success);
             }
-        };
+            else
+            {
+                allMedications = new List<Medication>();
+                Snackbar.Add("No medications found", Severity.Info);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Network error loading medications: {ex.Message}", Severity.Error);
+            allMedications = new List<Medication>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading medications: {ex.Message}", Severity.Error);
+            allMedications = new List<Medication>();
+        }
     }
 
     private void ApplyFilters()

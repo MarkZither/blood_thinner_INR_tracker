@@ -1,8 +1,12 @@
 @page "/dashboard"
 @using BloodThinnerTracker.Shared.Models
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ISnackbar Snackbar
 @rendermode InteractiveServer
 
 <PageTitle>Medical Dashboard - Blood Thinner Tracker</PageTitle>
@@ -318,28 +322,74 @@
 
     private async Task LoadDashboardData()
     {
-        // Mock data - replace with actual service calls
-        activeMedicationsCount = 3;
-        todayAdherencePercentage = 85;
-        lastINRValue = 2.3m;
-        upcomingRemindersCount = 2;
-
-        todayMedications = new List<TodayMedicationViewModel>
+        try
         {
-            new() { Id = "1", Name = "Warfarin", Dosage = 5, DosageUnit = "mg", NextDoseTime = DateTime.Today.AddHours(8), IsTaken = false },
-            new() { Id = "2", Name = "Aspirin", Dosage = 81, DosageUnit = "mg", NextDoseTime = DateTime.Today.AddHours(20), IsTaken = true }
-        };
+            // Load medications from API
+            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/medications?includeInactive=false");
+            if (medications != null)
+            {
+                activeMedicationsCount = medications.Count;
+                
+                // Map to today's medications view model
+                todayMedications = medications.Select(m => new TodayMedicationViewModel
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Dosage = (int)m.Dosage,
+                    DosageUnit = m.DosageUnit,
+                    NextDoseTime = DateTime.Today.AddHours(8), // TODO: Calculate from schedule
+                    IsTaken = false // TODO: Check from medication logs
+                }).ToList();
+            }
 
-        criticalAlerts = new List<AlertViewModel>
-        {
-            new() { Type = "Missed Dose", Message = "You missed your Warfarin dose yesterday evening", CreatedAt = DateTime.Now.AddHours(-2) }
-        };
+            // Load recent INR tests from API
+            var inrTests = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=5");
+            if (inrTests != null && inrTests.Any())
+            {
+                recentINRTests = inrTests.Select(r => new INRTest
+                {
+                    Id = r.Id,
+                    INRValue = r.INRValue,
+                    TestDate = r.TestDate,
+                    Status = r.Status,
+                    Laboratory = r.Laboratory
+                }).ToList();
+                
+                lastINRValue = inrTests.First().INRValue;
+            }
 
-        upcomingReminders = new List<ReminderViewModel>
+            // Calculate adherence percentage (mock for now - will be real once logs are implemented)
+            todayAdherencePercentage = 85;
+            upcomingRemindersCount = 2;
+
+            // Mock alerts and reminders (will be replaced with real data)
+            criticalAlerts = new List<AlertViewModel>
+            {
+                new() { Type = "Missed Dose", Message = "You missed your Warfarin dose yesterday evening", CreatedAt = DateTime.Now.AddHours(-2) }
+            };
+
+            upcomingReminders = new List<ReminderViewModel>
+            {
+                new() { Title = "Warfarin Dose", Description = "5mg - Take with food", ScheduledTime = DateTime.Today.AddHours(20) },
+                new() { Title = "INR Test", Description = "Scheduled lab appointment", ScheduledTime = DateTime.Today.AddDays(2).AddHours(9) }
+            };
+        }
+        catch (HttpRequestException ex)
         {
-            new() { Title = "Warfarin Dose", Description = "5mg - Take with food", ScheduledTime = DateTime.Today.AddHours(20) },
-            new() { Title = "INR Test", Description = "Scheduled lab appointment", ScheduledTime = DateTime.Today.AddDays(2).AddHours(9) }
-        };
+            Snackbar.Add($"Network error loading dashboard: {ex.Message}", Severity.Error);
+            // Set default values on error
+            activeMedicationsCount = 0;
+            todayAdherencePercentage = 0;
+            lastINRValue = null;
+            upcomingRemindersCount = 0;
+            todayMedications = new List<TodayMedicationViewModel>();
+            criticalAlerts = new List<AlertViewModel>();
+            upcomingReminders = new List<ReminderViewModel>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading dashboard: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task LoadINRChart()

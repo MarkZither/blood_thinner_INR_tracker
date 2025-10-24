@@ -1,0 +1,349 @@
+@page "/reports/medication-adherence"
+@using BloodThinnerTracker.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Medication Adherence Report</PageTitle>
+
+<div class="container-fluid py-4">
+    <!-- Medical Disclaimer -->
+    <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <div>
+                <strong>Medical Disclaimer:</strong> This report is for tracking purposes only. 
+                Never skip or double doses without consulting your healthcare provider.
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-pills me-2"></i>Medication Adherence Report</h2>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Period Selector -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Time Period</label>
+                    <select class="form-select" @bind="selectedPeriod" @bind:after="LoadData">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Medication</label>
+                    <select class="form-select" @bind="selectedMedicationId" @bind:after="LoadData">
+                        <option value="">All Medications</option>
+                        @if (medications != null)
+                        {
+                            @foreach (var med in medications)
+                            {
+                                <option value="@med.Id">@med.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" @onclick="LoadData">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adherence Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center stat-card">
+                <div class="card-body">
+                    <div class="stat-icon text-success mb-2">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h3 class="stat-value">@adherenceRate%</h3>
+                    <p class="stat-label text-muted mb-0">Overall Adherence Rate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center stat-card">
+                <div class="card-body">
+                    <div class="stat-icon text-primary mb-2">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                    <h3 class="stat-value">@dosesTaken</h3>
+                    <p class="stat-label text-muted mb-0">Doses Taken</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center stat-card">
+                <div class="card-body">
+                    <div class="stat-icon text-warning mb-2">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                    </div>
+                    <h3 class="stat-value">@dosesMissed</h3>
+                    <p class="stat-label text-muted mb-0">Doses Missed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center stat-card">
+                <div class="card-body">
+                    <div class="stat-icon text-info mb-2">
+                        <i class="fas fa-calendar-alt fa-2x"></i>
+                    </div>
+                    <h3 class="stat-value">@currentStreak</h3>
+                    <p class="stat-label text-muted mb-0">Day Streak</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adherence Calendar/Chart Placeholder -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Adherence Calendar</h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-calendar-alt fa-3x mb-3"></i>
+                <p>Calendar view showing daily adherence will be integrated with chart library</p>
+                <small class="text-muted">Shows taken (green), missed (red), and skipped (yellow) doses</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medication Log Details -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Medication Log Details</h5>
+        </div>
+        <div class="card-body">
+            @if (logs == null)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (!logs.Any())
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>No medication logs found for the selected period.</p>
+                    <small class="text-warning">TODO: Connect to API endpoint GET /api/medication-logs</small>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Medication</th>
+                                <th>Scheduled Dose</th>
+                                <th>Actual Dose</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in logs)
+                            {
+                                <tr>
+                                    <td>@log.ScheduledTime.ToString("MMM dd, yyyy h:mm tt")</td>
+                                    <td>
+                                        <strong>@log.Medication?.Name</strong>
+                                        <br />
+                                        <small class="text-muted">@log.Medication?.Dosage @log.Medication?.DosageUnit</small>
+                                    </td>
+                                    <td>@log.Medication?.Dosage @log.Medication?.DosageUnit</td>
+                                    <td>@log.ActualDosage @log.ActualDosageUnit</td>
+                                    <td>
+                                        @switch (log.Status)
+                                        {
+                                            case MedicationLogStatus.Taken:
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>Taken
+                                                </span>
+                                                break;
+                                            case MedicationLogStatus.Skipped:
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times me-1"></i>Skipped
+                                                </span>
+                                                break;
+                                            case MedicationLogStatus.PartiallyTaken:
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-ban me-1"></i>Partial
+                                                </span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">Scheduled</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(log.Notes))
+                                        {
+                                            <small>@log.Notes</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">-</small>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MedicationLog>? logs;
+    private List<Medication>? medications;
+    private int selectedPeriod = 30;
+    private string selectedMedicationId = "";
+    
+    // Statistics
+    private int adherenceRate = 0;
+    private int dosesTaken = 0;
+    private int dosesMissed = 0;
+    private int currentStreak = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedications();
+        await LoadData();
+    }
+
+    private async Task LoadMedications()
+    {
+        try
+        {
+            // TODO: T018d - Replace with actual API endpoint
+            // medications = await Http.GetFromJsonAsync<List<Medication>>("/api/medications");
+            
+            // Mock data for now
+            medications = new List<Medication>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading medications: {ex.Message}");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var fromDate = DateTime.Now.AddDays(-selectedPeriod);
+            var url = $"/api/medication-logs?from={fromDate:yyyy-MM-dd}";
+            
+            if (!string.IsNullOrEmpty(selectedMedicationId))
+            {
+                url += $"&medicationId={selectedMedicationId}";
+            }
+
+            // TODO: T018d - Replace with actual API endpoint
+            // logs = await Http.GetFromJsonAsync<List<MedicationLog>>(url);
+            
+            // Mock data for now
+            logs = new List<MedicationLog>();
+            
+            // Calculate statistics
+            CalculateStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading medication logs: {ex.Message}");
+            logs = new List<MedicationLog>();
+        }
+    }
+
+    private void CalculateStatistics()
+    {
+        if (logs == null || !logs.Any())
+        {
+            adherenceRate = 0;
+            dosesTaken = 0;
+            dosesMissed = 0;
+            currentStreak = 0;
+            return;
+        }
+
+        dosesTaken = logs.Count(l => l.Status == MedicationLogStatus.Taken);
+        dosesMissed = logs.Count(l => l.Status == MedicationLogStatus.Skipped);
+        
+        var totalExpectedDoses = logs.Count;
+        adherenceRate = totalExpectedDoses > 0 
+            ? (int)Math.Round((double)dosesTaken / totalExpectedDoses * 100) 
+            : 0;
+
+        // Calculate current streak (consecutive days with all doses taken)
+        currentStreak = CalculateStreak();
+    }
+
+    private int CalculateStreak()
+    {
+        // TODO: Implement actual streak calculation
+        // Group by date, check if all doses taken for each day
+        return 0;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+}
+
+<style>
+    .medical-disclaimer {
+        border-left: 4px solid #ff6b6b;
+    }
+
+    .stat-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .stat-icon {
+        opacity: 0.7;
+    }
+</style>

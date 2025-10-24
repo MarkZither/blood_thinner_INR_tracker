@@ -110,8 +110,8 @@ As a blood thinner patient, I need clear guidance when I miss doses or am outsid
 - **FR-005**: System MUST log INR test results with test dates and associate with authenticated user. Users may edit or delete INR test entries within 24 hours of creation to correct data entry errors; audit trail shall preserve original values.
 - **FR-006**: System MUST synchronize user data across multiple devices within 30 seconds under normal network conditions. On network failure, system shall queue changes locally and retry synchronization with exponential backoff (1s, 2s, 4s, 8s intervals) until connection restored. System shall achieve 99% synchronization success rate measured over rolling 7-day periods; on synchronization failures (1% tolerance), system shall display warning notification to user indicating data may not be current on all devices. On synchronization conflicts (same record edited on multiple devices), system shall apply last-write-wins strategy with conflict notification shown to user. System shall support maximum of 10 active registered devices per user account.
 - **FR-007**: System MUST display a warning (not a hard block) advising against taking medication more than 12 hours after scheduled time, recommending user wait for next scheduled dose (see T025 for UI implementation). Medication scheduled at exactly 12 hours 0 minutes shall NOT trigger warning (boundary: warning only for >12:00:00).
-- **FR-008**: System MUST display historical medication doses in chart format (bar chart preferred) with selectable time ranges: 7 days, 30 days, 90 days, or custom date range.
-- **FR-009**: System MUST display historical INR levels in chart format (line chart) with trend indicators calculated as 7-day moving averages, with visual color coding (green=stable within range, yellow=rising trend, red=declining trend or outside target range). Selectable time ranges: 7 days, 30 days, 90 days, or custom date range.
+- **FR-008**: System MUST display historical medication doses in chart format (bar chart preferred) with selectable time ranges: 7 days, 30 days, 90 days, or custom date range. **Blazor Web applications MUST use MudBlazor Chart component for native C# charting without JavaScript dependencies**.
+- **FR-009**: System MUST display historical INR levels in chart format (line chart) with trend indicators calculated as 7-day moving averages, with visual color coding (green=stable within range, yellow=rising trend, red=declining trend or outside target range). Selectable time ranges: 7 days, 30 days, 90 days, or custom date range. **Blazor Web applications MUST use MudBlazor Chart component for native C# charting without JavaScript dependencies**.
 - **FR-010**: System MUST validate INR value ranges (0.5-8.0) and flag outlier values (INR <1.5 or >4.5) for healthcare provider review (see T029a for validation logic)
 - **FR-011**: System MUST track missed doses and display them in medication history
 - **FR-012**: System MUST allow users to export medication and INR data for sharing with healthcare providers
@@ -138,6 +138,16 @@ As a blood thinner patient, I need clear guidance when I miss doses or am outsid
 
 - **NFR-001**: Offline mode - System shall queue medication and INR log entries locally when network unavailable, with visual indicator showing offline status and pending sync count. All queued data shall synchronize automatically when connection restored (see FR-006 for sync reliability).
 - **NFR-002**: Session management - Access tokens expire after 15 minutes; automatic refresh occurs when <5 minutes remaining. Session timeout after 7 days of inactivity requires re-authentication (see FR-015).
+- **NFR-003**: **UI Framework Standards - Blazor Web applications MUST use MudBlazor component library (v8.13.0+) for all user interface components**:
+  - **Charts**: MudChart for all data visualizations (line charts, bar charts, pie charts) - NO JavaScript charting libraries
+  - **Dialogs**: MudDialog for confirmations, alerts, and modal interactions - NO JavaScript alert/confirm
+  - **Notifications**: MudSnackbar for toast notifications - NO custom JavaScript toast libraries
+  - **Data Tables**: MudDataGrid for tabular data with sorting/filtering - NO JavaScript data table libraries
+  - **Forms**: MudTextField, MudNumericField, MudDatePicker, MudSelect for all form inputs
+  - **Icons**: MudIcon with Material Design icons - NO external icon fonts
+  - **Theming**: MudThemeProvider for consistent Material Design styling
+  - JavaScript interop is ONLY permitted for browser APIs unavailable in .NET (clipboard access, file system dialogs, browser storage). All UI interactions and visualizations MUST be pure C#/Blazor components.
+  - **Rationale**: Pure .NET implementation eliminates JavaScript prerendering errors, improves type safety, simplifies maintenance, enables full debugging in C#, and aligns with Blazor philosophy of full-stack .NET development.
 
 ### Key Entities *(include if feature involves data)*
 

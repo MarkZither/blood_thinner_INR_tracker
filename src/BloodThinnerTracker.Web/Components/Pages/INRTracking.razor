@@ -1,7 +1,11 @@
 @page "/inr"
 @using BloodThinnerTracker.Shared.Models
-@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @rendermode InteractiveServer
 
 <PageTitle>INR Tracking - Blood Thinner Tracker</PageTitle>
@@ -96,73 +100,77 @@
     </div>
 
     <!-- INR Trend Chart -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-line text-primary me-2"></i>
-                    INR Trend Analysis
-                </h5>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn @(chartPeriod == "3m" ? "btn-primary" : "btn-outline-primary")" 
-                            @onclick="ChangeChartPeriod3M">3M</button>
-                    <button class="btn @(chartPeriod == "6m" ? "btn-primary" : "btn-outline-primary")" 
-                            @onclick="ChangeChartPeriod6M">6M</button>
-                    <button class="btn @(chartPeriod == "1y" ? "btn-primary" : "btn-outline-primary")" 
-                            @onclick="ChangeChartPeriod1Y">1Y</button>
-                    <button class="btn @(chartPeriod == "all" ? "btn-primary" : "btn-outline-primary")" 
-                            @onclick="ChangeChartPeriodAll">All</button>
-                </div>
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <MudText Typo="Typo.h5">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Class="mr-2" />
+                INR Trend Analysis
+            </MudText>
+            <MudButtonGroup OverrideStyles="false">
+                <MudButton Variant="@(chartPeriod == "3m" ? Variant.Filled : Variant.Outlined)" 
+                           Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod3M">3M</MudButton>
+                <MudButton Variant="@(chartPeriod == "6m" ? Variant.Filled : Variant.Outlined)" 
+                           Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod6M">6M</MudButton>
+                <MudButton Variant="@(chartPeriod == "1y" ? Variant.Filled : Variant.Outlined)" 
+                           Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod1Y">1Y</MudButton>
+                <MudButton Variant="@(chartPeriod == "all" ? Variant.Filled : Variant.Outlined)" 
+                           Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriodAll">All</MudButton>
+            </MudButtonGroup>
+        </div>
+        
+        @if (inrTests?.Any() == true)
+        {
+            <MudChart ChartType="ChartType.Line" 
+                      ChartSeries="@chartSeries" 
+                      XAxisLabels="@chartLabels" 
+                      Width="100%" 
+                      Height="400px"
+                      ChartOptions="@chartOptions">
+            </MudChart>
+            
+            <!-- Chart Legend -->
+            <div class="mt-4">
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="12" sm="6" md="3">
+                        <div class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
+                            <MudText Typo="Typo.body2">Target Range (@targetRange)</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <div class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Primary" Size="Size.Small" Class="mr-2" />
+                            <MudText Typo="Typo.body2">INR Values</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <div class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
+                            <MudText Typo="Typo.body2">Below Range (Risk of Clots)</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <div class="d-flex align-items-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Error" Size="Size.Small" Class="mr-2" />
+                            <MudText Typo="Typo.body2">Above Range (Risk of Bleeding)</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
             </div>
-        </div>
-        <div class="card-body">
-            @if (inrTests?.Any() == true)
-            {
-                <div id="inrTrendChart" style="height: 400px;"></div>
-                
-                <!-- Chart Legend -->
-                <div class="chart-legend mt-3">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <span class="legend-item">
-                                <span class="legend-color bg-success"></span>
-                                Target Range (@targetRange)
-                            </span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="legend-item">
-                                <span class="legend-color bg-primary"></span>
-                                INR Values
-                            </span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="legend-item">
-                                <span class="legend-color bg-warning"></span>
-                                Below Range (Risk of Clots)
-                            </span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="legend-item">
-                                <span class="legend-color bg-danger"></span>
-                                Above Range (Risk of Bleeding)
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <i class="fas fa-chart-line text-muted fa-4x mb-3"></i>
-                    <h4 class="text-muted">No INR Data Available</h4>
-                    <p class="text-muted mb-4">Start tracking your INR levels to see trends and analysis</p>
-                    <button class="btn btn-primary" @onclick="NavigateToAddINR">
-                        <i class="fas fa-plus me-1"></i>Add Your First INR Result
-                    </button>
-                </div>
-            }
-        </div>
-    </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Default" Class="mb-3" />
+                <MudText Typo="Typo.h6" Color="Color.Default">No INR Data Available</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Default" Class="mb-4">Start tracking your INR levels to see trends and analysis</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="NavigateToAddINR">
+                    Add Your First INR Result
+                </MudButton>
+            </div>
+        }
+    </MudPaper>
 
     <!-- INR History Table -->
     <div class="card shadow-sm">
@@ -294,6 +302,11 @@
     // Chart and filtering
     private string chartPeriod = "3m";
     
+    // MudBlazor Chart data
+    private List<ChartSeries> chartSeries = new();
+    private string[] chartLabels = Array.Empty<string>();
+    private ChartOptions chartOptions = new ChartOptions();
+    
     // Pagination
     private int currentPage = 1;
     private int pageSize = 10;
@@ -305,82 +318,138 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadINRData();
-        await RenderChart();
+        PrepareChartData();
     }
 
     private async Task LoadINRData()
     {
-        // Mock data - replace with actual service calls
-        inrTests = new List<INRTest>
+        try
         {
-            new INRTest
+            // Call API to get INR tests
+            var response = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=100");
+            
+            if (response != null && response.Any())
             {
-                Id = "1",
-                UserId = "user1",
-                INRValue = 2.3m,
-                TestDate = DateTime.Today.AddDays(-5),
-                Laboratory = "Quest Diagnostics",
-                Notes = "Feeling good, no side effects"
-            },
-            new INRTest
-            {
-                Id = "2",
-                UserId = "user1",
-                INRValue = 2.8m,
-                TestDate = DateTime.Today.AddDays(-15),
-                Laboratory = "LabCorp",
-                Notes = "Slight bleeding when brushing teeth"
-            },
-            new INRTest
-            {
-                Id = "3",
-                UserId = "user1",
-                INRValue = 1.9m,
-                TestDate = DateTime.Today.AddDays(-25),
-                Laboratory = "Quest Diagnostics",
-                Notes = "Dose adjusted by physician"
-            },
-            new INRTest
-            {
-                Id = "4",
-                UserId = "user1",
-                INRValue = 2.1m,
-                TestDate = DateTime.Today.AddDays(-35),
-                Laboratory = "Hospital Lab",
-                Notes = "Routine check"
-            },
-            new INRTest
-            {
-                Id = "5",
-                UserId = "user1",
-                INRValue = 3.2m,
-                TestDate = DateTime.Today.AddDays(-45),
-                Laboratory = "Quest Diagnostics",
-                Notes = "High value - dose reduced"
-            }
-        };
+                // Map response to INRTest entities
+                inrTests = response.Select(r => new INRTest
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    TestDate = r.TestDate,
+                    INRValue = r.INRValue,
+                    TargetINRMin = r.TargetINRMin,
+                    TargetINRMax = r.TargetINRMax,
+                    ProthrombinTime = r.ProthrombinTime,
+                    PartialThromboplastinTime = r.PartialThromboplastinTime,
+                    Laboratory = r.Laboratory,
+                    OrderedBy = r.OrderedBy,
+                    TestMethod = r.TestMethod,
+                    IsPointOfCare = r.IsPointOfCare,
+                    WasFasting = r.WasFasting,
+                    LastMedicationTime = r.LastMedicationTime,
+                    MedicationsTaken = r.MedicationsTaken,
+                    FoodsConsumed = r.FoodsConsumed,
+                    HealthConditions = r.HealthConditions,
+                    Status = r.Status,
+                    RecommendedActions = r.RecommendedActions,
+                    DosageChanges = r.DosageChanges,
+                    NextTestDate = r.NextTestDate,
+                    Notes = r.Notes,
+                    ReviewedByProvider = r.ReviewedByProvider,
+                    ReviewedBy = r.ReviewedBy,
+                    ReviewedAt = r.ReviewedAt,
+                    PatientNotified = r.PatientNotified,
+                    NotificationMethod = r.NotificationMethod,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt ?? r.CreatedAt
+                }).ToList();
 
-        // Calculate pagination
-        var totalItems = inrTests?.Count ?? 0;
-        totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                // Update current status from latest test
+                var latestTest = inrTests.OrderByDescending(t => t.TestDate).FirstOrDefault();
+                if (latestTest != null)
+                {
+                    currentINR = latestTest.INRValue;
+                    currentINRDate = latestTest.TestDate;
+                    
+                    if (latestTest.TargetINRMin.HasValue && latestTest.TargetINRMax.HasValue)
+                    {
+                        targetRange = $"{latestTest.TargetINRMin:F1}-{latestTest.TargetINRMax:F1}";
+                    }
+                    
+                    nextTestDate = latestTest.NextTestDate;
+                    if (nextTestDate.HasValue)
+                    {
+                        daysUntilNextTest = (nextTestDate.Value - DateTime.Today).Days;
+                    }
+                }
+
+                // Calculate time in range percentage (last 90 days)
+                var threeMonthsAgo = DateTime.Today.AddDays(-90);
+                var recentTests = inrTests.Where(t => t.TestDate >= threeMonthsAgo).ToList();
+                if (recentTests.Any())
+                {
+                    var inRangeCount = recentTests.Count(t => t.Status == INRResultStatus.InRange);
+                    timeInRangePercentage = (int)Math.Round((double)inRangeCount / recentTests.Count * 100);
+                }
+            }
+            else
+            {
+                inrTests = new List<INRTest>();
+            }
+
+            // Calculate pagination
+            var totalItems = inrTests?.Count ?? 0;
+            totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Network error loading INR data: {ex.Message}", Severity.Error);
+            inrTests = new List<INRTest>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading INR data: {ex.Message}", Severity.Error);
+            inrTests = new List<INRTest>();
+        }
     }
 
-    private async Task RenderChart()
+    private void PrepareChartData()
     {
-        if (inrTests?.Any() != true) return;
+        if (inrTests?.Any() != true)
+        {
+            chartSeries = new List<ChartSeries>();
+            chartLabels = Array.Empty<string>();
+            return;
+        }
 
         // Filter data based on selected period
         var filteredTests = FilterTestsByPeriod(inrTests, chartPeriod);
-        
-        var chartData = filteredTests.OrderBy(t => t.TestDate).Select(t => new
-        {
-            date = t.TestDate.ToString("yyyy-MM-dd"),
-            value = (double)t.INRValue,
-            targetMin = 2.0,
-            targetMax = 3.0
-        }).ToArray();
+        var orderedTests = filteredTests.OrderBy(t => t.TestDate).ToList();
 
-        await JSRuntime.InvokeVoidAsync("renderINRTrendChart", "inrTrendChart", chartData);
+        // Prepare chart labels (dates)
+        chartLabels = orderedTests.Select(t => t.TestDate.ToString("MMM dd")).ToArray();
+
+        // INR Values series
+        var inrValues = orderedTests.Select(t => (double)t.INRValue).ToArray();
+        
+        // Target range series (min and max)
+        var targetMin = Enumerable.Repeat(2.0, orderedTests.Count).ToArray();
+        var targetMax = Enumerable.Repeat(3.0, orderedTests.Count).ToArray();
+
+        chartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "INR Value", Data = inrValues },
+            new ChartSeries { Name = "Target Min (2.0)", Data = targetMin },
+            new ChartSeries { Name = "Target Max (3.0)", Data = targetMax }
+        };
+
+        // Configure chart options
+        chartOptions = new ChartOptions
+        {
+            YAxisTicks = 1,
+            YAxisLines = true,
+            XAxisLines = true
+        };
     }
 
     private List<INRTest> FilterTestsByPeriod(List<INRTest> tests, string period)
@@ -396,10 +465,10 @@
         return tests.Where(t => t.TestDate >= cutoffDate).ToList();
     }
 
-    private async Task ChangeChartPeriod(string period)
+    private void ChangeChartPeriod(string period)
     {
         chartPeriod = period;
-        await RenderChart();
+        PrepareChartData();
         StateHasChanged();
     }
 
@@ -423,27 +492,55 @@
     }
 
     // Chart period methods
-    private async Task ChangeChartPeriod3M() => await ChangeChartPeriod("3m");
-    private async Task ChangeChartPeriod6M() => await ChangeChartPeriod("6m");
-    private async Task ChangeChartPeriod1Y() => await ChangeChartPeriod("1y");
-    private async Task ChangeChartPeriodAll() => await ChangeChartPeriod("all");
+    private void ChangeChartPeriod3M() => ChangeChartPeriod("3m");
+    private void ChangeChartPeriod6M() => ChangeChartPeriod("6m");
+    private void ChangeChartPeriod1Y() => ChangeChartPeriod("1y");
+    private void ChangeChartPeriodAll() => ChangeChartPeriod("all");
 
     private async Task DeleteINRTest(string testId)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this INR test result?");
-        if (confirmed)
+        // Show MudBlazor confirmation dialog
+        var result = await DialogService.ShowMessageBox(
+            "Delete INR Test",
+            "Are you sure you want to delete this test result? This action cannot be undone.",
+            yesText: "Delete", 
+            cancelText: "Cancel");
+        
+        if (result == true)
         {
-            // TODO: Call API to delete test
-            await LoadINRData();
-            await RenderChart();
-            StateHasChanged();
+            try
+            {
+                // Call API to delete test
+                var response = await Http.DeleteAsync($"api/inr/{testId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("INR test deleted successfully", Severity.Success);
+                    await LoadINRData();
+                    PrepareChartData();
+                    StateHasChanged();
+                }
+                else
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Failed to delete test: {errorMessage}", Severity.Error);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add($"Network error deleting test: {ex.Message}", Severity.Error);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting test: {ex.Message}", Severity.Error);
+            }
         }
     }
 
-    private async Task ExportINRData()
+    private void ExportINRData()
     {
-        // TODO: Implement export functionality
-        await JSRuntime.InvokeVoidAsync("alert", "Export functionality coming soon!");
+        // TODO: Implement export functionality using MudBlazor dialog
+        // For now, user will see the button but export will be implemented with API
     }
 
     // Helper methods for styling

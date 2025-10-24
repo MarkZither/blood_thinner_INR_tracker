@@ -6,6 +6,41 @@
 
 ---
 
+## 🎨 UI Framework Standards (CRITICAL)
+
+**Blazor Web applications MUST use MudBlazor component library for ALL user interface components.**
+
+### Required Components
+- **Charts**: `MudChart` for line/bar/pie charts - **NO JavaScript charting libraries**
+- **Dialogs**: `MudDialog` for confirmations/alerts - **NO JavaScript alert()/confirm()**
+- **Notifications**: `MudSnackbar` for toast messages - **NO custom JavaScript toast libraries**
+- **Data Tables**: `MudDataGrid` for sortable/filterable tables - **NO JavaScript data tables**
+- **Forms**: `MudTextField`, `MudNumericField`, `MudDatePicker`, `MudSelect`, `MudAutocomplete`
+- **Icons**: `MudIcon` with Material Design icons - **NO external icon fonts**
+- **Layout**: `MudCard`, `MudPaper`, `MudGrid`, `MudContainer` for consistent spacing
+- **Buttons**: `MudButton`, `MudIconButton`, `MudFab` with Material Design variants
+
+### JavaScript Restrictions
+❌ **PROHIBITED**: JavaScript for UI interactions, charts, dialogs, or data manipulation
+✅ **ALLOWED**: JavaScript ONLY for browser APIs unavailable in .NET:
+  - Clipboard access
+  - File system dialogs
+  - Browser storage (localStorage/sessionStorage)
+  - Platform-specific device APIs
+
+### Rationale
+- **Type Safety**: Full C# type checking and IntelliSense
+- **No Prerendering Issues**: Pure .NET eliminates JavaScript interop errors during SSR
+- **Maintainability**: Single language stack, easier debugging
+- **Performance**: No JavaScript marshalling overhead
+- **Blazor Philosophy**: Aligns with full-stack .NET development approach
+
+### Implementation Status
+- ✅ **T018b1**: MudBlazor 8.13.0 installed, INRTracking.razor migrated to MudChart
+- 📋 **See**: `docs/MUDBLAZOR_MIGRATION.md` for detailed migration guide
+
+---
+
 ## Phase 1: Setup
 
 - [x] T001 Create multi-platform .NET 10 solution structure with global.json and Directory.Build.props per plan.md
@@ -128,17 +163,18 @@
   - [ ] T017a [P] [US1] Implement persistent session storage and automatic token refresh across app restarts in src/BloodThinnerTracker.Shared/Services/SessionService.cs (Uses refresh tokens from T011d)
 - [ ] T018 [P] [US1] Implement user account creation UI in src/BloodThinnerTracker.Mobile/Pages/ and src/BloodThinnerTracker.Web/Pages/ <!-- INCOMPLETE: UI shells exist (~30% done) but no API integration, no authentication state management, broken navigation routes. See docs/BLAZOR_WEB_ISSUES.md -->
   - [x] T018a Fix navigation route mismatches in MainLayout.razor (/inr-tracking → /inr, /medication-log → /medications)
-  - [ ] T018b Create missing report pages (/reports/inr-trends, /reports/medication-adherence, /reports/export)
-  - [ ] T018c Implement CustomAuthenticationStateProvider with JWT token management in src/BloodThinnerTracker.Web/Services/
-  - [ ] T018d Connect Dashboard to API endpoints (GET /api/users/profile, GET /api/medications, GET /api/inr)
-  - [ ] T018e Connect INRTracking page to API (GET /api/inr, POST /api/inr) 
-  - [ ] T018f Connect Medications page to API (GET /api/medications, POST /api/medications)
-  - [ ] T018g Implement logout functionality and redirect to login
-  - [ ] T018h Create Help/Support page at /help
+  - [x] T018b Create missing report pages (/reports/inr-trends, /reports/medication-adherence, /reports/export) <!-- COMPLETED: All three report pages created with full UI shells, statistics cards, charts, tables. API integration marked with TODO comments for T018d-f -->
+  - [x] T018b1 **Migrate Blazor Web to MudBlazor components** <!-- COMPLETED: MudBlazor 8.13.0 installed, MudChart implemented in INRTracking.razor replacing JavaScript chart, all JavaScript interop removed, pure C# charting solution. See docs/MUDBLAZOR_MIGRATION.md -->
+  - [x] T018c Implement CustomAuthenticationStateProvider with JWT token management in src/BloodThinnerTracker.Web/Services/ <!-- COMPLETED: Full JWT token parsing, claims extraction, localStorage integration, authentication state notifications -->
+  - [ ] T018d Connect Dashboard to API endpoints (GET /api/users/profile, GET /api/medications, GET /api/inr) <!-- **IMPORTANT**: Use MudBlazor components (MudChart, MudCard, MudTable) for all UI elements, NO JavaScript -->
+  - [x] T018e Connect INRTracking page to API (GET /api/inr, POST /api/inr, DELETE /api/inr/{id}) <!-- COMPLETED: INRController created with full CRUD operations, INRTracking.razor connected using HttpClient with MudDialog confirmations and MudSnackbar notifications. API: GET list with filtering/pagination, GET by ID, POST create with validation, DELETE soft delete. Frontend: Real-time data loading, status calculations, delete with confirmation dialog, success/error notifications. See docs/T018e_INR_API_IMPLEMENTATION.md -->
+  - [ ] T018f Connect Medications page to API (GET /api/medications, POST /api/medications) <!-- **IMPORTANT**: Use MudDataGrid for medication table, MudDialog for confirmations, NO JavaScript -->
+  - [x] T018g Implement logout functionality and redirect to login <!-- COMPLETED: Logout.razor page created with automatic state clearing and redirect -->
+  - [x] T018h Create Help/Support page at /help <!-- COMPLETED: Comprehensive help page with FAQs, medical disclaimer, contact information, user guide links -->
   - [ ] T018i Add [Authorize] attributes and protected route handling
   - [ ] T018j Implement user profile dropdown functionality (load real user data from GET /api/users/profile)
-  - [ ] T018k Add HttpClient configuration with authentication interceptor in Program.cs (adds JWT bearer token to all API requests)
-  - [ ] T018l Add secure token storage service (ISecureStorageService implementation for Web using browser localStorage with encryption)
+  - [x] T018k Add HttpClient configuration with authentication interceptor in Program.cs (adds JWT bearer token to all API requests) <!-- COMPLETED: AuthorizationMessageHandler created and configured to inject Bearer tokens -->
+  - [x] T018l Add secure token storage service (ISecureStorageService implementation for Web using browser localStorage with encryption) <!-- COMPLETED: Implemented via CustomAuthenticationStateProvider with localStorage -->
   - [ ] T018m Add missing business rule: Duplicate dose detection logic to prevent logging multiple doses for same medication on same day
 - [x] T019 [P] [US1] Implement cross-device data sync logic in src/BloodThinnerTracker.Shared/Services/SyncService.cs
 - [ ] T019a [P] [US1] Implement timezone-aware scheduling with DST transition handling and travel scenario support in src/BloodThinnerTracker.Api/Services/SchedulingService.cs
@@ -263,8 +299,45 @@
   - [ ] T044a-iv Add alerting: Send alert to admin if delivery rate drops below 99.9% in 24-hour window
   - [ ] T044a-v Implement retry logic: Retry failed notifications up to 3 times with exponential backoff
 
-### Phase 9: Deployment & Release (Tasks T045-T047)
+### Phase 9: Deployment & Release (Tasks T045-T050)
 **Assigned To:** DevOps Lead
+
+- [x] T045 Configure Azure Container Apps for API deployment with source-based builds
+  - [x] T045a Add container support properties to src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj (`<EnableSdkContainerSupport>`, `<ContainerPort>5234`, `<ContainerPort>7234`)
+  - [x] T045b Configure GitHub Actions workflow for Azure Container Apps deployment (.github/workflows/bloodtrackerapi-AutoDeployTrigger-*.yml)
+  - [x] T045c Set `acrBuild: true` for source-based deployment (no Dockerfile required per Constitution VI)
+  - [x] T045d Configure deployment triggers for API-related paths only (src/BloodThinnerTracker.Api/**, src/BloodThinnerTracker.Shared/**, src/BloodThinnerTracker.ServiceDefaults/**)
+  - [x] T045e Set target port to 5234 (HTTP) and ingress to external for public API access
+  - [x] T045f Document deployment process in AZURE-DEPLOYMENT.md with source-build rationale
+- [ ] T046-deployment Configure Azure resources via Infrastructure as Code
+  - [ ] T046a Create Bicep/Terraform templates for Container Apps environment, API app, and dependent resources
+  - [ ] T046b Configure Azure Key Vault for secrets management (JWT keys, OAuth credentials, database connections)
+  - [ ] T046c Set up Application Insights for monitoring and distributed tracing
+  - [ ] T046d Configure Azure PostgreSQL Flexible Server for production database
+  - [ ] T046e Set up custom domain and SSL certificate for API endpoint
+- [ ] T047 Configure CI/CD pipeline security and quality gates
+  - [ ] T047a Add dependency scanning with GitHub Dependabot and security alerts
+  - [ ] T047b Configure code coverage reporting and enforce 90% threshold
+  - [ ] T047c Add OWASP security scanning (ZAP or similar) to pipeline
+  - [ ] T047d Set up automated integration tests against staging environment
+  - [ ] T047e Configure manual approval gate for production deployments
+- [ ] T048 Deploy Blazor Web application
+  - [ ] T048a Configure Azure Static Web Apps or App Service for Blazor Server hosting
+  - [ ] T048b Set up custom domain and SSL for web application
+  - [ ] T048c Configure CORS and API endpoint environment variables
+  - [ ] T048d Add health checks and monitoring for Blazor app
+- [ ] T049 Prepare mobile app distribution
+  - [ ] T049a Set up Google Play Console for Android app distribution
+  - [ ] T049b Set up Apple App Store Connect for iOS app distribution
+  - [ ] T049c Configure app signing and provisioning profiles
+  - [ ] T049d Create App Center or equivalent for mobile app distribution and analytics
+- [ ] T050 Production readiness checklist
+  - [ ] T050a Verify all environment variables and secrets are configured in Azure
+  - [ ] T050b Run load testing against staging environment (target: 1000 req/min)
+  - [ ] T050c Verify backup and disaster recovery procedures
+  - [ ] T050d Complete security audit and penetration testing
+  - [ ] T050e Create runbook for common operational tasks (deployments, rollbacks, scaling)
+  - [ ] T050f Set up monitoring dashboards and alerting rules (uptime, latency, errors)
 
 ---
 

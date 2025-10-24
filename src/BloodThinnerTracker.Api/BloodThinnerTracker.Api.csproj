@@ -23,13 +23,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0-rc.2.25502.107" />
+    <!-- Removed unnecessary DataProtection reference - included in ASP.NET Core -->
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.2.1" />
+    <!-- Updated to fix vulnerability GHSA-rpq8-q44m-2rpg -->
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.3.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
   </ItemGroup>
 

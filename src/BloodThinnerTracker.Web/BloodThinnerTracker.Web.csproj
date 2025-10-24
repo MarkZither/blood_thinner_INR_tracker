@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.Identity.Web" Version="3.2.2" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.2.2" />
+    <PackageReference Include="MudBlazor" Version="8.13.0" />
   </ItemGroup>
 
 </Project>
