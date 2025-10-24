@@ -1,0 +1,59 @@
+# Blood Thinner Tracker API - Dockerfile for .NET 10 RC2
+# Licensed under MIT License. See LICENSE file in the project root.
+
+# Build stage - Use .NET 10 RC2 SDK
+FROM mcr.microsoft.com/dotnet/sdk:10.0-rc AS build
+WORKDIR /src
+
+# Copy project files for dependency restoration
+COPY ["src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj", "BloodThinnerTracker.Api/"]
+COPY ["src/BloodThinnerTracker.Shared/BloodThinnerTracker.Shared.csproj", "BloodThinnerTracker.Shared/"]
+COPY ["src/BloodThinnerTracker.ServiceDefaults/BloodThinnerTracker.ServiceDefaults.csproj", "BloodThinnerTracker.ServiceDefaults/"]
+COPY ["Directory.Build.props", "./"]
+COPY ["global.json", "./"]
+
+# Restore NuGet packages
+RUN dotnet restore "BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj"
+
+# Copy all source code
+COPY src/ .
+
+# Build and publish the application
+WORKDIR "/src/BloodThinnerTracker.Api"
+RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false
+
+# Runtime stage - Use .NET 10 RC2 ASP.NET Core Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-rc AS runtime
+WORKDIR /app
+
+# Create non-root user for security (Constitution V: OWASP Compliance)
+RUN addgroup --system --gid 1001 appuser && \
+    adduser --system --uid 1001 --ingroup appuser appuser
+
+# Copy published application from build stage
+COPY --from=build /app/publish .
+
+# Set ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user (never run as root in production)
+USER appuser
+
+# Expose ports (Constitution VI: Port Standardization - 5234 HTTP, 7234 HTTPS)
+EXPOSE 5234
+EXPOSE 7234
+
+# Health check endpoint (Constitution IV: Performance & Responsiveness)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5234/health || exit 1
+
+# Environment configuration
+ENV ASPNETCORE_URLS=http://+:5234;https://+:7234 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTPS_PORT=7234
+
+# Start the application
+ENTRYPOINT ["dotnet", "BloodThinnerTracker.Api.dll"]

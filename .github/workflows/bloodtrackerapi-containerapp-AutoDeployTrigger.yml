@@ -10,7 +10,8 @@ on:
     - 'src/BloodThinnerTracker.Api/**'
     - 'src/BloodThinnerTracker.Shared/**'
     - 'src/BloodThinnerTracker.ServiceDefaults/**'
-    - '.github/workflows/bloodtrackerapi-AutoDeployTrigger-35ca4c93-c6e4-4e72-9d04-ae57bfcba829.yml'
+    - 'Dockerfile.api'
+    - '.github/workflows/bloodtrackerapi-containerapp-AutoDeployTrigger.yml'
 
   # Allow manual trigger 
   workflow_dispatch:      
@@ -36,7 +37,8 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}/src/BloodThinnerTracker.Api
+          appSourcePath: ${{ github.workspace }}
+          dockerfilePath: Dockerfile.api
           registryUrl: 
           registryUsername: ${{ secrets.BLOODTRACKERAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.BLOODTRACKERAPI_REGISTRY_PASSWORD }}

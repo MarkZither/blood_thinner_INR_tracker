@@ -1,67 +1,81 @@
-# Azure Container Apps - Source-Based Deployment
+# Azure Container Apps - Deployment with Dockerfile
 
 ## Overview
 
-Configured the Blood Thinner Tracker API for **source-based deployment** to Azure Container Apps. No Dockerfile needed! Azure will build the container from the .NET project using Oryx/buildpacks.
+Configured the Blood Thinner Tracker API for **Dockerfile-based deployment** to Azure Container Apps. This approach is used because:
+- ✅ Supports **.NET 10 RC2** (preview) which Azure's Oryx buildpack doesn't support yet
+- ✅ Uses **managed registry** (FREE - included with Container Apps, no ACR costs)
+- ✅ Will switch to source-based builds after .NET 10 GA (November 2025)
+
+## Deployment Strategy
+
+### Current: Dockerfile Build (.NET 10 RC2)
+- **Why**: Azure Oryx doesn't support .NET 10 RC2 yet
+- **Cost**: FREE (uses Container Apps managed registry)
+- **Dockerfile**: `Dockerfile.api` with official Microsoft .NET 10 RC2 images
+
+### Future: Source-Based Build (.NET 10 GA)
+- **When**: After .NET 10 GA release (November 2025)
+- **Action**: Remove `dockerfilePath`, use Oryx buildpack
+- **Benefit**: No Dockerfile maintenance
 
 ## What Changed
 
-### 1. Updated `BloodThinnerTracker.Api.csproj`
+### 1. Created `Dockerfile.api`
 
-Added container support properties that Azure will use:
+Multi-stage Dockerfile using official .NET 10 RC2 images:
 
-```xml
-<PropertyGroup>
-  <TargetFramework>net10.0</TargetFramework>
-  <Nullable>enable</Nullable>
-  <ImplicitUsings>enable</ImplicitUsings>
-  <UserSecretsId>bloodthinner-api-oauth-secrets-2025</UserSecretsId>
-  
-  <!-- Container support for Azure Container Apps source builds -->
-  <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
-  <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-preview</ContainerBaseImage>
-  <ContainerPort>5234</ContainerPort>
-  <ContainerPort>7234</ContainerPort>
-  <ContainerWorkingDirectory>/app</ContainerWorkingDirectory>
-</PropertyGroup>
+```dockerfile
+# Build with .NET 10 RC2 SDK
+FROM mcr.microsoft.com/dotnet/sdk:10.0-rc AS build
+
+# Runtime with .NET 10 RC2 ASP.NET Core
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-rc AS runtime
+
+# Security: Runs as non-root user (appuser)
+# Ports: 5234 (HTTP), 7234 (HTTPS)
+# Health check: /health endpoint every 30s
 ```
 
 ### 2. Updated GitHub Action
 
-**File**: `.github/workflows/bloodtrackerapi-AutoDeployTrigger-35ca4c93-c6e4-4e72-9d04-ae57bfcba829.yml`
+**File**: `.github/workflows/bloodtrackerapi-containerapp-AutoDeployTrigger.yml`
 
-**Key changes**:
+**Key configuration**:
 ```yaml
-# ✅ Source-based build (no Dockerfile)
-acrBuild: true
+# Build from Dockerfile (not source)
+appSourcePath: ${{ github.workspace }}
+dockerfilePath: Dockerfile.api
 
-# ✅ Points to API project directory
-appSourcePath: ${{ github.workspace }}/src/BloodThinnerTracker.Api
+# Use managed registry (FREE with Container Apps)
+registryUrl:  # Empty = managed registry
+registryUsername: ${{ secrets.BLOODTRACKERAPI_REGISTRY_USERNAME }}
+registryPassword: ${{ secrets.BLOODTRACKERAPI_REGISTRY_PASSWORD }}
+imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
 
-# ✅ Removed dockerfilePath (not needed)
-
-# ✅ Correct port configuration
+# Expose API on port 5234
 targetPort: 5234
 ingress: external
 ```
-
-### 3. Removed Docker Files
-
-Deleted the following (no longer needed):
-- ❌ `Dockerfile.api`
-- ❌ `.dockerignore`
-- ❌ `docker-compose.api.yml`
-- ❌ `DOCKER-DEPLOYMENT.md`
-- ❌ `DOCKER-CHANGES-SUMMARY.md`
 
 ## How It Works
 
 1. **Push to branch** → Triggers GitHub Action
 2. **GitHub Action** → Checks out code, logs into Azure
-3. **Azure Container Apps** → Detects .NET 10 project
-4. **Oryx buildpack** → Builds container from source
-5. **Container Registry** → Stores built image
-6. **Container App** → Deploys and runs on port 5234
+3. **Dockerfile Build** → Builds .NET 10 RC2 container using Dockerfile.api
+4. **Managed Registry** → Pushes to FREE registry included with Container Apps
+5. **Container App** → Deploys and runs on port 5234
+
+## Cost Breakdown
+
+| Component | Service | Cost |
+|-----------|---------|------|
+| Container App | Azure Container Apps Free tier | **FREE** (first 180,000 vCPU-seconds + 360,000 GiB-seconds/month) |
+| Container Registry | Managed Registry | **FREE** (included with Container Apps) |
+| Build Minutes | GitHub Actions | **FREE** (2,000 minutes/month on free tier) |
+| **Total** | | **$0/month** ✅ |
+
+No ACR costs, no additional charges!
 
 ## Port Configuration
 
@@ -99,11 +113,12 @@ The action triggers when you push changes to:
 ## Required GitHub Secrets
 
 Ensure these are configured in your repository:
-- `BLOODTRACKERAPI_AZURE_CLIENT_ID`
-- `BLOODTRACKERAPI_AZURE_TENANT_ID`
-- `BLOODTRACKERAPI_AZURE_SUBSCRIPTION_ID`
-- `BLOODTRACKERAPI_REGISTRY_USERNAME`
-- `BLOODTRACKERAPI_REGISTRY_PASSWORD`
+- `BLOODTRACKERAPI_AZURE_CLIENT_ID` - Azure AD app client ID for OIDC authentication
+- `BLOODTRACKERAPI_AZURE_TENANT_ID` - Azure AD tenant ID
+- `BLOODTRACKERAPI_AZURE_SUBSCRIPTION_ID` - Azure subscription ID
+- `BLOODTRACKERAPI_ACR_NAME` - Azure Container Registry name (e.g., "bloodtrackeracr")
+- `BLOODTRACKERAPI_REGISTRY_USERNAME` - Container registry username (or service principal ID)
+- `BLOODTRACKERAPI_REGISTRY_PASSWORD` - Container registry password (or service principal secret)
 
 ## Testing Locally
 

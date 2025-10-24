@@ -1,18 +1,18 @@
 <!--
 Sync Impact Report:
-- Version change: [TEMPLATE] → 1.0.0
-- Modified principles: All placeholders replaced with concrete principles
-- Added sections: Five core principles covering code quality, testing, UX, performance, and security
-- Removed sections: None (template fully implemented)
-- Templates requiring updates: ✅ All template references validated
-- Follow-up TODOs: None
+- Version change: 1.1.0 → 1.2.0
+- Modified principles: Added Principle VI (Cloud Deployment & Container Strategy)
+- Added sections: Source-based deployment requirements, .NET SDK container support mandate, Azure Container Apps configuration
+- Removed sections: None (Dockerfiles explicitly discouraged)
+- Templates requiring updates: ✅ AZURE-DEPLOYMENT.md created, GitHub Actions workflow updated, API .csproj updated with container properties
+- Follow-up TODOs: Document deployment process in onboarding materials, create deployment runbook
 -->
 
 # Blood Thinner INR Tracker Constitution
 
-**Version**: 1.0.0  
+**Version**: 1.2.0  
 **Ratified**: 2025-10-14  
-**Last Amended**: 2025-10-14
+**Last Amended**: 2025-10-24
 
 ## Core Principles
 
@@ -26,10 +26,10 @@ All functional code MUST achieve minimum 90% test coverage with unit, integratio
 
 **Rationale**: Patient safety depends on thoroughly tested functionality. Automated testing prevents regression and ensures consistent behavior across platforms.
 
-### III. User Experience Consistency
-User interfaces MUST maintain identical behavior and visual consistency between MAUI mobile and Blazor web applications. All interactive elements MUST comply with WCAG 2.1 AA accessibility standards. Critical safety features (medication alarms, dose logging) MUST have identical user workflows across platforms. UI components MUST be responsive and provide clear feedback for all user actions. Error messages MUST be user-friendly and actionable.
+### III. User Experience Consistency & Pure .NET UI
+User interfaces MUST maintain identical behavior and visual consistency between MAUI mobile and Blazor web applications. **Blazor Web applications MUST use MudBlazor component library for all UI components to maintain pure .NET implementation without JavaScript dependencies**. JavaScript interop MUST be avoided except where absolutely necessary for browser APIs (clipboard, file downloads). Charts, dialogs, data grids, and interactive components MUST use MudBlazor's native C# implementations. All interactive elements MUST comply with WCAG 2.1 AA accessibility standards. Critical safety features (medication alarms, dose logging) MUST have identical user workflows across platforms. UI components MUST be responsive and provide clear feedback for all user actions. Error messages MUST be user-friendly and actionable.
 
-**Rationale**: Consistent UX prevents user confusion that could lead to medication errors. Accessibility ensures the app serves all patients regardless of disabilities.
+**Rationale**: Consistent UX prevents user confusion that could lead to medication errors. Pure .NET implementation eliminates JavaScript prerendering issues, improves maintainability, provides type safety, and aligns with Blazor best practices. MudBlazor provides professional Material Design components with comprehensive accessibility support. Accessibility ensures the app serves all patients regardless of disabilities.
 
 ### IV. Performance & Responsiveness
 Application MUST respond to user interactions within 200ms for local operations and 2 seconds for network requests. MAUI apps MUST start within 3 seconds on target devices. Blazor Server components MUST render within 1 second. Database queries MUST be optimized with proper indexing and Entity Framework best practices. Memory usage MUST be monitored and controlled to prevent device resource exhaustion.
@@ -40,6 +40,11 @@ Application MUST respond to user interactions within 200ms for local operations 
 All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use ASP.NET Core Identity with multi-factor authentication support. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
 
 **Rationale**: Health data requires maximum security protection. OWASP compliance is essential for protecting patient privacy and meeting healthcare regulations.
+
+### VI. Cloud Deployment & Container Strategy
+API services MUST use **source-based deployments** to Azure Container Apps leveraging .NET SDK container support. Dockerfiles MUST NOT be used unless absolutely necessary for complex multi-stage builds. All container configuration MUST be declared in `.csproj` files using `<EnableSdkContainerSupport>`, `<ContainerPort>`, and `<ContainerBaseImage>` properties. Deployment pipelines MUST use Azure's Oryx buildpacks for automatic .NET detection and optimization. Container images MUST use official Microsoft .NET runtime images from `mcr.microsoft.com`. Port configuration MUST be explicit (5234 for HTTP, 7234 for HTTPS) and documented. Infrastructure as Code (IaC) MUST be used for all Azure resources. GitHub Actions MUST handle CI/CD with proper secret management and OIDC authentication.
+
+**Rationale**: Source-based builds align with modern .NET 10+ capabilities, reduce maintenance overhead, eliminate Dockerfile complexity, and leverage Azure's optimized build pipelines. This approach follows Microsoft's recommended practices for .NET cloud-native applications and simplifies the deployment process while maintaining security and reliability.
 
 ## Governance
 
