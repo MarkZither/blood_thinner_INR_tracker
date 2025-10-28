@@ -1,0 +1,17 @@
+# OUT OF SCOPE: CI/CD deployment workflow for Azure Container Apps. Kept for reference only.
+
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+      - feature/002-docker-deployment-infrastructure
+
+jobs:
+  # This workflow is OUT OF SCOPE for the current feature. See specs for future Aspire-based deployment.
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "CI/CD workflow disabled for this feature"

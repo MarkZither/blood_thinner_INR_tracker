@@ -1,18 +1,18 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.0 → 1.2.0
-- Modified principles: Added Principle VI (Cloud Deployment & Container Strategy)
-- Added sections: Source-based deployment requirements, .NET SDK container support mandate, Azure Container Apps configuration
-- Removed sections: None (Dockerfiles explicitly discouraged)
-- Templates requiring updates: ✅ AZURE-DEPLOYMENT.md created, GitHub Actions workflow updated, API .csproj updated with container properties
-- Follow-up TODOs: Document deployment process in onboarding materials, create deployment runbook
+- Version change: 1.2.0 → 1.3.0
+- Modified principles: Added Principle VIII (Feature Sizing & Scope Management)
+- Added sections: Feature sizing guidelines, branch organization, scope management
+- Removed sections: None
+- Templates requiring updates: Feature spec template, PR template
+- Follow-up TODOs: Review all in-progress features for size compliance
 -->
 
 # Blood Thinner INR Tracker Constitution
 
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Ratified**: 2025-10-14
-**Last Amended**: 2025-10-24
+**Last Amended**: 2025-10-28
 
 
 ## Core Principles
@@ -51,6 +51,11 @@ All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practic
 API services MUST use **source-based deployments** to Azure Container Apps leveraging .NET SDK container support. Dockerfiles MUST NOT be used unless absolutely necessary for complex multi-stage builds. All container configuration MUST be declared in `.csproj` files using `<EnableSdkContainerSupport>`, `<ContainerPort>`, and `<ContainerBaseImage>` properties. Deployment pipelines MUST use Azure's Oryx buildpacks for automatic .NET detection and optimization. Container images MUST use official Microsoft .NET runtime images from `mcr.microsoft.com`. Port configuration MUST be explicit (5234 for HTTP, 7234 for HTTPS) and documented. Infrastructure as Code (IaC) MUST be used for all Azure resources. GitHub Actions MUST handle CI/CD with proper secret management and OIDC authentication.
 
 **Rationale**: Source-based builds align with modern .NET 10+ capabilities, reduce maintenance overhead, eliminate Dockerfile complexity, and leverage Azure's optimized build pipelines. This approach follows Microsoft's recommended practices for .NET cloud-native applications and simplifies the deployment process while maintaining security and reliability.
+
+### VIII. Feature Sizing & Scope Management
+Features MUST be scoped to 2-3 weeks maximum effort per feature. Features exceeding this size MUST be split into smaller, independently deliverable features. Each feature MUST have clear boundaries with a single primary concern (authentication OR deployment OR UI, not multiple). Pull requests MUST be ≤500 lines of changed code (excluding generated code, migrations, package-lock files). Features MUST be independently deployable behind feature flags. Feature specs MUST define explicit non-goals to prevent scope creep. Branch naming MUST follow `feature/NNN-short-description` convention where NNN is a zero-padded feature number.
+
+**Rationale**: Large features increase review time, testing complexity, and deployment risk. Smaller features enable faster feedback cycles, easier rollback, parallel development, and more predictable delivery. The 2-3 week limit ensures features remain focused and prevent scope creep that delays valuable functionality from reaching users. Feature flags enable gradual rollout and quick rollback without deployment.
 
 ## Governance
 

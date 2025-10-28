@@ -1,8 +1,15 @@
+> **⚠️ ARCHIVED FEATURE**
+> This feature has been split into multiple smaller features for better maintainability.
+> See `specs/FEATURE-SPLIT-PLAN.md` for the new structure.
+> Current active feature: `feature/002-docker-deployment-infrastructure`
+
+---
+
 # Feature Specification: Blood Thinner Medication & INR Tracker
 
 **Feature Branch**: `feature/blood-thinner-medication-tracker`  
 **Created**: 2025-10-15  
-**Status**: Draft  
+**Status**: Archived - Split into Features 002-007  
 **Input**: User description: "Build an application that can help to remind me to take my blood thinners on time, daily at the same time each day with a 12 hour maximum error window after which it should warn against taking up until next dose is due, log the dosage and remind me do my blood test on time, first thing in the morning on a schedule I can configure, and log the INR level. I should be able to log and the values should be available across my devices. This is not a medically approved app and it should not be considered to be giving any medical advice."
 
 ## User Scenarios & Testing *(mandatory)*

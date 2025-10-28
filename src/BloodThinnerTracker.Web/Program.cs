@@ -5,11 +5,24 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authentication.Google;
-
 using BloodThinnerTracker.Shared.Models.Authentication;
 using MudBlazor.Services;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Azure Key Vault integration for production secrets
+if (builder.Environment.IsProduction())
+{
+    var keyVaultUri = builder.Configuration["ConnectionStrings:KeyVaultUri"];
+    if (!string.IsNullOrEmpty(keyVaultUri))
+    {
+        builder.Configuration.AddAzureKeyVault(
+            new Uri(keyVaultUri),
+            new Azure.Identity.DefaultAzureCredential());
+    }
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
