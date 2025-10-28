@@ -29,8 +29,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0-rc.2.25502.107" />
-    <!-- Updated to fix vulnerability GHSA-rpq8-q44m-2rpg -->
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.3.0" />
+    <!-- Updated to fix vulnerability GHSA-rpq8-q44m-2rpg - using latest stable version -->
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.6.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
   </ItemGroup>
 
