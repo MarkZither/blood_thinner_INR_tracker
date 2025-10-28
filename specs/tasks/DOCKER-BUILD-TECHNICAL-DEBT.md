@@ -21,19 +21,28 @@ This document tracks the resolution of temporary workarounds that were applied t
 
 ## Temporary Workarounds Applied
 
-### 1. NuGet Security Warnings Suppressed ⚠️
+### 1. NuGet Security Warnings Suppressed ⚠️ → ✅ RESOLVED
 
 **File**: `Directory.Build.props`  
 **Change**: 
 ```xml
 <WarningsNotAsErrors>NU1605;NU1510</WarningsNotAsErrors>
+```
+
+**Resolution** (October 28, 2025):
+- ✅ Removed NU1902 and NU1903 from suppression list
+- ✅ Security warnings for vulnerable packages (Microsoft.Identity.Web, Microsoft.Build packages) are now treated as errors
+- ✅ Updated Microsoft.Identity.Web from 3.3.0 to 3.6.1 to resolve vulnerability GHSA-rpq8-q44m-2rpg
+- ✅ Only NU1605 (dependency resolution) and NU1510 (unnecessary packages) remain suppressed for .NET 10 RC2 compatibility
+
+**Note**: Package vulnerabilities are now resolved. No further package updates required at this time.
 
 ---
 
-### 2. StyleCop and Roslyn Analyzers Disabled for Docker Builds ⚠️
+### 2. StyleCop and Roslyn Analyzers Disabled for Docker Builds ⚠️ → 🔄 TODO
 
-**File**: `Dockerfile.api`  
-**Change**:
+**File**: `Dockerfile.api` (now `src/BloodThinnerTracker.Api/Dockerfile`)  
+**Current Configuration**:
 ```dockerfile
 RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     -c Release \
@@ -42,6 +51,22 @@ RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     /p:EnforceCodeStyleInBuild=false \
     /p:TreatWarningsAsErrors=false
 ```
+
+**Target Configuration** (TODO):
+```dockerfile
+RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false
+```
+
+**Status** (October 28, 2025):
+- 🔄 Docker build still has code quality checks disabled
+- 🔄 `/p:EnforceCodeStyleInBuild=false` flag still present
+- 🔄 `/p:TreatWarningsAsErrors=false` flag still present
+- ⏳ Pending: Fix StyleCop violations (SA*) and Roslyn warnings (S*) before re-enabling
+
+**Why Not Fixed Yet**: Code quality checks are kept disabled in Docker builds to allow deployment while code style violations are addressed. This is tracked as technical debt to be resolved in Phase 1 below.
 
 **Violations Found**:
 - **SA1137**: Elements should have the same indentation (User.cs line 17)
