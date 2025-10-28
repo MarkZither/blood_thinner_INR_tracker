@@ -2,8 +2,8 @@
 
 **Created**: October 24, 2025  
 **Updated**: October 28, 2025  
-**Status**: ✅ Resolved - Security and Code Quality Suppressions Removed  
-**Priority**: High (Completed)
+**Status**: 🟡 Partially Resolved - Security Suppressions Removed, Docker Changes Pending  
+**Priority**: High
 
 ---
 
@@ -26,16 +26,17 @@ To get the Docker build working for .NET 10 RC2 deployment, we temporarily disab
 **Resolution** (October 28, 2025):
 - ✅ Removed NU1902 and NU1903 from suppression list
 - ✅ Security warnings for vulnerable packages (Microsoft.Identity.Web, Microsoft.Build packages) are now treated as errors
+- ✅ Updated Microsoft.Identity.Web from 3.3.0 to 3.6.1 to resolve vulnerability GHSA-rpq8-q44m-2rpg
 - ✅ Only NU1605 (dependency resolution) and NU1510 (unnecessary packages) remain suppressed for .NET 10 RC2 compatibility
 
-**Note**: Package updates to resolve the underlying vulnerabilities should still be performed when compatible versions are available.
+**Note**: Package vulnerabilities are now resolved. No further package updates required at this time.
 
 ---
 
-### 2. StyleCop and Roslyn Analyzers Disabled for Docker Builds ⚠️ → ✅ RESOLVED
+### 2. StyleCop and Roslyn Analyzers Disabled for Docker Builds ⚠️ → 🔄 TODO
 
 **File**: `Dockerfile.api` (now `src/BloodThinnerTracker.Api/Dockerfile`)  
-**Previous Configuration**:
+**Current Configuration**:
 ```dockerfile
 RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     -c Release \
@@ -45,7 +46,7 @@ RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     /p:TreatWarningsAsErrors=false
 ```
 
-**Current Configuration** (October 28, 2025):
+**Target Configuration** (TODO):
 ```dockerfile
 RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     -c Release \
@@ -53,13 +54,13 @@ RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     /p:UseAppHost=false
 ```
 
-**Resolution**:
-- ✅ Removed `/p:EnforceCodeStyleInBuild=false` flag
-- ✅ Removed `/p:TreatWarningsAsErrors=false` flag
-- ✅ Code style enforcement (StyleCop) now active during Docker builds
-- ✅ All warnings now treated as errors during Docker builds
+**Status** (October 28, 2025):
+- 🔄 Docker build still has code quality checks disabled
+- 🔄 `/p:EnforceCodeStyleInBuild=false` flag still present
+- 🔄 `/p:TreatWarningsAsErrors=false` flag still present
+- ⏳ Pending: Fix StyleCop violations (SA*) and Roslyn warnings (S*) before re-enabling
 
-**Impact**: Build will now fail if there are code style violations (SA*) or Roslyn warnings (S*). This ensures code quality standards are enforced consistently.
+**Why Not Fixed Yet**: Code quality checks are kept disabled in Docker builds to allow deployment while code style violations are addressed. This is tracked as technical debt to be resolved in Phase 1 below.
 
 **Violations Found**:
 - **SA1137**: Elements should have the same indentation (User.cs line 17)

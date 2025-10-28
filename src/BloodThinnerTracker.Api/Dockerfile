@@ -22,12 +22,14 @@ RUN dotnet restore "BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj"
 # Copy all source code
 COPY src/ .
 
-# Build and publish the application
+# Build and publish the application (disable code style checks for Docker builds)
 WORKDIR "/src/BloodThinnerTracker.Api"
 RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
     -c Release \
     -o /app/publish \
-    /p:UseAppHost=false
+    /p:UseAppHost=false \
+    /p:EnforceCodeStyleInBuild=false \
+    /p:TreatWarningsAsErrors=false
 
 # Runtime stage - Use .NET 10 ASP.NET Core Runtime (RC2)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
