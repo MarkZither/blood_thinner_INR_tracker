@@ -9,7 +9,7 @@ namespace BloodThinnerTracker.Shared.Models
     /// <summary>
     /// INR schedule entity for managing INR test scheduling and reminders.
     /// Tracks when INR tests should be performed based on medical protocols.
-    /// 
+    ///
     /// MEDICAL DISCLAIMER: INR testing frequency is determined by healthcare providers.
     /// Always follow prescribed testing schedules for blood thinner safety.
     /// </summary>
