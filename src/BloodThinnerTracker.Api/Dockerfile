@@ -14,6 +14,9 @@ COPY ["global.json", "./"]
 
 # Restore NuGet packages (allow warnings for RC2 preview packages)
 ENV NUGET_AUDIT_MODE=direct
+
+RUN pwd && ls -al
+RUN find . -name '*.csproj'
 RUN dotnet restore "BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj"
 
 # Copy all source code
@@ -37,23 +40,23 @@ COPY --from=build /app/publish .
 
 # The base image already has a non-root user 'app' with uid 64198
 # We'll use it for security (Constitution V: OWASP Compliance)
-RUN chown -R app:app /app
+# Commented out because new MS images already do that
+# RUN chown -R app:app /app
 
 # Switch to non-root user (never run as root in production)
 USER app
 
 # Expose ports (Constitution VI: Port Standardization - 5234 HTTP, 7234 HTTPS)
 EXPOSE 5234
-EXPOSE 7234
+ENV ASPNETCORE_URLS=http://+:5234
 
 # Health check endpoint (Constitution IV: Performance & Responsiveness)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5234/health || exit 1
 
 # Environment configuration
-ENV ASPNETCORE_URLS=http://+:5234;https://+:7234 \
-    ASPNETCORE_ENVIRONMENT=Production \
-    ASPNETCORE_HTTPS_PORT=7234
+ENV ASPNETCORE_URLS=http://+:5234 \
+    ASPNETCORE_ENVIRONMENT=Production
 
 # Start the application
 ENTRYPOINT ["dotnet", "BloodThinnerTracker.Api.dll"]

@@ -10,11 +10,17 @@ Sync Impact Report:
 
 # Blood Thinner INR Tracker Constitution
 
-**Version**: 1.2.0  
-**Ratified**: 2025-10-14  
+**Version**: 1.2.0
+**Ratified**: 2025-10-14
 **Last Amended**: 2025-10-24
 
+
 ## Core Principles
+
+### VII. Configuration Access & Options Pattern
+All configuration access MUST use the strongly-typed options pattern. Magic strings (e.g., Configuration["Some:Key"]) are strictly prohibited in application code. Configuration sections MUST be bound to POCOs and injected via IOptions<T> or equivalent. This applies to authentication, connection strings, feature flags, and all other settings. Secrets MUST be loaded from environment variables or user secrets, never hardcoded or scattered in code.
+
+**Rationale**: The options pattern eliminates magic strings, improves maintainability, enables compile-time safety, and supports robust testing. It prevents configuration drift, reduces runtime errors, and ensures secrets are managed securely and centrally.
 
 ### I. Code Quality & .NET Standards
 All code MUST adhere to .NET coding conventions and C# best practices. Code MUST pass automated quality gates including StyleCop, EditorConfig, and Roslyn analyzers. MAUI and Blazor components MUST follow framework-specific patterns and lifecycle management. Dependency injection MUST be used consistently across all layers. Code reviews are mandatory before merge with emphasis on maintainability, readability, and adherence to SOLID principles.
@@ -73,5 +79,5 @@ All pull requests MUST demonstrate adherence through:
 
 ### Versioning Policy
 - MAJOR: Principle removal or fundamental redefinition
-- MINOR: New principle addition or significant guidance expansion  
+- MINOR: New principle addition or significant guidance expansion
 - PATCH: Clarifications, examples, or non-semantic improvements

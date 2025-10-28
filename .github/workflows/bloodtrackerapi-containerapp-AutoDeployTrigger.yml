@@ -4,22 +4,21 @@ name: Trigger Container App auto deployment for bloodtrackerapi
 on:
   # Automatically trigger it when detected changes in repo
   push:
-    branches: 
+    branches:
       [ feature/blood-thinner-medication-tracker ]
     paths:
     - 'src/BloodThinnerTracker.Api/**'
     - 'src/BloodThinnerTracker.Shared/**'
     - 'src/BloodThinnerTracker.ServiceDefaults/**'
-    - 'Dockerfile.api'
     - '.github/workflows/bloodtrackerapi-containerapp-AutoDeployTrigger.yml'
 
-  # Allow manual trigger 
-  workflow_dispatch:      
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write #This is required for requesting the OIDC JWT Token
       contents: read #Required when GH token is used to authenticate with private repo
 
@@ -34,16 +33,16 @@ jobs:
           tenant-id: ${{ secrets.BLOODTRACKERAPI_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.BLOODTRACKERAPI_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and deploy Container App with az containerapp up
+      - name: Build and deploy with ACR Build (supports -f flag)
         run: |
           az containerapp up \
             --name bloodtrackerapi \
             --resource-group FreeNorthEurope \
             --location northeurope \
             --source . \
-            --dockerfile Dockerfile.api \
-            --target-port 5234 \
             --ingress external \
-            --env-vars ASPNETCORE_ENVIRONMENT=Production
+            --target-port 5234 \
+            --env-vars ASPNETCORE_ENVIRONMENT=Production \
+            --context-path src/BloodThinnerTracker.Api
 
 

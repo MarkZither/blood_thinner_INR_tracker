@@ -198,8 +198,9 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
     /// </summary>
     public bool ShouldUseSqlite(IWebHostEnvironment environment)
     {
+        return true;
         // Use SQLite for development by default, PostgreSQL for staging and production
-        return environment.IsDevelopment();
+        //return environment.IsDevelopment();
     }
 }
 

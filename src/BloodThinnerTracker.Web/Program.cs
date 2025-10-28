@@ -2,6 +2,11 @@ using BloodThinnerTracker.Web.Components;
 using BloodThinnerTracker.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
+using Microsoft.AspNetCore.Authentication.Google;
+
+using BloodThinnerTracker.Shared.Models.Authentication;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,20 +18,38 @@ builder.Services.AddRazorComponents()
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
-// Add authentication and authorization services (T018c, T018i)
-// AddAuthentication is required for [Authorize] attributes in Blazor Server
+
+// Bind authentication config to POCOs using options pattern
+builder.Services.Configure<BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig>(
+    builder.Configuration.GetSection("Authentication:AzureAd"));
+builder.Services.Configure<BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions>(
+    builder.Configuration.GetSection("Authentication:Google"));
+
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = "BlazorScheme";
-    options.DefaultChallengeScheme = "BlazorScheme";
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = MicrosoftAccountDefaults.AuthenticationScheme;
 })
-.AddScheme<AuthenticationSchemeOptions, BlazorAuthenticationHandler>("BlazorScheme", options => { });
+    .AddCookie()
+    .AddMicrosoftAccount(options =>
+    {
+        var adOptions = builder.Configuration.GetSection("Authentication:AzureAd").Get<BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig>() ?? new BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig();
+        options.ClientId = adOptions.ClientId;
+        options.ClientSecret = adOptions.ClientSecret;
+        options.SaveTokens = true;
+        options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-microsoft" : adOptions.CallbackPath;
+    })
+    .AddGoogle(options =>
+    {
+    var googleOptions = builder.Configuration.GetSection("Authentication:Google").Get<BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions>() ?? new BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions();
+        options.ClientId = googleOptions.ClientId;
+        options.ClientSecret = googleOptions.ClientSecret;
+        options.SaveTokens = true;
+    options.CallbackPath = string.IsNullOrEmpty(googleOptions.CallbackPath) ? "/signin-google" : googleOptions.CallbackPath;
+    });
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
-builder.Services.AddScoped<CustomAuthenticationStateProvider>(sp => 
-    (CustomAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
 // Add HttpClient for API calls with authentication (T018k)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
@@ -34,12 +57,12 @@ builder.Services.AddScoped(sp =>
 {
     var handler = sp.GetRequiredService<AuthorizationMessageHandler>();
     handler.InnerHandler = new HttpClientHandler();
-    
+
     var httpClient = new HttpClient(handler)
     {
         BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7234")
     };
-    
+
     return httpClient;
 });
 

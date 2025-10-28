@@ -1,3 +1,5 @@
+# Ignore temporary Dockerfile used for Azure Container Apps build
+/Dockerfile
 # .NET Core / .NET 10
 bin/
 obj/
@@ -56,6 +58,8 @@ opencover.xml
 *.db
 *.sqlite
 *.sqlite3
+*.db-wal
+*.db-shm
 
 # Logs
 logs/

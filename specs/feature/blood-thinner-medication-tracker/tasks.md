@@ -232,9 +232,9 @@
 ## Phase 8: Authentication Enhancement (OAuth Redirect + mTLS)
 
 ### T046: Mutual TLS (mTLS) Certificate-Based Authentication (FR-022)
-**Purpose**: Enable API testing without OAuth user interaction and support future healthcare integrations  
-**Priority**: MEDIUM (after T015 OAuth redirect)  
-**Dependencies**: T010d (IdTokenValidationService), T011d (RefreshToken entity)  
+**Purpose**: Enable API testing without OAuth user interaction and support future healthcare integrations
+**Priority**: MEDIUM (after T015 OAuth redirect)
+**Dependencies**: T010d (IdTokenValidationService), T011d (RefreshToken entity)
 **Estimated Effort**: 2-3 hours
 
 - [ ] T046 [P] Implement mutual TLS (mTLS) authentication for testing and integration partners in src/BloodThinnerTracker.Api/
@@ -338,6 +338,16 @@
   - [ ] T050d Complete security audit and penetration testing
   - [ ] T050e Create runbook for common operational tasks (deployments, rollbacks, scaling)
   - [ ] T050f Set up monitoring dashboards and alerting rules (uptime, latency, errors)
+- [ ] T051 **CRITICAL** Resolve Docker build technical debt before production
+  - [ ] T051a Fix all StyleCop violations (SA1137, SA1028, SA1101, SA1503, SA1122 in User.cs, INRSchedule.cs, Medication.cs)
+  - [ ] T051b Fix all Roslyn analyzer warnings (S6580 format provider issues in date parsing)
+  - [ ] T051c Update Microsoft.Identity.Web to non-vulnerable version (current: 3.3.0 has GHSA-rpq8-q44m-2rpg)
+  - [ ] T051d Update Microsoft.Build.*.Core packages to non-vulnerable versions (current: 17.14.8 has GHSA-w3q9-fxm7-j8fq)
+  - [ ] T051e Remove unnecessary package references (Microsoft.Extensions.Logging, Microsoft.Extensions.Configuration if directly referenced)
+  - [ ] T051f Revert Directory.Build.props: Remove NU1510, NU1902, NU1903 from WarningsNotAsErrors
+  - [ ] T051g Revert Dockerfile.api: Remove /p:EnforceCodeStyleInBuild=false and /p:TreatWarningsAsErrors=false
+  - [ ] T051h Verify: Docker build succeeds with zero warnings, dotnet list package --vulnerable shows no issues
+  - **See**: specs/tasks/DOCKER-BUILD-TECHNICAL-DEBT.md for detailed action plan
 
 ---
 

@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bloodthinner-api-oauth-secrets-2025</UserSecretsId>
-    
+
     <!-- Container support for Azure Container Apps source builds -->
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-preview</ContainerBaseImage>

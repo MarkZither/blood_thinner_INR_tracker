@@ -130,28 +130,29 @@ var app = builder.Build();
 // Initialize database on startup
 await app.Services.EnsureDatabaseAsync();
 
+    app.MapOpenApi();
+app.MapScalarApiReference(options =>
+{
+    options
+        .WithTitle("Blood Thinner Tracker API - JWT Authentication Required")
+        .WithTheme(ScalarTheme.Mars)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+        .WithModels(false); // Hide schemas section for cleaner UI
+
+    // Note: To test authenticated endpoints in Scalar:
+    // 1. Visit /oauth-test.html to get a JWT token
+    // 2. In Scalar UI, for each request:
+    //    - Click "Headers" tab
+    //    - Add header: Authorization
+    //    - Value: Bearer {paste-your-token-here}
+    // 3. Send request - it will include your auth token
+    //
+    // See docs/OAUTH_TESTING_GUIDE.md for detailed instructions
+});
+    
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options
-            .WithTitle("Blood Thinner Tracker API - JWT Authentication Required")
-            .WithTheme(ScalarTheme.Mars)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
-            .WithModels(false); // Hide schemas section for cleaner UI
-
-        // Note: To test authenticated endpoints in Scalar:
-        // 1. Visit /oauth-test.html to get a JWT token
-        // 2. In Scalar UI, for each request:
-        //    - Click "Headers" tab
-        //    - Add header: Authorization
-        //    - Value: Bearer {paste-your-token-here}
-        // 3. Send request - it will include your auth token
-        //
-        // See docs/OAUTH_TESTING_GUIDE.md for detailed instructions
-    });
     app.UseDeveloperExceptionPage();
 }
 else
@@ -161,7 +162,10 @@ else
 }
 
 // Security middleware
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("MedicalAppPolicy");
 
 // Static files middleware (serves wwwroot/oauth-test.html and other static content)
