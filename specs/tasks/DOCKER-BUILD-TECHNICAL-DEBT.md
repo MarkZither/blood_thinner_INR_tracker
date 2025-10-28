@@ -19,23 +19,7 @@ To get the Docker build working for .NET 10 RC2 deployment, we temporarily disab
 **File**: `Directory.Build.props`  
 **Change**: 
 ```xml
-<WarningsNotAsErrors>NU1605;NU1510;NU1902;NU1903</WarningsNotAsErrors>
-```
-
-**Warnings Suppressed**:
-- **NU1510**: Unnecessary package references (Microsoft.Extensions.Logging, Microsoft.Extensions.Configuration)
-- **NU1902**: Known moderate severity vulnerability in Microsoft.Identity.Web 3.3.0
-- **NU1903**: Known high severity vulnerabilities in Microsoft.Build.Tasks.Core 17.14.8 and Microsoft.Build.Utilities.Core 17.14.8
-
-**Why This Is Bad**:
-- Security vulnerabilities in dependencies could be exploited
-- Unnecessary packages increase attack surface and deployment size
-- Violates Constitution Principle V (OWASP Security Compliance)
-
-**Must Fix**:
-1. Update all packages to non-vulnerable versions
-2. Remove unnecessary package references
-3. Re-enable warnings as errors
+<WarningsNotAsErrors>NU1605;NU1510</WarningsNotAsErrors>
 
 ---
 
