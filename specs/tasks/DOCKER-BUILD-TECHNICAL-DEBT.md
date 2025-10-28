@@ -1,17 +1,21 @@
 # Docker Build Temporary Workarounds - Technical Debt
 
 **Created**: October 24, 2025  
-**Status**: ✅ RESOLVED - Technical Debt Addressed  
+**Status**: 🟡 Partially Resolved - Phases 1-3 Complete, Phase 4 TODO  
 **Priority**: High
-**Completed**: October 28, 2025
+**Last Updated**: October 28, 2025
 
 ---
 
 ## Overview
 
-This document tracks the resolution of temporary workarounds that were applied to get Docker builds working for .NET 10 RC2 deployment. All issues have been addressed and code quality checks are now fully enabled.
+This document tracks the resolution of temporary workarounds that were applied to get Docker builds working for .NET 10 RC2 deployment. 
 
-**Resolution Summary**: All StyleCop violations fixed, vulnerable packages updated, unnecessary packages removed, and code quality enforcement re-enabled in Docker builds.
+**Progress Summary**: 
+- ✅ Phase 1: Code style violations fixed
+- ✅ Phase 2: Package vulnerabilities addressed  
+- ✅ Phase 3: Unnecessary packages removed
+- ⏳ Phase 4: TODO - Re-enable code quality checks in Docker builds (pending)
 
 ---
 
@@ -141,14 +145,14 @@ dotnet build
 
 ---
 
-### Phase 4: Revert Docker Build Workarounds (After Phases 1-3) ✅
+### Phase 4: Revert Docker Build Workarounds (After Phases 1-3) ⏳
 
 **Priority**: High  
 **Estimated Effort**: 15 minutes
-**Status**: COMPLETED
+**Status**: TODO - Deferred to future work
 
 **Tasks**:
-1. [x] Revert `Directory.Build.props`:
+1. [ ] Revert `Directory.Build.props`:
    ```xml
    <!-- BEFORE (temporary) -->
    <WarningsNotAsErrors>NU1605;NU1510;NU1902;NU1903</WarningsNotAsErrors>
@@ -157,7 +161,7 @@ dotnet build
    <WarningsNotAsErrors>NU1605</WarningsNotAsErrors>
    ```
 
-2. [x] Revert `Dockerfile`:
+2. [ ] Revert `Dockerfile`:
    ```dockerfile
    # BEFORE (temporary)
    RUN dotnet publish "BloodThinnerTracker.Api.csproj" \
@@ -174,8 +178,8 @@ dotnet build
        /p:UseAppHost=false
    ```
 
-3. [x] Test Docker build: `docker build -f Dockerfile -t bloodtracker-api:test .`
-4. [x] Should succeed with zero warnings/errors
+3. [ ] Test Docker build: `docker build -f Dockerfile -t bloodtracker-api:test .`
+4. [ ] Should succeed with zero warnings/errors
 
 ---
 
@@ -184,30 +188,32 @@ dotnet build
 After fixing all issues:
 
 - [x] Local build succeeds: `dotnet build`
-- [x] No warnings: `dotnet build /warnaserror`
+- [ ] No warnings: `dotnet build /warnaserror` (Phase 4 TODO)
 - [x] No vulnerable packages: `dotnet list package --vulnerable`
-- [x] Docker build succeeds: `docker build -f Dockerfile .`
-- [ ] Docker run succeeds: `docker run -p 5234:5234 bloodtracker-api:test`
-- [ ] API responds: `curl http://localhost:5234/health`
+- [ ] Docker build succeeds: `docker build -f Dockerfile .` (Phase 4 TODO)
+- [ ] Docker run succeeds: `docker run -p 5234:5234 bloodtracker-api:test` (Phase 4 TODO)
+- [ ] API responds: `curl http://localhost:5234/health` (Phase 4 TODO)
 - [ ] All tests pass: `dotnet test`
 
-Note: Docker runtime tests require .NET 10 RC2 SDK which is not available in this environment.
+Note: Phase 4 items (Docker build enforcement) are deferred as TODOs for future work.
 
 ---
 
 ## Impact on Deployment
 
 **Previous State**: ⚠️ Could deploy but with technical debt  
-**Current State**: ✅ Production-ready with full code quality enforcement
+**Current State**: 🟡 Partial Progress - Code quality improved, Docker workarounds still in place
 
-**Changes Made**:
+**Changes Made (Phases 1-3)**:
 - Fixed SA1137 (indentation) in User.cs
 - Fixed SA1028 (trailing whitespace) in INRSchedule.cs
 - Updated Microsoft.Identity.Web from 3.3.0 to 3.6.1 (security fix)
 - Removed unnecessary Microsoft.Extensions.Logging package
 - Removed unnecessary Microsoft.Extensions.Configuration package
-- Re-enabled code quality checks in Docker builds
-- Re-enabled NuGet security warnings (NU1902, NU1903)
+
+**Still TODO (Phase 4)**:
+- Re-enable code quality checks in Docker builds (EnforceCodeStyleInBuild, TreatWarningsAsErrors)
+- Re-enable NuGet security warnings (NU1902, NU1903)
 
 ---
 
@@ -218,10 +224,10 @@ Note: Docker runtime tests require .NET 10 RC2 SDK which is not available in thi
 - ❌ Principle V: Security & Privacy (Vulnerable dependencies)
 - ❌ Principle V: OWASP Compliance (Security warnings ignored)
 
-**Current Status**:
-- ✅ Principle II: Code Quality (Full enforcement)
-- ✅ Principle V: Security & Privacy (No vulnerabilities)
-- ✅ Principle V: OWASP Compliance (All warnings addressed)
+**Current Status (After Phases 1-3)**:
+- ✅ Principle II: Code Quality (StyleCop violations fixed in code)
+- ✅ Principle V: Security & Privacy (Vulnerable packages updated)
+- 🟡 Principle V: OWASP Compliance (Security warnings still suppressed - Phase 4 TODO)
 
 ---
 
