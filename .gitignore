@@ -1,0 +1,86 @@
+# Ignore temporary Dockerfile used for Azure Container Apps build
+/Dockerfile
+# .NET Core / .NET 10
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+*.user
+*.suo
+*.cache
+*.orig
+_ReSharper*/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.sln.docstates
+*.userprefs
+*.pidb
+*.booproj
+*.swp
+*~
+
+# .NET Tools
+.tools/
+.dotnet-tools/
+
+# Aspire
+*.aspire/
+.aspire/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+opencover.xml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+
+# Logs
+logs/
+*.log
+
+# Runtime
+[Aa]pp_[Dd]ata/
+[Tt]emp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Medical data (NEVER commit)
+*.medical
+patient-data/
+health-records/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+appsettings.local.json

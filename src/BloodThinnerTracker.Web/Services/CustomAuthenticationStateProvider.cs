@@ -1,0 +1,322 @@
+// BloodThinnerTracker.Web - Custom Authentication State Provider
+// Licensed under MIT License. See LICENSE file in the project root.
+
+namespace BloodThinnerTracker.Web.Services;
+
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
+
+/// <summary>
+/// Custom authentication state provider for managing JWT-based authentication in Blazor Web.
+/// Handles token storage, validation, and authentication state management.
+/// </summary>
+public class CustomAuthenticationStateProvider : AuthenticationStateProvider
+{
+    private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<CustomAuthenticationStateProvider> _logger;
+    private const string TokenKey = "authToken";
+    private const string RefreshTokenKey = "refreshToken";
+    private const string UserInfoKey = "userInfo";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CustomAuthenticationStateProvider"/> class.
+    /// </summary>
+    /// <param name="jsRuntime">JavaScript runtime for browser storage access.</param>
+    /// <param name="logger">Logger instance.</param>
+    public CustomAuthenticationStateProvider(
+        IJSRuntime jsRuntime,
+        ILogger<CustomAuthenticationStateProvider> logger)
+    {
+        _jsRuntime = jsRuntime;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Gets the current authentication state.
+    /// </summary>
+    /// <returns>The authentication state with user claims if authenticated.</returns>
+    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    {
+        try
+        {
+            var token = await GetTokenAsync();
+
+            if (string.IsNullOrEmpty(token))
+            {
+                return CreateAnonymousState();
+            }
+
+            var claims = ParseClaimsFromJwt(token);
+            
+            // Check if token is expired
+            var expiryClaim = claims.FirstOrDefault(c => c.Type == "exp");
+            if (expiryClaim != null)
+            {
+                var expiryTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expiryClaim.Value));
+                if (expiryTime <= DateTimeOffset.UtcNow)
+                {
+                    _logger.LogInformation("Token has expired, clearing authentication state");
+                    await ClearAuthenticationAsync();
+                    return CreateAnonymousState();
+                }
+            }
+
+            var identity = new ClaimsIdentity(claims, "jwt");
+            var user = new ClaimsPrincipal(identity);
+
+            return new AuthenticationState(user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting authentication state");
+            return CreateAnonymousState();
+        }
+    }
+
+    /// <summary>
+    /// Marks the user as authenticated and stores the JWT token.
+    /// </summary>
+    /// <param name="token">The JWT access token.</param>
+    /// <param name="refreshToken">The refresh token (optional).</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task MarkUserAsAuthenticatedAsync(string token, string? refreshToken = null)
+    {
+        try
+        {
+            await SetTokenAsync(token);
+            
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await SetRefreshTokenAsync(refreshToken);
+            }
+
+            // Extract user info from token and store it
+            var claims = ParseClaimsFromJwt(token);
+            var userInfo = new
+            {
+                Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
+                Name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
+                Id = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+            };
+
+            await SetItemAsync(UserInfoKey, JsonSerializer.Serialize(userInfo));
+
+            var identity = new ClaimsIdentity(claims, "jwt");
+            var user = new ClaimsPrincipal(identity);
+
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            
+            _logger.LogInformation("User authenticated successfully: {Email}", userInfo.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking user as authenticated");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Marks the user as logged out and clears all stored tokens.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task MarkUserAsLoggedOutAsync()
+    {
+        await ClearAuthenticationAsync();
+        NotifyAuthenticationStateChanged(Task.FromResult(CreateAnonymousState()));
+        _logger.LogInformation("User logged out successfully");
+    }
+
+    /// <summary>
+    /// Gets the current JWT access token.
+    /// </summary>
+    /// <returns>The access token or null if not authenticated.</returns>
+    public async Task<string?> GetTokenAsync()
+    {
+        try
+        {
+            return await GetItemAsync(TokenKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving token");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the refresh token.
+    /// </summary>
+    /// <returns>The refresh token or null if not available.</returns>
+    public async Task<string?> GetRefreshTokenAsync()
+    {
+        try
+        {
+            return await GetItemAsync(RefreshTokenKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving refresh token");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Checks if the user is currently authenticated.
+    /// </summary>
+    /// <returns>True if authenticated, false otherwise.</returns>
+    public async Task<bool> IsAuthenticatedAsync()
+    {
+        var token = await GetTokenAsync();
+        return !string.IsNullOrEmpty(token);
+    }
+
+    /// <summary>
+    /// Gets the current user's email from stored claims.
+    /// </summary>
+    /// <returns>The user's email or null if not authenticated.</returns>
+    public async Task<string?> GetUserEmailAsync()
+    {
+        try
+        {
+            var userInfoJson = await GetItemAsync(UserInfoKey);
+            if (string.IsNullOrEmpty(userInfoJson))
+            {
+                return null;
+            }
+
+            var userInfo = JsonSerializer.Deserialize<Dictionary<string, string>>(userInfoJson);
+            return userInfo?.GetValueOrDefault("Email");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user email");
+            return null;
+        }
+    }
+
+    private async Task SetTokenAsync(string token)
+    {
+        await SetItemAsync(TokenKey, token);
+    }
+
+    private async Task SetRefreshTokenAsync(string refreshToken)
+    {
+        await SetItemAsync(RefreshTokenKey, refreshToken);
+    }
+
+    private async Task ClearAuthenticationAsync()
+    {
+        await RemoveItemAsync(TokenKey);
+        await RemoveItemAsync(RefreshTokenKey);
+        await RemoveItemAsync(UserInfoKey);
+    }
+
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+    {
+        var claims = new List<Claim>();
+        
+        try
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+            if (keyValuePairs == null)
+            {
+                return claims;
+            }
+
+            // Map standard JWT claims to ClaimTypes
+            MapClaim(keyValuePairs, claims, "sub", ClaimTypes.NameIdentifier);
+            MapClaim(keyValuePairs, claims, "email", ClaimTypes.Email);
+            MapClaim(keyValuePairs, claims, "name", ClaimTypes.Name);
+            MapClaim(keyValuePairs, claims, "given_name", ClaimTypes.GivenName);
+            MapClaim(keyValuePairs, claims, "family_name", ClaimTypes.Surname);
+            MapClaim(keyValuePairs, claims, "role", ClaimTypes.Role);
+            
+            // Add all other claims as-is
+            foreach (var kvp in keyValuePairs)
+            {
+                if (!claims.Any(c => c.Type == kvp.Key))
+                {
+                    var value = kvp.Value?.ToString() ?? string.Empty;
+                    claims.Add(new Claim(kvp.Key, value));
+                }
+            }
+
+            return claims;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parsing JWT claims");
+            return claims;
+        }
+    }
+
+    private void MapClaim(Dictionary<string, object> source, List<Claim> destination, string sourceKey, string destinationType)
+    {
+        if (source.TryGetValue(sourceKey, out var value) && value != null)
+        {
+            var stringValue = value.ToString() ?? string.Empty;
+            destination.Add(new Claim(destinationType, stringValue));
+            destination.Add(new Claim(sourceKey, stringValue)); // Keep original claim too
+        }
+    }
+
+    private byte[] ParseBase64WithoutPadding(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        
+        return Convert.FromBase64String(base64);
+    }
+
+    private AuthenticationState CreateAnonymousState()
+    {
+        var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+        return new AuthenticationState(anonymous);
+    }
+
+    // Browser localStorage access methods
+    private async Task<string?> GetItemAsync(string key)
+    {
+        try
+        {
+            return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+        }
+        catch (InvalidOperationException)
+        {
+            // JSRuntime not available during prerendering
+            return null;
+        }
+    }
+
+    private async Task SetItemAsync(string key, string value)
+    {
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, value);
+        }
+        catch (InvalidOperationException)
+        {
+            // JSRuntime not available during prerendering - ignore
+        }
+    }
+
+    private async Task RemoveItemAsync(string key)
+    {
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);
+        }
+        catch (InvalidOperationException)
+        {
+            // JSRuntime not available during prerendering - ignore
+        }
+    }
+}

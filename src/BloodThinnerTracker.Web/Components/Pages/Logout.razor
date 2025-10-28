@@ -1,0 +1,44 @@
+@page "/logout"
+@using BloodThinnerTracker.Web.Services
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Logging Out - Blood Thinner Tracker</PageTitle>
+
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div class="card shadow-lg" style="max-width: 400px; width: 100%;">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Logging out...</span>
+                </div>
+            </div>
+            <h4 class="mb-3">Logging Out</h4>
+            <p class="text-muted">Please wait while we securely log you out...</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Clear authentication state
+            await AuthStateProvider.MarkUserAsLoggedOutAsync();
+            
+            // Small delay for better UX
+            await Task.Delay(500);
+            
+            // Redirect to login page
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            // Log error but still redirect to login
+            Console.WriteLine($"Error during logout: {ex.Message}");
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

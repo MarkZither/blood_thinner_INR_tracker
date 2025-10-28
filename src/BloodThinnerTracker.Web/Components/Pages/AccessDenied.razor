@@ -1,0 +1,27 @@
+@page "/access-denied"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Access Denied - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <div class="d-flex flex-column align-center">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Size="Size.Large" Style="font-size: 5rem;" Class="mb-4" />
+            
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+                Access Denied
+            </MudText>
+            
+            <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Default" Class="mb-6">
+                You don't have permission to access this page. Please contact your administrator if you believe this is an error.
+            </MudText>
+            
+            <MudButton Variant="Variant.Filled" 
+                      Color="Color.Primary" 
+                      Href="/"
+                      StartIcon="@Icons.Material.Filled.Home">
+                Go to Home
+            </MudButton>
+        </div>
+    </MudPaper>
+</MudContainer>

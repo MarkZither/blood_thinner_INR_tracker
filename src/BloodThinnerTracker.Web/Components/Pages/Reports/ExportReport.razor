@@ -1,0 +1,411 @@
+@page "/reports/export"
+@using BloodThinnerTracker.Shared.Models
+@using System.Text
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Export Data Report</PageTitle>
+
+<div class="container-fluid py-4">
+    <!-- Medical Disclaimer -->
+    <div class="alert alert-info medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+                <strong>Data Export:</strong> Exported data contains your personal health information. 
+                Store securely and never share with unauthorized parties.
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-download me-2"></i>Export Health Data</h2>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Configuration -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Export Settings</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Date Range -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date Range</label>
+                        <select class="form-select" @bind="dateRange">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                            <option value="365">Last Year</option>
+                            <option value="all">All Time</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    @if (dateRange == "custom")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" class="form-control" @bind="customFromDate" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" class="form-control" @bind="customToDate" />
+                        </div>
+                    }
+
+                    <!-- Data Types -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Data to Include</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="includeINR" id="includeINR">
+                            <label class="form-check-label" for="includeINR">
+                                <i class="fas fa-vial me-1"></i>INR Test Results
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="includeMedications" id="includeMeds">
+                            <label class="form-check-label" for="includeMeds">
+                                <i class="fas fa-pills me-1"></i>Medication Logs
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="includeSchedule" id="includeSchedule">
+                            <label class="form-check-label" for="includeSchedule">
+                                <i class="fas fa-calendar me-1"></i>Test Schedule
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="includeProfile" id="includeProfile">
+                            <label class="form-check-label" for="includeProfile">
+                                <i class="fas fa-user me-1"></i>Profile Information
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Export Format -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Export Format</label>
+                        <select class="form-select" @bind="exportFormat">
+                            <option value="csv">CSV (Spreadsheet)</option>
+                            <option value="json">JSON (Developer)</option>
+                            <option value="pdf">PDF (Printable Report)</option>
+                            <option value="html">HTML (Web View)</option>
+                        </select>
+                    </div>
+
+                    <!-- Export Button -->
+                    <button class="btn btn-primary w-100" @onclick="GenerateExport" disabled="@isExporting">
+                        @if (isExporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Generating...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-download me-2"></i>
+                            <span>Generate Export</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Preview/Info -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Export Information</h5>
+                </div>
+                <div class="card-body">
+                    @if (exportStats != null)
+                    {
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-box text-center">
+                                    <div class="stat-icon text-primary">
+                                        <i class="fas fa-vial fa-2x"></i>
+                                    </div>
+                                    <h4 class="stat-value">@exportStats.INRTestCount</h4>
+                                    <p class="stat-label mb-0">INR Tests</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box text-center">
+                                    <div class="stat-icon text-success">
+                                        <i class="fas fa-pills fa-2x"></i>
+                                    </div>
+                                    <h4 class="stat-value">@exportStats.MedicationLogCount</h4>
+                                    <p class="stat-label mb-0">Med Logs</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box text-center">
+                                    <div class="stat-icon text-info">
+                                        <i class="fas fa-calendar fa-2x"></i>
+                                    </div>
+                                    <h4 class="stat-value">@exportStats.ScheduleCount</h4>
+                                    <p class="stat-label mb-0">Schedules</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box text-center">
+                                    <div class="stat-icon text-warning">
+                                        <i class="fas fa-database fa-2x"></i>
+                                    </div>
+                                    <h4 class="stat-value">@exportStats.EstimatedSizeKB KB</h4>
+                                    <p class="stat-label mb-0">Est. Size</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="alert alert-light border">
+                        <h6 class="fw-bold mb-3">What's included in your export:</h6>
+                        <ul class="mb-0">
+                            @if (includeINR)
+                            {
+                                <li><strong>INR Test Results:</strong> All INR values, test dates, notes, and target ranges</li>
+                            }
+                            @if (includeMedications)
+                            {
+                                <li><strong>Medication Logs:</strong> Dose history, times taken, adherence data</li>
+                            }
+                            @if (includeSchedule)
+                            {
+                                <li><strong>Test Schedule:</strong> Your INR testing schedule and frequency</li>
+                            }
+                            @if (includeProfile)
+                            {
+                                <li><strong>Profile Information:</strong> Basic profile data (no authentication details)</li>
+                            }
+                            @if (!includeINR && !includeMedications && !includeSchedule && !includeProfile)
+                            {
+                                <li class="text-muted">Please select at least one data type to export</li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6 class="fw-bold"><i class="fas fa-shield-alt me-2"></i>Privacy & Security</h6>
+                        <ul class="mb-0 small">
+                            <li>Exported files contain your personal health information</li>
+                            <li>Store files securely and encrypt if sharing electronically</li>
+                            <li>Delete exported files when no longer needed</li>
+                            <li>Never upload health data to unsecured cloud services</li>
+                        </ul>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(lastExportInfo))
+                    {
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>@lastExportInfo
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Exports -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Exports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-file-export fa-3x mb-3"></i>
+                        <p>Export history feature coming soon</p>
+                        <small>Track your previous data exports and re-download if needed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string dateRange = "30";
+    private DateTime customFromDate = DateTime.Now.AddMonths(-1);
+    private DateTime customToDate = DateTime.Now;
+    
+    private bool includeINR = true;
+    private bool includeMedications = true;
+    private bool includeSchedule = false;
+    private bool includeProfile = false;
+    
+    private string exportFormat = "csv";
+    private bool isExporting = false;
+    private string lastExportInfo = "";
+    
+    private ExportStats? exportStats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExportStats();
+    }
+
+    private async Task LoadExportStats()
+    {
+        try
+        {
+            // TODO: Replace with actual API endpoint
+            // exportStats = await Http.GetFromJsonAsync<ExportStats>("/api/export/stats");
+            
+            // Mock data
+            exportStats = new ExportStats
+            {
+                INRTestCount = 0,
+                MedicationLogCount = 0,
+                ScheduleCount = 0,
+                EstimatedSizeKB = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading export stats: {ex.Message}");
+        }
+    }
+
+    private async Task GenerateExport()
+    {
+        if (!includeINR && !includeMedications && !includeSchedule && !includeProfile)
+        {
+            lastExportInfo = "Please select at least one data type to export.";
+            return;
+        }
+
+        isExporting = true;
+        lastExportInfo = "";
+
+        try
+        {
+            // Calculate date range
+            DateTime fromDate, toDate;
+            
+            if (dateRange == "custom")
+            {
+                fromDate = customFromDate;
+                toDate = customToDate;
+            }
+            else if (dateRange == "all")
+            {
+                fromDate = DateTime.MinValue;
+                toDate = DateTime.Now;
+            }
+            else
+            {
+                var days = int.Parse(dateRange);
+                fromDate = DateTime.Now.AddDays(-days);
+                toDate = DateTime.Now;
+            }
+
+            // Build export request
+            var exportRequest = new
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                IncludeINR = includeINR,
+                IncludeMedications = includeMedications,
+                IncludeSchedule = includeSchedule,
+                IncludeProfile = includeProfile,
+                Format = exportFormat
+            };
+
+            // TODO: Replace with actual API endpoint
+            // var response = await Http.PostAsJsonAsync("/api/export/generate", exportRequest);
+            // var exportData = await response.Content.ReadAsStringAsync();
+            
+            // For now, generate a simple mock export
+            var exportData = GenerateMockExport(exportRequest);
+            
+            // Trigger download
+            await DownloadFile(exportData, $"blood-thinner-data-{DateTime.Now:yyyyMMdd}.{exportFormat}");
+            
+            lastExportInfo = $"Successfully exported data as {exportFormat.ToUpper()}. File downloaded to your browser's download folder.";
+        }
+        catch (Exception ex)
+        {
+            lastExportInfo = $"Error generating export: {ex.Message}";
+            Console.WriteLine($"Export error: {ex.Message}");
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private string GenerateMockExport(object request)
+    {
+        // Mock CSV export
+        var sb = new StringBuilder();
+        sb.AppendLine("Type,Date,Value,Notes");
+        sb.AppendLine("INR,2024-01-15,2.5,Within target range");
+        sb.AppendLine("Medication,2024-01-15,5mg,Warfarin - taken on time");
+        return sb.ToString();
+    }
+
+    private async Task DownloadFile(string content, string filename)
+    {
+        // Use JavaScript interop to trigger browser download
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+        
+        await JSRuntime.InvokeVoidAsync("downloadFile", filename, base64);
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+
+    private class ExportStats
+    {
+        public int INRTestCount { get; set; }
+        public int MedicationLogCount { get; set; }
+        public int ScheduleCount { get; set; }
+        public int EstimatedSizeKB { get; set; }
+    }
+}
+
+<style>
+    .medical-disclaimer {
+        border-left: 4px solid #17a2b8;
+    }
+
+    .stat-box {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .stat-icon {
+        opacity: 0.7;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+</style>

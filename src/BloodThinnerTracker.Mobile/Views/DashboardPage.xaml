@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="BloodThinnerTracker.Mobile.Views.DashboardPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:BloodThinnerTracker.Mobile.ViewModels"
+             x:DataType="vm:DashboardViewModel"
+             Title="{Binding Title}"
+             BackgroundColor="{StaticResource BackgroundSecondary}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Sync" 
+                     IconImageSource="sync_icon.png"
+                     Command="{Binding SyncDataCommand}" />
+        <ToolbarItem Text="Refresh" 
+                     IconImageSource="refresh_icon.png"
+                     Command="{Binding RefreshCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" 
+                 Command="{Binding RefreshCommand}"
+                 RefreshColor="{StaticResource Primary}">
+        
+        <ScrollView>
+            <StackLayout Padding="{StaticResource SpacingMedium}" Spacing="{StaticResource SpacingMedium}">
+                
+                <!-- Welcome Header -->
+                <Frame BackgroundColor="{StaticResource Primary}" 
+                       CornerRadius="{StaticResource BorderRadiusMedium}"
+                       Padding="{StaticResource SpacingLarge}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Label Text="{Binding WelcomeMessage}"
+                               Grid.Row="0" Grid.Column="0"
+                               FontSize="{StaticResource FontSizeXLarge}"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextWhite}" />
+
+                        <Label Text="🩸" 
+                               Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
+                               FontSize="40" 
+                               VerticalOptions="Center" />
+
+                        <Label Text="Stay on track with your medication and INR monitoring"
+                               Grid.Row="1" Grid.Column="0"
+                               FontSize="{StaticResource FontSizeMedium}"
+                               TextColor="{StaticResource TextWhite}"
+                               Opacity="0.8" />
+
+                        <Label Text="{Binding LastSyncTime, StringFormat='Last sync: {0:MMM d, h:mm tt}'}"
+                               Grid.Row="2" Grid.Column="0"
+                               FontSize="{StaticResource FontSizeSmall}"
+                               TextColor="{StaticResource TextWhite}"
+                               Opacity="0.6"
+                               Margin="0,8,0,0" />
+                    </Grid>
+                </Frame>
+
+                <!-- Quick Stats Cards -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- INR Status Card -->
+                    <Frame Grid.Row="0" Grid.Column="0"
+                           BackgroundColor="{StaticResource BackgroundPrimary}"
+                           CornerRadius="{StaticResource BorderRadiusMedium}"
+                           Margin="0,0,8,8"
+                           Padding="{StaticResource SpacingMedium}">
+                        <StackLayout Spacing="{StaticResource SpacingSmall}">
+                            <Label Text="Latest INR" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   FontAttributes="Bold" />
+                            
+                            <Label Text="{Binding LatestINRValue, StringFormat='{0:F1}'}" 
+                                   FontSize="{StaticResource FontSizeXXLarge}"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"
+                                   IsVisible="{Binding HasRecentINR}" />
+                            
+                            <Label Text="No recent tests" 
+                                   FontSize="{StaticResource FontSizeLarge}"
+                                   TextColor="{StaticResource TextMuted}"
+                                   IsVisible="{Binding HasRecentINR, Converter={StaticResource InvertedBoolConverter}}" />
+                            
+                            <Label Text="{Binding INRStatus}" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </StackLayout>
+                        
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ViewINRTrendsCommand}" />
+                        </Frame.GestureRecognizers>
+                    </Frame>
+
+                    <!-- Today's Medications Card -->
+                    <Frame Grid.Row="0" Grid.Column="1"
+                           BackgroundColor="{StaticResource BackgroundPrimary}"
+                           CornerRadius="{StaticResource BorderRadiusMedium}"
+                           Margin="8,0,0,8"
+                           Padding="{StaticResource SpacingMedium}">
+                        <StackLayout Spacing="{StaticResource SpacingSmall}">
+                            <Label Text="Today's Meds" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   FontAttributes="Bold" />
+                            
+                            <Label Text="{Binding TakenMedicationCount, StringFormat='{0}'}" 
+                                   FontSize="{StaticResource FontSizeXXLarge}"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Success}" />
+                            
+                            <Label Text="{Binding TodayMedicationCount, StringFormat='of {0} taken'}" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            
+                            <ProgressBar Progress="{Binding MedicationAdherencePercentage, Converter={StaticResource PercentageToDecimalConverter}}"
+                                        ProgressColor="{StaticResource Success}"
+                                        BackgroundColor="{StaticResource BackgroundTertiary}" />
+                        </StackLayout>
+                        
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding LogMedicationCommand}" />
+                        </Frame.GestureRecognizers>
+                    </Frame>
+
+                    <!-- Upcoming Reminders Card -->
+                    <Frame Grid.Row="1" Grid.Column="0"
+                           BackgroundColor="{StaticResource BackgroundPrimary}"
+                           CornerRadius="{StaticResource BorderRadiusMedium}"
+                           Margin="0,8,8,0"
+                           Padding="{StaticResource SpacingMedium}">
+                        <StackLayout Spacing="{StaticResource SpacingSmall}">
+                            <Label Text="Reminders" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   FontAttributes="Bold" />
+                            
+                            <Label Text="{Binding UpcomingReminders}" 
+                                   FontSize="{StaticResource FontSizeXXLarge}"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Warning}" />
+                            
+                            <Label Text="upcoming" 
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </StackLayout>
+                    </Frame>
+
+                    <!-- Quick Actions Card -->
+                    <Frame Grid.Row="1" Grid.Column="1"
+                           BackgroundColor="{StaticResource BackgroundPrimary}"
+                           CornerRadius="{StaticResource BorderRadiusMedium}"
+                           Margin="8,8,0,0"
+                           Padding="{StaticResource SpacingSmall}">
+                        <StackLayout>
+                            <Button Text="📊 Add INR Test"
+                                    BackgroundColor="{StaticResource Info}"
+                                    TextColor="{StaticResource TextWhite}"
+                                    CornerRadius="{StaticResource BorderRadiusSmall}"
+                                    FontSize="{StaticResource FontSizeSmall}"
+                                    Padding="8,4"
+                                    Command="{Binding AddINRTestCommand}" />
+                            
+                            <Button Text="💊 Log Medication"
+                                    BackgroundColor="{StaticResource Success}"
+                                    TextColor="{StaticResource TextWhite}"
+                                    CornerRadius="{StaticResource BorderRadiusSmall}"
+                                    FontSize="{StaticResource FontSizeSmall}"
+                                    Padding="8,4"
+                                    Command="{Binding LogMedicationCommand}" />
+                        </StackLayout>
+                    </Frame>
+                </Grid>
+
+                <!-- Recent Activity Section -->
+                <Label Text="Recent Activity" 
+                       FontSize="{StaticResource FontSizeLarge}"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       Margin="0,16,0,8" />
+
+                <!-- Recent Medication Logs -->
+                <Frame BackgroundColor="{StaticResource BackgroundPrimary}"
+                       CornerRadius="{StaticResource BorderRadiusMedium}"
+                       Padding="{StaticResource SpacingMedium}">
+                    <StackLayout>
+                        <Label Text="💊 Recent Medications" 
+                               FontSize="{StaticResource FontSizeMedium}"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               Margin="0,0,0,8" />
+
+                        <CollectionView ItemsSource="{Binding RecentMedicationLogs}"
+                                        HeightRequest="150">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackLayout Grid.Column="0">
+                                            <Label Text="{Binding MedicationName}" 
+                                                   FontSize="{StaticResource FontSizeMedium}"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextPrimary}" />
+                                            <Label Text="{Binding ActualTakenAt, StringFormat='{0:MMM d, h:mm tt}'}" 
+                                                   FontSize="{StaticResource FontSizeSmall}"
+                                                   TextColor="{StaticResource TextSecondary}" />
+                                        </StackLayout>
+
+                                        <Label Grid.Column="1" 
+                                               Text="{Binding Dosage}" 
+                                               FontSize="{StaticResource FontSizeSmall}"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               VerticalOptions="Center"
+                                               Margin="8,0" />
+
+                                        <Label Grid.Column="2" 
+                                               Text="✅" 
+                                               FontSize="{StaticResource FontSizeMedium}"
+                                               VerticalOptions="Center"
+                                               IsVisible="{Binding Status, Converter={StaticResource StatusToBoolConverter}, ConverterParameter=Taken}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                            
+                            <CollectionView.EmptyView>
+                                <Label Text="No recent medication logs" 
+                                       TextColor="{StaticResource TextMuted}"
+                                       HorizontalOptions="Center"
+                                       Margin="0,20" />
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Recent INR Tests -->
+                <Frame BackgroundColor="{StaticResource BackgroundPrimary}"
+                       CornerRadius="{StaticResource BorderRadiusMedium}"
+                       Padding="{StaticResource SpacingMedium}">
+                    <StackLayout>
+                        <Label Text="🩸 Recent INR Tests" 
+                               FontSize="{StaticResource FontSizeMedium}"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               Margin="0,0,0,8" />
+
+                        <CollectionView ItemsSource="{Binding RecentINRTests}"
+                                        HeightRequest="120">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackLayout Grid.Column="0">
+                                            <Label Text="{Binding TestDate, StringFormat='{0:MMM d, yyyy}'}" 
+                                                   FontSize="{StaticResource FontSizeMedium}"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextPrimary}" />
+                                            <Label Text="{Binding TestLocation}" 
+                                                   FontSize="{StaticResource FontSizeSmall}"
+                                                   TextColor="{StaticResource TextSecondary}" />
+                                        </StackLayout>
+
+                                        <Label Grid.Column="1" 
+                                               Text="{Binding INRValue, StringFormat='{0:F1}'}" 
+                                               FontSize="{StaticResource FontSizeLarge}"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Info}"
+                                               VerticalOptions="Center"
+                                               Margin="8,0" />
+
+                                        <Label Grid.Column="2" 
+                                               Text="📊" 
+                                               FontSize="{StaticResource FontSizeMedium}"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                            
+                            <CollectionView.EmptyView>
+                                <Label Text="No recent INR tests" 
+                                       TextColor="{StaticResource TextMuted}"
+                                       HorizontalOptions="Center"
+                                       Margin="0,20" />
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Medical Disclaimer -->
+                <Frame BackgroundColor="{StaticResource Warning}"
+                       CornerRadius="{StaticResource BorderRadiusMedium}"
+                       Padding="{StaticResource SpacingMedium}"
+                       Margin="0,16,0,0">
+                    <StackLayout Orientation="Horizontal" Spacing="{StaticResource SpacingSmall}">
+                        <Label Text="⚠️" 
+                               FontSize="{StaticResource FontSizeLarge}"
+                               VerticalOptions="Start" />
+                        <Label Text="This app is for tracking only. Always consult your healthcare provider for medical decisions."
+                               FontSize="{StaticResource FontSizeSmall}"
+                               TextColor="{StaticResource TextPrimary}"
+                               VerticalOptions="Center"
+                               FlexLayout.Grow="1" />
+                    </StackLayout>
+                </Frame>
+
+            </StackLayout>
+        </ScrollView>
+    </RefreshView>
+
+    <!-- Loading Overlay -->
+    <Grid IsVisible="{Binding IsBusy}" 
+          BackgroundColor="Black" 
+          Opacity="0.5">
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                          Color="{StaticResource Primary}"
+                          VerticalOptions="Center"
+                          HorizontalOptions="Center" />
+    </Grid>
+
+</ContentPage>

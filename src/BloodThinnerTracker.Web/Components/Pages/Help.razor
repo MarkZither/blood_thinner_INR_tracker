@@ -1,0 +1,334 @@
+@page "/help"
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Help & Support - Blood Thinner Tracker</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-question-circle me-2"></i>Help & Support</h2>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="alert alert-danger medical-disclaimer mb-4" role="alert">
+        <div class="d-flex align-items-start">
+            <i class="fas fa-exclamation-triangle me-3 mt-1" style="font-size: 1.5rem;"></i>
+            <div>
+                <h5 class="alert-heading mb-2">⚕️ Important Medical Disclaimer</h5>
+                <p class="mb-2">
+                    <strong>This application is for informational and tracking purposes only.</strong>
+                    It is NOT a substitute for professional medical advice, diagnosis, or treatment.
+                </p>
+                <ul class="mb-2">
+                    <li>Always consult your healthcare provider before making medication decisions</li>
+                    <li>Never change your dosage without medical supervision</li>
+                    <li>In case of emergency, call 911 or your local emergency services immediately</li>
+                    <li>Report any unusual bleeding, bruising, or symptoms to your doctor</li>
+                </ul>
+                <p class="mb-0 small">
+                    By using this application, you acknowledge that you understand and accept these terms.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Help Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon text-primary mb-3">
+                        <i class="fas fa-book fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">User Guide</h5>
+                    <p class="card-text text-muted">
+                        Learn how to use all features of the Blood Thinner Tracker
+                    </p>
+                    <a href="/help/user-guide" class="btn btn-outline-primary">
+                        Read Guide <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon text-success mb-3">
+                        <i class="fas fa-video fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">Video Tutorials</h5>
+                    <p class="card-text text-muted">
+                        Watch step-by-step video guides for common tasks
+                    </p>
+                    <a href="/help/tutorials" class="btn btn-outline-success">
+                        Watch Videos <i class="fas fa-play ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon text-info mb-3">
+                        <i class="fas fa-comments fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">Contact Support</h5>
+                    <p class="card-text text-muted">
+                        Get help from our support team
+                    </p>
+                    <a href="#contact-form" class="btn btn-outline-info">
+                        Contact Us <i class="fas fa-envelope ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-question me-2"></i>Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <!-- FAQ 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How do I log my daily medication?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To log your daily medication:</p>
+                                    <ol>
+                                        <li>Navigate to <strong>Medication Log</strong> from the main menu</li>
+                                        <li>Click the <strong>"Log Dose"</strong> button</li>
+                                        <li>Select the medication and enter the dosage taken</li>
+                                        <li>Confirm the time (defaults to current time)</li>
+                                        <li>Add any notes if needed (e.g., "Taken with food")</li>
+                                        <li>Click <strong>"Save"</strong></li>
+                                    </ol>
+                                    <p class="mb-0">
+                                        <strong>Important:</strong> The app will warn you if you try to log a dose within 12 hours
+                                        of your last dose to prevent accidental double-dosing.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ 2 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    How do I record my INR test results?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To record INR test results:</p>
+                                    <ol>
+                                        <li>Go to <strong>INR Tracking</strong></li>
+                                        <li>Click <strong>"Add INR Test"</strong></li>
+                                        <li>Enter your INR value (e.g., 2.5)</li>
+                                        <li>Enter the test date</li>
+                                        <li>Specify your target range (typically 2.0-3.0 for most conditions)</li>
+                                        <li>Add notes from your healthcare provider</li>
+                                        <li>Click <strong>"Save"</strong></li>
+                                    </ol>
+                                    <p class="mb-0">
+                                        <strong>Valid INR Range:</strong> 0.5 to 8.0. Values outside this range will show a warning.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ 3 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    What should I do if I miss a dose?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Always follow your doctor's instructions for missed doses.</strong>
+                                    </div>
+                                    <p><strong>General guidance:</strong></p>
+                                    <ul>
+                                        <li><strong>If you remember within a few hours:</strong> Take the missed dose immediately</li>
+                                        <li><strong>If it's almost time for your next dose:</strong> Skip the missed dose (never double up)</li>
+                                        <li><strong>If you're unsure:</strong> Contact your healthcare provider or pharmacist</li>
+                                    </ul>
+                                    <p><strong>In the app:</strong></p>
+                                    <ol>
+                                        <li>Go to Medication Log</li>
+                                        <li>Find the missed dose entry</li>
+                                        <li>Mark it as "Skipped" or "Missed"</li>
+                                        <li>Add notes explaining the situation</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ 4 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    How do I export my data for my doctor?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To export your health data:</p>
+                                    <ol>
+                                        <li>Navigate to <strong>Reports → Export Data</strong></li>
+                                        <li>Select the date range (e.g., "Last 90 Days")</li>
+                                        <li>Choose what data to include:
+                                            <ul>
+                                                <li>INR Test Results</li>
+                                                <li>Medication Logs</li>
+                                                <li>Test Schedule</li>
+                                            </ul>
+                                        </li>
+                                        <li>Select export format:
+                                            <ul>
+                                                <li><strong>PDF:</strong> Best for printing or emailing to your doctor</li>
+                                                <li><strong>CSV:</strong> Can be opened in Excel/Google Sheets</li>
+                                                <li><strong>JSON:</strong> For technical users or importing to other systems</li>
+                                            </ul>
+                                        </li>
+                                        <li>Click <strong>"Generate Export"</strong></li>
+                                        <li>Save the file to your device</li>
+                                    </ol>
+                                    <p class="mb-0">
+                                        <strong>Privacy Note:</strong> Exported files contain your personal health information.
+                                        Store them securely and delete them when no longer needed.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ 5 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    Is my health data secure?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Yes. We take your privacy and security seriously:</strong></p>
+                                    <ul>
+                                        <li><strong>Encryption:</strong> All data is encrypted in transit (HTTPS) and at rest (AES-256)</li>
+                                        <li><strong>Authentication:</strong> Secure OAuth 2.0 login via Google or Azure AD</li>
+                                        <li><strong>Access Control:</strong> Only you can access your health data</li>
+                                        <li><strong>No Third-Party Sharing:</strong> We never sell or share your data</li>
+                                        <li><strong>Local-First:</strong> Data stored locally on your device, with optional cloud sync</li>
+                                        <li><strong>Compliance:</strong> Follows OWASP security guidelines</li>
+                                    </ul>
+                                    <p class="mb-0">
+                                        For more details, see our <a href="/privacy">Privacy Policy</a> and 
+                                        <a href="/security">Security Documentation</a>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Form -->
+    <div class="row" id="contact-form">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Contact Support</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Have a question that's not answered here? Our support team is here to help.
+                    </p>
+                    
+                    <div class="alert alert-light border">
+                        <h6 class="fw-bold mb-3">📧 Support Email</h6>
+                        <p class="mb-2">
+                            <a href="mailto:support@bloodthinnertracker.com">support@bloodthinnertracker.com</a>
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            We typically respond within 24 hours during business days.
+                        </p>
+                    </div>
+
+                    <div class="alert alert-light border">
+                        <h6 class="fw-bold mb-3">📖 Additional Resources</h6>
+                        <ul class="mb-0">
+                            <li><a href="/docs/getting-started">Getting Started Guide</a></li>
+                            <li><a href="/docs/medication-tracking">Medication Tracking Best Practices</a></li>
+                            <li><a href="/docs/inr-monitoring">Understanding Your INR Results</a></li>
+                            <li><a href="https://github.com/MarkZither/blood_thinner_INR_tracker" target="_blank">
+                                GitHub Repository <i class="fas fa-external-link-alt ms-1"></i>
+                            </a></li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <h6 class="fw-bold mb-2">🚨 Emergency</h6>
+                        <p class="mb-0">
+                            <strong>If you are experiencing a medical emergency (excessive bleeding, chest pain, difficulty breathing), 
+                            call 911 or go to your nearest emergency room immediately. Do not use this app for emergencies.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+}
+
+<style>
+    .medical-disclaimer {
+        border-left: 4px solid #dc3545;
+    }
+
+    .help-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .help-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .help-icon {
+        opacity: 0.8;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+</style>

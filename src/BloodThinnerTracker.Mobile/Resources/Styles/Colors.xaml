@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-stylesheet type="text/css" href="../Styles/Styles.xaml" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Medical Theme Colors -->
+    <Color x:Key="Primary">#007ACC</Color>
+    <Color x:Key="PrimaryDark">#005A9E</Color>
+    <Color x:Key="PrimaryDarkText">#FFFFFF</Color>
+    <Color x:Key="Secondary">#28A745</Color>
+    <Color x:Key="SecondaryDarkText">#FFFFFF</Color>
+    <Color x:Key="Tertiary">#6F42C1</Color>
+    <Color x:Key="TertiaryDarkText">#FFFFFF</Color>
+    <Color x:Key="Warning">#FFC107</Color>
+    <Color x:Key="Danger">#DC3545</Color>
+    <Color x:Key="Success">#28A745</Color>
+    <Color x:Key="Info">#17A2B8</Color>
+    <Color x:Key="Light">#F8F9FA</Color>
+    <Color x:Key="Dark">#343A40</Color>
+
+    <!-- Text Colors -->
+    <Color x:Key="TextPrimary">#212529</Color>
+    <Color x:Key="TextSecondary">#6C757D</Color>
+    <Color x:Key="TextMuted">#ADB5BD</Color>
+    <Color x:Key="TextWhite">#FFFFFF</Color>
+
+    <!-- Background Colors -->
+    <Color x:Key="BackgroundPrimary">#FFFFFF</Color>
+    <Color x:Key="BackgroundSecondary">#F8F9FA</Color>
+    <Color x:Key="BackgroundTertiary">#E9ECEF</Color>
+
+    <!-- Medical Status Colors -->
+    <Color x:Key="INRInRange">#28A745</Color>
+    <Color x:Key="INRBelowRange">#FFC107</Color>
+    <Color x:Key="INRAboveRange">#DC3545</Color>
+    <Color x:Key="MedicationTaken">#28A745</Color>
+    <Color x:Key="MedicationMissed">#DC3545</Color>
+    <Color x:Key="MedicationDelayed">#FFC107</Color>
+
+    <!-- Light Theme -->
+    <Color x:Key="Yellow100Accent">#F7B548</Color>
+    <Color x:Key="Yellow200Accent">#FFD590</Color>
+    <Color x:Key="Yellow300Accent">#FFE5B9</Color>
+    <Color x:Key="Cyan100Accent">#28C2D1</Color>
+    <Color x:Key="Cyan200Accent">#7BDDEF</Color>
+    <Color x:Key="Cyan300Accent">#C3F2F4</Color>
+    <Color x:Key="Blue100Accent">#3E8EED</Color>
+    <Color x:Key="Blue200Accent">#72ACF1</Color>
+    <Color x:Key="Blue300Accent">#A7CBF6</Color>
+
+</ResourceDictionary>

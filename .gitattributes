@@ -1,0 +1,47 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# C# files
+*.cs text eol=lf
+*.csx text eol=lf
+
+# JSON files  
+*.json text eol=lf
+
+# Configuration files
+*.config text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+
+# Project files
+*.csproj text eol=lf
+*.sln text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Scripts
+*.ps1 text eol=crlf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files
+*.dll binary
+*.exe binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.gz binary
+
+# Exclude files from export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+.editorconfig export-ignore
