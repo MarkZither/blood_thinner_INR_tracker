@@ -14,8 +14,8 @@ namespace BloodThinnerTracker.Shared.Models
     /// Ensure compliance with HIPAA and other healthcare regulations.
     /// </summary>
     [Table("Users")]
-public class User : MedicalEntityBase
-{
+    public class User : MedicalEntityBase
+    {
     /// <summary>
     /// Gets or sets the user's email address (used for authentication).
     /// </summary>
@@ -23,7 +23,9 @@ public class User : MedicalEntityBase
     [EmailAddress]
     [StringLength(256)]
     [Column(TypeName = "varchar(256)")]
-    public string Email { get; set; } = string.Empty;        /// <summary>
+    public string Email { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the user's display name.
         /// </summary>
         [Required]

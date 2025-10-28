@@ -50,8 +50,7 @@
 
   <!-- Common package references for library projects only -->
   <ItemGroup Condition="'$(IsWebProject)' != 'true' AND '$(IsTestProject)' != 'true'">
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <!-- Microsoft.Extensions.Logging and Microsoft.Extensions.Configuration removed - included in ASP.NET Core -->
   </ItemGroup>
 
   <!-- Analyzer packages for code quality -->
