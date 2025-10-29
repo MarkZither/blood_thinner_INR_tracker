@@ -80,9 +80,81 @@ The following components exist and exceed the original spec requirements:
 
 ---
 
-## Phase 1: Architecture & Code Organization (5 days)
+## Phase 1: Authentication & Architecture (6 days)
 
-### T003-001: Remove Bootstrap & Font Awesome Dependencies [P0]
+### T003-001: Fix Critical Authentication Issues [P0 - SECURITY CRITICAL]
+**Owner**: TBD  
+**Estimate**: 2 days  
+**Status**: TODO  
+**Dependencies**: None  
+**Related**: US-003-05
+
+**Problem Statement**: The authentication system is fundamentally broken:
+1. `CustomAuthenticationStateProvider` is defined but never registered in DI
+2. No bearer tokens are added to API requests (results in 401 errors)
+3. OAuth callback handlers don't exchange tokens or call `MarkUserAsAuthenticatedAsync`
+4. Pages load despite authentication failures (security risk)
+5. Logout button invisible (Bootstrap dropdown requires JavaScript)
+
+**Tasks**:
+- [ ] **Register CustomAuthenticationStateProvider in Program.cs**
+  - [ ] Add `builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();`
+  - [ ] Add `builder.Services.AddScoped<CustomAuthenticationStateProvider>();` (for direct injection)
+  - [ ] Verify injection works in AuthorizationMessageHandler
+
+- [ ] **Implement OAuth Callback Handlers**
+  - [ ] Create `OAuthCallbackController.cs` or Razor page for `/signin-microsoft`
+  - [ ] Create handler for `/signin-google`
+  - [ ] Exchange authorization code for JWT access token + refresh token
+  - [ ] Call `CustomAuthenticationStateProvider.MarkUserAsAuthenticatedAsync(token, refreshToken)`
+  - [ ] Redirect to `/dashboard` on success, `/login?error=...` on failure
+  - [ ] Add comprehensive error logging for OAuth failures
+
+- [ ] **Fix Bearer Token Injection**
+  - [ ] Verify `AuthorizationMessageHandler.SendAsync` can retrieve token
+  - [ ] Add logging: "Token retrieved: {HasToken}" before adding header
+  - [ ] Test API call includes `Authorization: Bearer {token}` header
+  - [ ] Verify 401 responses trigger logout (already implemented in handler)
+
+- [ ] **Add Authentication Route Guards**
+  - [ ] Create `AuthorizedLayoutBase` or similar base component
+  - [ ] Check authentication state in `OnInitializedAsync`
+  - [ ] Redirect to `/login?returnUrl={currentUrl}` if not authenticated
+  - [ ] Apply to Dashboard, Medications, INR, Profile pages
+
+- [ ] **Fix Logout UI Visibility**
+  - [ ] Replace Bootstrap dropdown in MainLayout with MudBlazor MudMenu
+  - [ ] Ensure logout link is visible and clickable
+  - [ ] Test logout flow: click → `/logout` → token cleared → redirect to `/login`
+
+- [ ] **Add Authentication State Debugging**
+  - [ ] Log authentication state on every protected page load
+  - [ ] Log token presence/absence before API calls
+  - [ ] Add `[Authorize]` attribute validation logging
+  - [ ] Create `/auth/status` debug page showing: IsAuthenticated, Token Present, Claims
+
+**Acceptance Criteria**:
+- ✅ CustomAuthenticationStateProvider is registered and injectable
+- ✅ OAuth login flow completes and stores JWT token
+- ✅ API requests include `Authorization: Bearer {token}` header
+- ✅ API returns 200 OK instead of 401 Unauthorized for authenticated requests
+- ✅ Logout button is visible in MudBlazor menu (not Bootstrap dropdown)
+- ✅ Clicking logout clears tokens and redirects to login
+- ✅ Protected pages redirect to login when not authenticated
+- ✅ Token expiry detection works (auto-logout on expired token)
+- ✅ No medical data visible without valid authentication
+
+**Testing**:
+- [ ] Unit test: CustomAuthenticationStateProvider registration
+- [ ] Integration test: OAuth callback handler token exchange
+- [ ] E2E test: Complete login flow (click login → OAuth → callback → dashboard)
+- [ ] E2E test: API call with bearer token (verify 200 response)
+- [ ] E2E test: Complete logout flow (click logout → token cleared → login page)
+- [ ] E2E test: Expired token detection and auto-logout
+
+---
+
+### T003-002: Remove Bootstrap & Font Awesome Dependencies [P0]
 **Owner**: TBD  
 **Estimate**: 1 day  
 **Status**: TODO
@@ -98,6 +170,23 @@ Remove all non-MudBlazor UI framework dependencies per Constitution Principle II
 - [ ] Delete `wwwroot/css/fontawesome*.css` files
 - [ ] Remove Bootstrap CDN links from `_Host.cshtml` or `App.razor`
 - [ ] Remove Font Awesome CDN links
+- [ ] Verify project builds successfully without Bootstrap/Font Awesome
+- [ ] Run app and verify no console errors about missing CSS/JS files
+
+**Acceptance Criteria**:
+- ✅ No Bootstrap packages in `.csproj`
+- ✅ No Font Awesome packages in `.csproj`
+- ✅ No Bootstrap files in `wwwroot/`
+- ✅ No Font Awesome files in `wwwroot/`
+- ✅ No CDN references to Bootstrap or Font Awesome
+- ✅ Application builds without errors
+- ✅ No console errors in browser
+
+**Note**: This task removes dependencies but does NOT update component usage. Component migration happens in T003-004 through T003-008.
+
+---
+
+### T003-003: Create Service Layer for API Calls [P1]
 - [ ] Remove `bootstrap.bundle.min.js` script references
 - [ ] Update `_Imports.razor` to remove Bootstrap usings
 - [ ] Verify MudBlazor is sole UI dependency
@@ -663,26 +752,28 @@ Convert authentication and profile pages to MudBlazor forms.
 ## Summary Statistics
 
 ### Overall Progress
-- **Total Tasks**: 18
+- **Total Tasks**: 19
 - **Completed**: 0
 - **In Progress**: 0
-- **TODO**: 18
+- **TODO**: 19
 - **Blocked**: 0
 
 ### By Priority
-- **P0 (Critical)**: 9 tasks
+- **P0 (Critical)**: 10 tasks (includes T003-001 authentication fix)
 - **P1 (High)**: 7 tasks
 - **P2 (Medium)**: 2 tasks
 
 ### By Phase
-- **Phase 1 (Architecture & Removal)**: 3 tasks (5 days)
+- **Phase 1 (Authentication & Architecture)**: 4 tasks (6 days) - includes critical auth fix
 - **Phase 2 (MudBlazor Migration)**: 4 tasks (5 days)
 - **Phase 3 (Components & Cleanup)**: 4 tasks (3 days)
 - **Phase 4 (Testing)**: 3 tasks (4 days)
 - **Phase 5 (Documentation)**: 2 tasks (2 days)
 - **Phase 6 (Polish)**: 2 tasks (1 day)
 
-**Total Estimated Effort**: 20 days (4 weeks with buffer)
+**Total Estimated Effort**: 21 days (4.2 weeks with buffer)
+
+**CRITICAL PATH**: T003-001 (Auth Fix) must be completed first - all other work depends on working authentication.
 
 ---
 

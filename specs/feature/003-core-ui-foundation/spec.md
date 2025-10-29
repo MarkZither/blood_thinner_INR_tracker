@@ -98,6 +98,51 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - No Font Awesome CSS dependencies remain
 - All pages use MudBlazor layout components (MudLayout, MudAppBar, MudDrawer)
 - All forms use MudBlazor form components (MudTextField, MudButton, etc.)
+
+---
+
+### US-003-05: Fix Authentication & Authorization (CRITICAL)
+**As a** patient  
+**I want** the application to properly authenticate me and protect my medical data  
+**So that** I can securely access my health information with a working authentication system
+
+**Priority**: P0 (Critical Security Issue)
+
+**Current Problems**:
+1. **CustomAuthenticationStateProvider not registered** - Service is defined but never added to DI container in `Program.cs`
+2. **No bearer token in API requests** - AuthorizationMessageHandler cannot retrieve tokens because CustomAuthenticationStateProvider is not injected
+3. **OAuth flow incomplete** - User can click "Sign in with Microsoft/Google" but there's no callback handler that calls `MarkUserAsAuthenticatedAsync`
+4. **Pages load despite 401 errors** - Authorization failures show toast messages but pages render anyway, exposing UI without data
+5. **No visible logout functionality** - Logout link exists in dropdown but requires Bootstrap JavaScript to show the dropdown menu
+6. **Silent failures** - Users see "No medications yet" when the real issue is authentication failure (401 Unauthorized)
+
+**Acceptance Criteria**:
+- ✅ CustomAuthenticationStateProvider is properly registered in DI container (`Program.cs`)
+- ✅ OAuth callback endpoints `/signin-microsoft` and `/signin-google` implemented with proper token exchange
+- ✅ JWT tokens stored in browser storage (via JSInterop) after successful OAuth login
+- ✅ AuthorizationMessageHandler successfully retrieves and adds Bearer token to all API requests
+- ✅ Pages with `[Authorize]` attribute redirect to `/login` when user is not authenticated
+- ✅ 401 responses trigger automatic logout and redirect to login page
+- ✅ Logout button is visible and functional (MudBlazor menu, not Bootstrap dropdown)
+- ✅ Authentication state persists across browser refreshes
+- ✅ Token expiry is detected and handled (auto-logout on expired token)
+- ✅ User sees proper error messages: "Please log in" instead of "No data found"
+
+**Technical Requirements**:
+- Register `CustomAuthenticationStateProvider` as scoped service implementing `AuthenticationStateProvider`
+- Implement OAuth callback handlers that exchange authorization code for JWT tokens
+- Call `MarkUserAsAuthenticatedAsync(token, refreshToken)` after successful OAuth exchange
+- Add proper error handling for token refresh failures
+- Implement route guards that check authentication before rendering protected pages
+- Replace Bootstrap-dependent logout dropdown with MudBlazor MudMenu component
+- Add authentication state logging for debugging
+
+**Security Considerations**:
+- Tokens must be stored in browser's localStorage/sessionStorage (not cookies for SPA)
+- Token validation must check expiry before every API call
+- Refresh token flow should be automatic and transparent to user
+- Failed authentication attempts must be logged
+- No medical data should be visible in browser cache when logged out
 - All tables use MudDataGrid or MudTable
 - All cards use MudCard
 - All alerts/notifications use MudAlert or MudSnackbar
