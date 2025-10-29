@@ -73,6 +73,18 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 
+// Add memory cache for server-side authentication state storage (T003-001)
+builder.Services.AddMemoryCache();
+
+// Add session support for memory cache key isolation (T003-001)
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromDays(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // Add MVC controllers for OAuth challenge endpoints (T003-001)
 builder.Services.AddControllers();
 
@@ -112,6 +124,9 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found");
 
 app.UseHttpsRedirection();
+
+// Session middleware (must come before authentication for session-based cache keys)
+app.UseSession();
 
 // Authentication/Authorization middleware required for [Authorize] attributes (T018i)
 app.UseAuthentication();
