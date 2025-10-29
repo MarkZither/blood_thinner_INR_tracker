@@ -1,87 +1,48 @@
-# Quickstart Guide: Docker Deployment Infrastructure
+# Quickstart — Local development (Docker & Azure archived)
 
-**Version**: 1.0.0  
-**Target Audience**: Developers setting up local deployment infrastructure
+Version: 1.0.1
 
----
+Note: Docker Compose, Azure deployment templates and the CI/CD workflow were created during an earlier iteration but are OUT-OF-SCOPE for this feature. They have been archived under `specs/feature/002-docker-deployment-infrastructure/archive/infra/` for reference.
 
-## 🚀 Quick Setup (5 minutes)
+This quickstart shows how to run the services locally using .NET (no Docker). It's suitable for most developer workflows while we finish feature 002.
 
-### 1. Install Prerequisites
+Prerequisites
+- .NET 10 SDK (use the preview SDK version specified in global.json)
+- A supported IDE (VS Code, Visual Studio) or a terminal
 
-**Required Software**:
-```bash
-# .NET 10 SDK
-winget install Microsoft.DotNet.SDK.10
-# Docker Desktop
-winget install Docker.DockerDesktop
-# Azure CLI
-winget install Microsoft.AzureCLI
-# Visual Studio 2022 or VS Code
-winget install Microsoft.VisualStudio.2022.Community
-# OR
-winget install Microsoft.VisualStudioCode
+Verify environment
+```powershell
+dotnet --version
+git --version
 ```
 
-**Verify Installation**:
-```bash
-dotnet --version          # Should show 10.0.x
-docker --version          # Should show Docker version info
-az --version              # Should show Azure CLI version info
-git --version            # Should show Git version info
+Run the API and Web locally (recommended)
+
+1. Start the API (uses local SQLite by default in Development):
+
+```powershell
+cd src\BloodThinnerTracker.Api
+dotnet run
 ```
 
----
+2. In a separate terminal start the Web app:
 
-### 2. Clone and Setup Repository
-
-```bash
-git clone https://github.com/your-org/blood-thinner-inr-tracker.git
-cd blood-thinner-inr-tracker
+```powershell
+cd src\BloodThinnerTracker.Web
+dotnet run
 ```
 
----
+Notes
+- By default the API will use the local SQLite files (see `appsettings.Development.json`).
+- Migrations are applied automatically on startup via `EnsureDatabaseAsync()` in `Program.cs`.
+- Health endpoint: `http://localhost:<api-port>/health` (port is printed by dotnet run; default configured ports may vary).
 
-### 3. Local Docker Compose Startup
+When to use the archived Docker/Cloud artifacts
+- Use the archived files only for reference or as a starting point when we re-open Docker/Azure work in a future feature. They are preserved at:
+	- `specs/feature/002-docker-deployment-infrastructure/archive/infra/`
 
-```bash
-docker-compose up --build
-```
+Troubleshooting
+- If migrations fail, check the console logs for EF Core errors.
+- To reset the local SQLite DB (development only): stop the app and delete `bloodtracker_dev.db` in the repository root (or the file indicated in `appsettings.Development.json`).
 
-- API, Web, and Database containers will start
-- Migrations run automatically
-- Hot reload enabled for code changes
-
----
-
-### 4. Azure Container Apps Deployment
-
-```bash
-az login
-az containerapp up --name bloodthinnertracker-api --resource-group <your-rg> --source ./src/BloodThinnerTracker.Api
-az containerapp up --name bloodthinnertracker-web --resource-group <your-rg> --source ./src/BloodThinnerTracker.Web
-```
-
-- Uses source-based deployment (no Dockerfile required unless multi-stage)
-- Connection strings and secrets managed via Azure Key Vault
-- Health checks configured for all services
-
----
-
-### 5. CI/CD Pipeline
-
-- GitHub Actions workflow in `.github/workflows/deploy.yml`
-- On push to main, triggers build and deploy to Azure
-- Secrets managed via OIDC and Azure Key Vault
-
----
-
-### 6. Troubleshooting
-
-- Check container logs: `docker logs <container-name>`
-- Check Azure deployment status: `az containerapp show --name <app-name> --resource-group <your-rg>`
-- Health check endpoint: `/health` on API/Web
-
----
-
-**For full entity definitions and business logic, see canonical data model in archive.**
+If you'd like, I can add a short troubleshooting snippet that automates migration clearing for local dev.

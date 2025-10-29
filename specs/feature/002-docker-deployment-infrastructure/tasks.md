@@ -14,23 +14,27 @@
 - [ ] T005 [P] Create appsettings.Development.json with placeholder config in src/BloodThinnerTracker.Api and src/BloodThinnerTracker.Web
 
 ## Phase 2: Foundational Infrastructure
+## Phase 2: Foundational Infrastructure
 - [ ] T006 Create docker-compose.yml for API, Web, and PostgreSQL containers in repo root [OUT OF SCOPE]
 - [ ] T007 [P] Create Dockerfile.api and Dockerfile.web in src/BloodThinnerTracker.Api and src/BloodThinnerTracker.Web [OUT OF SCOPE]
-- [ ] T008 [P] Implement health check endpoint in src/BloodThinnerTracker.Api/Controllers/HealthController.cs
-- [ ] T009 [P] Implement health check endpoint in src/BloodThinnerTracker.Web/Components/Health.razor
+- [x] T008 [P] Implement health check endpoint in src/BloodThinnerTracker.Api/Controllers/HealthController.cs
+- [x] T009 [P] Implement health check endpoint in src/BloodThinnerTracker.Web/Components/Health.razor
 - [ ] T010 [P] Create azuredeploy.bicep for Azure resources in repo root [OUT OF SCOPE]
-- [ ] T011 [P] Create .github/workflows/deploy.yml for CI/CD pipeline [OUT OF SCOPE]
-- [ ] T012 [P] Configure Azure Key Vault integration for secrets in src/BloodThinnerTracker.Api and src/BloodThinnerTracker.Web
-
 ## Phase 3: User Story 1 - Local Docker Setup
 - [ ] T013 [US1] Implement Docker Compose startup logic in src/BloodThinnerTracker.Api and src/BloodThinnerTracker.Web [OUT OF SCOPE]
-- [ ] T014 [US1] Ensure database migrations run automatically on container startup in src/BloodThinnerTracker.Api/Data
+- [x] T014 [US1] Ensure database migrations run automatically on container startup in src/BloodThinnerTracker.Api/Data
 - [ ] T015 [US1] Enable hot reload for code changes in Docker containers [OUT OF SCOPE]
 - [ ] T016 [US1] Load local environment variables from .env file in docker-compose.yml [OUT OF SCOPE]
-
-## Phase 6: User Story 4 - Azure Deployment
-- [ ] T025 [US4] Implement GitHub Actions workflow for CI/CD in .github/workflows/deploy.yml [OUT OF SCOPE]
-- [ ] T026 [US4] Deploy API container to Azure Container Apps [OUT OF SCOPE]
+- [ ] T013 [US1] Implement Docker Compose startup logic in src/BloodThinnerTracker.Api and src/BloodThinnerTracker.Web [OUT OF SCOPE]
+### Phase 2: Fix Security (1-2 hours)
+- [ x ] **T051c**: Update Microsoft.Identity.Web
+	- Current: 3.3.0 (vulnerable to GHSA-rpq8-q44m-2rpg)
+	- Updated in branch to 4.0.1 (see `src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj`)
+	- Test: `dotnet list package --vulnerable`
+- [ ] **T051d**: Update Microsoft.Build packages (IN PROGRESS)
+	- Status: Microsoft.Build.* 17.14.8 detected as transitive via `Microsoft.EntityFrameworkCore.Design` (see project.assets.json)
+	- Short-term mitigation captured in `ACTION-ITEMS-NEXT-STEPS.md` under "Short-term mitigation (Option C)".
+	- Next concrete step: open PR to bump `Microsoft.EntityFrameworkCore.Design` and related EF packages to latest patched release and re-run vulnerability checks.
 - [ ] T027 [US4] Deploy Web container to Azure Container Apps [OUT OF SCOPE]
 - [ ] T028 [US4] Provision PostgreSQL database in Azure [OUT OF SCOPE]
 - [ ] T029 [US4] Configure connection strings via Azure Key Vault

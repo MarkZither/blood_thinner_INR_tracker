@@ -1,3 +1,27 @@
+## Short-term mitigation (Option C)
+
+We observed a transitive dependency on Microsoft.Build.* (17.14.8) reported as vulnerable (GHSA-w3q9-fxm7-j8fq). Current recommended short-term mitigation:
+
+--- 
+
+## Short-term mitigation (Option C)
+
+We observed a transitive dependency on Microsoft.Build.* (17.14.8) reported as vulnerable (GHSA-w3q9-fxm7-j8fq). Current recommended short-term mitigation:
+
+- Add a note here and in the feature 002 tasks that the EF/Design/tooling packages should be upgraded as the primary fix (EF Core Design pulls MSBuild.* transitively).
+- Prioritize updating the following packages and re-running vulnerability scans:
+  - Microsoft.EntityFrameworkCore.Design (present in `src/BloodThinnerTracker.Api`) — bump to latest patch
+  - Microsoft.EntityFrameworkCore / Tools / Sqlite packages if newer patched versions are available
+  - Microsoft.NET.Test.Sdk and Microsoft.CodeAnalysis.* packages in tests if they bring MSBuild packages
+- Do not suppress advisories globally; if necessary for a short-lived branch, use NoWarn only in test projects and track removal in the next PR.
+
+Recommended next steps (short):
+
+1. Create a PR that updates EF design/tooling packages to their latest patched versions and run CI/tests.
+2. Re-run `dotnet list package --vulnerable --include-transitive` and confirm Microsoft.Build.* is no longer present or is updated to a non-vulnerable version.
+3. If transitive MSBuild packages remain, coordinate upgrading the package that pulls them or raise an issue with the package owner.
+
+This note implements Option C: document the mitigation and track the upgrade as the concrete next action. (See `specs/feature/002-docker-deployment-infrastructure/tasks.md` T051d.)
 # Action Items: Next Steps
 
 **Created**: October 24, 2025  
@@ -53,14 +77,14 @@
   - [ ] Run: `dotnet build /p:TreatWarningsAsErrors=true`
 
 ### Phase 2: Fix Security (1-2 hours)
-- [ ] **T051c**: Update Microsoft.Identity.Web
+- [ x ] **T051c**: Update Microsoft.Identity.Web
   - Current: 3.3.0 (vulnerable to GHSA-rpq8-q44m-2rpg)
   - Check NuGet for latest patched version
   - Test: `dotnet list package --vulnerable`
 - [ ] **T051d**: Update Microsoft.Build packages
   - Check if 17.14.8 is direct or transitive dependency
   - Update if direct reference exists
-- [ ] **T051e**: Remove unnecessary packages
+- [ x ] **T051e**: Remove unnecessary packages
   - Check for direct Microsoft.Extensions.Logging reference
   - Check for direct Microsoft.Extensions.Configuration reference
   - Run: `dotnet restore` and verify no NU1510 warnings

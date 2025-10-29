@@ -1,0 +1,16 @@
+# Original .github/workflows/deploy.yml (archived as text)
+
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+      - feature/002-docker-deployment-infrastructure
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "CI/CD workflow disabled for this feature"
