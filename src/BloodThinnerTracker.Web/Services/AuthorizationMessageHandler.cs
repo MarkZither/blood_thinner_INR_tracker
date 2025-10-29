@@ -41,15 +41,18 @@ public class AuthorizationMessageHandler : DelegatingHandler
         if (_authStateProvider is CustomAuthenticationStateProvider customProvider)
         {
             var token = await customProvider.GetTokenAsync();
+            var hasToken = !string.IsNullOrEmpty(token);
 
-            if (!string.IsNullOrEmpty(token))
+            if (hasToken)
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                _logger.LogDebug("Added Bearer token to request: {Method} {Uri}", request.Method, request.RequestUri);
+                _logger.LogDebug("Token retrieved: {HasToken}, added Bearer token to request: {Method} {Uri}", 
+                    hasToken, request.Method, request.RequestUri);
             }
             else
             {
-                _logger.LogDebug("No token available for request: {Method} {Uri}", request.Method, request.RequestUri);
+                _logger.LogDebug("Token retrieved: {HasToken}, no token available for request: {Method} {Uri}", 
+                    hasToken, request.Method, request.RequestUri);
             }
         }
 
