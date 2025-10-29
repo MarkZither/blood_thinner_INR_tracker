@@ -137,18 +137,19 @@ The following components exist and exceed the original spec requirements:
   **See detailed implementation** in `authentication-fix-guide.md` lines 150-230 for complete code example.
 
 
-- [ ] **Fix Bearer Token Injection**
-  - [ ] Verify `AuthorizationMessageHandler.SendAsync` can retrieve token
-  - [ ] Add logging: "Token retrieved: {HasToken}" before adding header
+- [X] **Fix Bearer Token Injection**
+  - [X] Verify `AuthorizationMessageHandler.SendAsync` can retrieve token
+  - [X] Add logging: "Token retrieved: {HasToken}" before adding header
   - [ ] Test API call includes `Authorization: Bearer {token}` header
-  - [ ] Verify 401 responses trigger logout (already implemented in handler)
+  - [X] Verify 401 responses trigger logout (already implemented in handler)
 
-- [ ] **Add Authentication Route Guards**
-  - [ ] **Approach**: Use `<AuthorizeView>` + NavigationManager (not custom base component)
-  - [ ] Wrap page content in `<AuthorizeView>` with `<Authorizing>` and `<NotAuthorized>` templates
-  - [ ] In `<NotAuthorized>`: Use NavigationManager to redirect to `/login?returnUrl={currentUrl}`
-  - [ ] In `<Authorizing>`: Show LoadingSpinner component
-  - [ ] Apply to Dashboard.razor, Medications.razor, INRTracking.razor, Profile.razor
+- [X] **Add Authentication Route Guards**
+  - [X] **Approach**: Use `<AuthorizeView>` + NavigationManager (not custom base component)
+  - [X] Wrap page content in `<AuthorizeView>` with `<Authorizing>` and `<NotAuthorized>` templates
+  - [X] In `<NotAuthorized>`: Use NavigationManager to redirect to `/login?returnUrl={currentUrl}`
+  - [X] In `<Authorizing>`: Show MudProgressCircular loading spinner
+  - [X] Apply to Dashboard.razor, Medications.razor, INRTracking.razor, Profile.razor
+  - [X] Fix context naming conflict in Profile.razor (EditForm vs Authorized)
   - [ ] Test redirect flow: unauthenticated → login → return to original page
 
 - [ ] **Fix Logout UI Visibility**
