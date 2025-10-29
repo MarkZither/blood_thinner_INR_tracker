@@ -64,6 +64,9 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 
+// Add MVC controllers for OAuth challenge endpoints (T003-001)
+builder.Services.AddControllers();
+
 // Register CustomAuthenticationStateProvider for JWT token management (T003-001)
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
@@ -108,6 +111,10 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// Map MVC controllers for OAuth challenge endpoints (T003-001)
+app.MapControllers();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
