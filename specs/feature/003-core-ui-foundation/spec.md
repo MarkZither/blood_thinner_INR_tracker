@@ -283,14 +283,163 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 
 **Security Testing Requirements** (T003-001):
 
-- [ ] Verify unauthenticated users cannot access protected pages
-- [ ] Verify expired tokens trigger automatic logout
-- [ ] Verify 401 responses clear tokens and redirect to login
-- [ ] Verify tokens cleared from storage on logout
-- [ ] Verify OAuth callback validates provider responses
-- [ ] Verify bearer tokens included in all API requests
+- [X] Verify unauthenticated users cannot access protected pages
+- [X] Verify expired tokens trigger automatic logout
+- [X] Verify 401 responses clear tokens and redirect to login
+- [X] Verify tokens cleared from storage on logout
+- [X] Verify OAuth callback validates provider responses
+- [X] Verify bearer tokens included in all API requests
 - [ ] Manual test: Attempt to access API directly without token (should fail)
 - [ ] Manual test: Modify token in localStorage (should be rejected by API)
+
+**Status**: ✅ COMPLETE (October 29, 2025)
+
+---
+
+### US-003-06: Dashboard with Real Data
+**As a** patient  
+**I want to** see a comprehensive dashboard when I log in  
+**So that** I can quickly understand my medication and INR status at a glance
+
+**Acceptance Criteria**:
+- Welcome card displays user's name and greeting
+- Next medication widget shows upcoming dose with countdown
+- Next INR test widget shows when next test is due
+- INR trend chart displays last 10 tests with target range bands
+- Recent medications list shows last 5 doses taken
+- Recent INR tests list shows last 5 test results
+- Quick action buttons for "Log Medication" and "Add INR Test"
+- All widgets load real data from API
+- Loading states show skeleton/shimmer for each widget
+- Empty states show appropriate CTAs ("Add your first medication")
+- Responsive layout: 4 columns desktop, 2 columns tablet, 1 column mobile
+
+**Priority**: P1 (High - primary landing page after login)  
+**Estimate**: 4-6 hours  
+**Reference**: `checklists/T003-002-dashboard-wireframe.md`
+
+---
+
+### US-003-07: Profile Page with Real User Data
+**As a** logged-in user  
+**I want to** see and update my actual profile information  
+**So that** my personal details and medical information are accurate
+
+**Acceptance Criteria**:
+- Display authenticated user's email (from JWT claims)
+- Display user's name (from JWT claims)
+- Show OAuth provider (Microsoft/Google)
+- Show last login date
+- Remove ALL hardcoded "John Doe" placeholder data
+- Personal information section: Display Name, Email (read-only), Phone, Date of Birth
+- Medical information section: Target INR Range, Physician details, Clinic name
+- Notification preferences: Email toggles, reminder lead time
+- Privacy settings: Data sharing consent, Export data, Delete account
+- Remove password change form (OAuth users don't have passwords)
+- Add info card explaining OAuth password management
+- Form validation with clear error messages
+- Save/Cancel buttons with loading states
+
+**Priority**: P1 (High - user identified hardcoded data issue)  
+**Estimate**: 3-4 hours  
+**Reference**: `checklists/T003-003-profile-page-real-data.md`
+
+---
+
+### US-003-08: INR Test Recording and Management
+**As a** patient taking blood thinners  
+**I want to** record and manage my INR test results  
+**So that** I can track my blood coagulation levels over time
+
+**Acceptance Criteria**:
+- Add INR test form with: Date/Time, INR Value, Dosage Adjustment, Location, Notes
+- INR value validation: 0.5 - 8.0 range (medical safety constraint)
+- Test date validation: Cannot be in future, cannot be > 1 year old
+- Critical value alert: Warning if INR < 1.5 or > 4.0
+- Trend indicator: Show icon if ±0.5 change from last test
+- Target range display: Show user's target with visual indicator
+- Edit page: Load existing data, pre-populate fields, same validation
+- Delete functionality with confirmation dialog
+- Show audit info: Created date, Last modified
+- List integration: "Add INR Test" FAB, Edit buttons on list items
+- Success toast notification after save
+- Automatic redirect to list on success
+
+**Priority**: P1 (High - core CRUD functionality)  
+**Estimate**: 3-4 hours  
+**Reference**: `checklists/T003-004-inr-add-edit-pages.md`
+
+---
+
+### US-003-09: Medication Management
+**As a** patient taking blood thinners  
+**I want to** record and manage my medication schedule  
+**So that** I can track my dosages and maintain proper adherence
+
+**Acceptance Criteria**:
+- Add medication form sections: Basic info, Schedule, Prescriber, Safety, Inventory
+- Medication name autocomplete for common blood thinners
+- Schedule configuration: Frequency, Time of day, Specific times
+- Dosage strength validation (number + unit format)
+- Start date validation: Cannot be > 1 year old
+- End date validation: Must be after start date if provided
+- Duplicate detection: Alert if similar medication exists
+- Deactivate button (not delete - preserve history)
+- Show medication log history on edit page
+- Refill alert: Badge if quantity below threshold
+- List integration: Active/Inactive filter, Quick actions (Edit, Log Dose, Deactivate)
+- Search by medication name
+- Common blood thinners database for autocomplete suggestions
+
+**Priority**: P1 (High - core CRUD functionality)  
+**Estimate**: 4-5 hours  
+**Reference**: `checklists/T003-005-medication-add-edit-pages.md`
+
+---
+
+### US-003-10: Reports and Data Analysis
+**As a** patient tracking my blood thinner medication  
+**I want to** view analytical reports of my INR trends and medication adherence  
+**So that** I can understand my treatment effectiveness and share insights with my physician
+
+**Acceptance Criteria**:
+- Fix reports dropdown in navigation menu (currently non-functional)
+- INR Trends Report: Line chart, time range selector, statistics (average, standard deviation, TTR)
+- Medication Adherence Report: Per-medication adherence %, calendar heatmap, missed doses list
+- INR History Report: Printable format with patient info, professional layout
+- Medication History Report: Printable with current meds, changes log, adherence summary
+- Export All Data: CSV/JSON/PDF formats with optional encryption
+- Time range filters: Quick (30/90/180/365 days) and custom date range
+- Chart interactions: Clickable data points, target range bands, critical thresholds
+- Print CSS: Hide navigation, page breaks, headers/footers
+- Export generates in background with progress indicator
+
+**Priority**: P2 (Medium - data analysis feature)  
+**Estimate**: 4-5 hours  
+**Reference**: `checklists/T003-006-reports-functionality.md`
+
+---
+
+### US-003-11: Layout Redesign with MudBlazor Wireframes
+**As a** user of the blood thinner tracker application  
+**I want** a modern, consistent, and intuitive interface across all pages  
+**So that** I can efficiently manage my medication and health data
+
+**Acceptance Criteria**:
+- Global navigation: Persistent drawer on desktop, collapsible on tablet, bottom nav on mobile
+- Custom theme: Medical blue primary, safety green secondary, dark mode support
+- Consistent spacing: 4px base unit, standardized padding/gaps
+- Dashboard: MudGrid responsive layout (4 cols desktop, 2 tablet, 1 mobile)
+- List pages: Standard pattern with filters, search, sort, pagination
+- Form pages: Centered container (max 800px), sections with dividers, sticky header on mobile
+- Detail pages: MudExpansionPanels for sections, consistent icon + title + edit pattern
+- Component standardization: All buttons, inputs, feedback components use MudBlazor
+- Accessibility: WCAG AA compliance, keyboard navigation, screen reader support
+- Performance: Lazy loading, virtualization for long lists, responsive images
+
+**Priority**: P2 (Medium - overall UX improvement)  
+**Estimate**: 5-6 hours  
+**Reference**: `checklists/T003-007-layout-mudblazor-wireframes.md`
 
 ---
 

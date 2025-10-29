@@ -1,9 +1,230 @@
 # Feature 003: Core UI Foundation - Tasks
 
-**Status**: In Progress (Validation & Polish Phase)  
+**Status**: In Progress (Feature Implementation Phase)  
 **Branch**: `feature/003-core-ui-foundation`  
 **Started**: October 29, 2025  
 **Target Completion**: November 12, 2025 (2 weeks)
+
+---
+
+## ✅ Completed Tasks
+
+### T003-001: OAuth Authentication [P0 - SECURITY CRITICAL]
+**Status**: ✅ COMPLETE (October 29, 2025)  
+**Estimate**: 2 days (actual)  
+**Commits**: 9 commits  
+**Last Commit**: a2629c8 "feat(003): complete OAuth authentication with claims-based token exchange fallback"
+
+**User Story**: US-003-05 (Fix Authentication & Authorization)
+
+**Achievements**:
+- ✅ CustomAuthenticationStateProvider registered in DI
+- ✅ OAuth callback endpoints implemented (`/oauth-complete`)
+- ✅ Token exchange with API (ID token validation + claims fallback)
+- ✅ IMemoryCache storage with user-based cache keys
+- ✅ Claims storage and retrieval (no JWT parsing of opaque tokens)
+- ✅ Bearer tokens added to all API requests
+- ✅ Route guards with `<AuthorizeView>` component
+- ✅ Disabled automatic logout on 401 (until full token refresh implemented)
+- ✅ MudBlazor menu for logout (replaced Bootstrap dropdown)
+- ✅ Authentication state debugging page (`/auth/status`)
+- ✅ User can login and access all protected pages
+
+**Known Issues** (minor, not blocking):
+- ReturnUrl parameter exists but redirects to dashboard (navigation logic issue)
+- Some placeholder data remains in Profile page (fixed in T003-003)
+
+---
+
+## 📋 Pending Tasks
+
+### T003-002: Dashboard with Real Data [P1]
+**Status**: TODO  
+**Estimate**: 4-6 hours  
+**User Story**: US-003-06  
+**Dependencies**: T003-001 (complete)
+
+**Objective**: Implement comprehensive dashboard with 6 widgets using MudGrid layout and real API data.
+
+**Key Deliverables**:
+- Welcome card with user greeting and quick stats
+- Next medication and next INR test widgets
+- INR trend chart (last 10 tests with target range)
+- Recent medications and recent INR tests lists
+- Quick action buttons (Log Medication, Add INR Test)
+- Skeleton loading states and empty states
+- Responsive grid: 4 cols desktop → 2 tablet → 1 mobile
+
+**Files to Create/Modify**:
+- `Components/Pages/Dashboard.razor` - Implement full dashboard
+- `Components/Shared/Widgets/` - Create reusable widget components
+- `Services/DashboardService.cs` - API aggregation service
+
+**Acceptance Criteria**: See US-003-06 in spec.md
+
+---
+
+### T003-003: Profile Page with Real User Data [P1]
+**Status**: TODO  
+**Estimate**: 3-4 hours  
+**User Story**: US-003-07  
+**Dependencies**: T003-001 (complete)
+
+**Objective**: Replace hardcoded "John Doe" data with real user information from authentication and API.
+
+**Key Deliverables**:
+- Display OAuth user data (email, name, provider, last login)
+- Personal information form (name, phone, DOB)
+- Medical information section (target INR, physician details)
+- Notification and privacy preferences
+- Remove password change form, add OAuth explanation
+- Form validation and save functionality
+
+**Files to Create/Modify**:
+- `Components/Pages/Profile.razor` - Complete rewrite
+- `ViewModels/ProfileViewModel.cs` - Form view model
+- `Services/ProfileService.cs` - API client
+- `Api/Controllers/UsersController.cs` - Add profile endpoints
+
+**Acceptance Criteria**: See US-003-07 in spec.md
+
+---
+
+### T003-004: INR Add/Edit Pages [P1]
+**Status**: TODO  
+**Estimate**: 3-4 hours  
+**User Story**: US-003-08  
+**Dependencies**: T003-001 (complete)
+
+**Objective**: Create functional INR test recording and editing pages with medical safety validations.
+
+**Key Deliverables**:
+- Add INR test form (date/time, value, location, notes)
+- INR value validation (0.5-8.0 range)
+- Critical value alerts (< 1.5 or > 4.0)
+- Trend indicators (±0.5 change detection)
+- Edit page with pre-populated fields
+- Delete functionality with confirmation
+- Integration with INR list page
+
+**Files to Create/Modify**:
+- `Components/Pages/INRAdd.razor` - New add page
+- `Components/Pages/INREdit.razor` - New edit page
+- `ViewModels/INRTestViewModel.cs` - Form view model with validation
+- `Services/INRService.cs` - API client service
+
+**Acceptance Criteria**: See US-003-08 in spec.md
+
+---
+
+### T003-005: Medication Add/Edit Pages [P1]
+**Status**: TODO  
+**Estimate**: 4-5 hours  
+**User Story**: US-003-09  
+**Dependencies**: T003-001 (complete)
+
+**Objective**: Create functional medication management pages with autocomplete and inventory tracking.
+
+**Key Deliverables**:
+- Comprehensive medication form (basic, schedule, prescriber, safety, inventory)
+- Autocomplete for common blood thinners
+- Schedule configuration (frequency, time of day)
+- Dosage strength validation
+- Duplicate detection
+- Deactivate button (preserve history, don't delete)
+- Refill alerts and inventory tracking
+- Active/Inactive filtering
+
+**Files to Create/Modify**:
+- `Components/Pages/MedicationAdd.razor` - New add page
+- `Components/Pages/MedicationEdit.razor` - New edit page
+- `ViewModels/MedicationViewModel.cs` - Form view model with validation
+- `Services/MedicationService.cs` - API client service
+- `Data/CommonBloodThinners.cs` - Autocomplete data source
+
+**Acceptance Criteria**: See US-003-09 in spec.md
+
+---
+
+### T003-006: Reports Functionality [P2]
+**Status**: TODO  
+**Estimate**: 4-5 hours  
+**User Story**: US-003-10  
+**Dependencies**: T003-004, T003-005 (data must exist first)
+
+**Objective**: Implement reports dropdown and create analytical report pages for INR trends and medication adherence.
+
+**Key Deliverables**:
+- Fix reports dropdown navigation
+- INR Trends report with line chart and statistics
+- Medication Adherence report with calendar heatmap
+- Printable INR and Medication History reports
+- Export all data functionality (CSV/JSON/PDF)
+- Time range filters and chart interactions
+- Print-optimized CSS
+
+**Files to Create/Modify**:
+- `Components/Shared/NavMenu.razor` - Fix dropdown
+- `Components/Pages/Reports/INRTrends.razor` - New page
+- `Components/Pages/Reports/MedicationAdherence.razor` - New page
+- `Components/Pages/Reports/INRHistory.razor` - Printable page
+- `Components/Pages/Reports/MedicationHistory.razor` - Printable page
+- `Components/Pages/Reports/ExportData.razor` - Export page
+- `Services/ReportService.cs` - Report generation
+- `wwwroot/css/print.css` - Print styles
+
+**Acceptance Criteria**: See US-003-10 in spec.md
+
+---
+
+### T003-007: Layout Redesign with MudBlazor Wireframes [P2]
+**Status**: TODO  
+**Estimate**: 5-6 hours  
+**User Story**: US-003-11  
+**Dependencies**: All above tasks (applies globally)
+
+**Objective**: Redesign application layout using MudBlazor wireframe patterns for consistent, modern UX across all pages.
+
+**Key Deliverables**:
+- Responsive navigation (persistent drawer desktop, bottom nav mobile)
+- Custom theme configuration (medical blue, safety green, dark mode)
+- Dashboard grid layout (MudGrid pattern)
+- Standardized list page pattern
+- Standardized form page pattern
+- Component library standardization (all MudBlazor)
+- Accessibility improvements (WCAG AA compliance)
+- Performance optimizations (lazy loading, virtualization)
+
+**Files to Create/Modify**:
+- `Components/Shared/MainLayout.razor` - Complete redesign
+- `Components/Shared/NavMenu.razor` - Responsive navigation
+- `Components/Shared/AppBar.razor` - New component
+- `Components/Shared/BottomNavigation.razor` - Mobile nav
+- `wwwroot/css/app.css` - Theme and overrides
+- `MudTheme.cs` - Custom theme config
+- All page components - Apply consistent patterns
+
+**Acceptance Criteria**: See US-003-11 in spec.md
+
+---
+
+## Task Summary
+
+| Task | Priority | Status | Estimate | Dependencies |
+|------|----------|--------|----------|--------------|
+| T003-001 | P0 | ✅ Complete | 2 days | None |
+| T003-002 | P1 | TODO | 4-6 hrs | T003-001 |
+| T003-003 | P1 | TODO | 3-4 hrs | T003-001 |
+| T003-004 | P1 | TODO | 3-4 hrs | T003-001 |
+| T003-005 | P1 | TODO | 4-5 hrs | T003-001 |
+| T003-006 | P2 | TODO | 4-5 hrs | T003-004, T003-005 |
+| T003-007 | P2 | TODO | 5-6 hrs | All above |
+
+**Total Remaining**: 24-30 hours
+
+---
+
+## Original Assessment (Archive)
 
 ---
 
