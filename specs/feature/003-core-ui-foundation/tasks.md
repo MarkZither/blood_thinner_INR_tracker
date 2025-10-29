@@ -103,12 +103,39 @@ The following components exist and exceed the original spec requirements:
   - [ ] Verify injection works in AuthorizationMessageHandler
 
 - [ ] **Implement OAuth Callback Handlers**
-  - [ ] Create `OAuthCallbackController.cs` or Razor page for `/signin-microsoft`
-  - [ ] Create handler for `/signin-google`
-  - [ ] Exchange authorization code for JWT access token + refresh token
+  - [ ] **Create Razor page approach** (recommended for Blazor Server):
+    - [ ] Create `Components/Pages/OAuthCallback.razor` with `@page "/signin-microsoft"` and `@page "/signin-google"`
+    - [ ] Use `@inject IHttpContextAccessor` to access HttpContext
+    - [ ] Use `@rendermode InteractiveServer` for OAuth processing
+  - [ ] **Alternative MVC controller approach** (NOT recommended - adds complexity):
+    - [ ] Would require mixing MVC and Blazor in same app
+    - [ ] Complicates routing and state management
+    - [ ] **DO NOT USE unless Razor page fails**
+  - [ ] In `OnInitializedAsync()` method:
+    - [ ] Get HttpContext: `var httpContext = HttpContextAccessor.HttpContext;`
+    - [ ] Authenticate: `var result = await httpContext.AuthenticateAsync();`
+    - [ ] Extract tokens: `var tokens = result.Properties?.GetTokens();`
+    - [ ] Get access_token and refresh_token from tokens
   - [ ] Call `CustomAuthenticationStateProvider.MarkUserAsAuthenticatedAsync(token, refreshToken)`
-  - [ ] Redirect to `/dashboard` on success, `/login?error=...` on failure
-  - [ ] Add comprehensive error logging for OAuth failures
+  - [ ] Redirect to `/dashboard` on success using `Navigation.NavigateTo()`
+  - [ ] Redirect to `/login?error=...` on failure with descriptive error code
+  - [ ] Add comprehensive error logging for each failure point:
+    - [ ] HttpContext is null
+    - [ ] Authentication failed
+    - [ ] No access token received
+    - [ ] Token storage failed
+    - [ ] General exception caught
+  - [ ] Register `IHttpContextAccessor` in Program.cs: `builder.Services.AddHttpContextAccessor();`
+
+  **Why Razor Page Approach**:
+  - Keeps everything in Blazor ecosystem (no MVC mixing)
+  - Interactive Server render mode allows async OAuth processing
+  - Direct access to Navigation, IHttpContextAccessor, and services
+  - Simpler dependency injection (no need for separate controller DI)
+  - Consistent with rest of Blazor Server application architecture
+
+  **See detailed implementation** in `authentication-fix-guide.md` lines 150-230 for complete code example.
+
 
 - [ ] **Fix Bearer Token Injection**
   - [ ] Verify `AuthorizationMessageHandler.SendAsync` can retrieve token
@@ -581,59 +608,158 @@ Convert authentication and profile pages to MudBlazor forms.
 
 ### T003-013: Component Tests with bUnit [P1]
 **Owner**: TBD  
-**Estimate**: 1.5 days  
+**Estimate**: 2 days (expanded to include page components)
 **Status**: TODO
 
 **Tasks**:
 - [ ] Add bUnit package to test project
-- [ ] Write tests for shared components:
-  - [ ] `LoadingSpinner_Renders_WithCorrectText`
-  - [ ] `ErrorMessage_ShowsRetry_WhenEnabled`
-  - [ ] `EmptyState_RendersAction_WhenProvided`
-- [ ] Write tests for page components:
-  - [ ] `MedicationsPage_LoadsData_OnInitialized`
-  - [ ] `MedicationsPage_ShowsEmptyState_WhenNoData`
-  - [ ] `INRTrackingPage_LoadsData_OnInitialized`
-  - [ ] `INRTrackingPage_ShowsEmptyState_WhenNoData`
-- [ ] Mock authentication context for protected pages
-- [ ] Achieve 80%+ code coverage on components
+- [ ] Create test project structure in `tests/BloodThinnerTracker.Web.Tests/Components/`
+
+- [ ] **Test Shared Components** (0.5 days):
+  - [ ] LoadingSpinner.razor - parameter variations, size/color
+  - [ ] ErrorMessage.razor - message display, retry callback
+  - [ ] EmptyState.razor - icon/title/message display
+
+- [ ] **Test Layout Components** (0.5 days):
+  - [ ] MainLayout.razor - AppBar renders, Drawer toggles, user menu displays
+  - [ ] NavMenu.razor - links render, active state highlights, authentication state
+
+- [ ] **Test Page Components** (1 day - CONSTITUTION COMPLIANCE):
+  - [ ] Dashboard.razor tests:
+    - [ ] Renders stats cards with correct data
+    - [ ] Handles loading state (shows LoadingSpinner)
+    - [ ] Handles error state (shows ErrorMessage)
+    - [ ] Handles empty state (no medications/INR tests)
+    - [ ] Calculates adherence percentage correctly
+  - [ ] Medications.razor tests:
+    - [ ] MudDataGrid renders with medication data
+    - [ ] Search filter works correctly
+    - [ ] Sort functionality works
+    - [ ] Empty state displays when no data
+    - [ ] Error handling displays ErrorMessage
+  - [ ] INRTracking.razor tests:
+    - [ ] MudTable renders with INR test data
+    - [ ] Color-coding works (red for out-of-range)
+    - [ ] Stats calculation is correct
+    - [ ] Empty state displays when no tests
+    - [ ] Error handling displays ErrorMessage
+  - [ ] Profile.razor tests:
+    - [ ] Form loads with user data
+    - [ ] Validation works on submit
+    - [ ] Success message displays on save
+
+- [ ] Test component parameters and binding
+- [ ] Test component events and callbacks
+- [ ] Test conditional rendering logic
+- [ ] Mock service dependencies (IMedicationService, IINRService)
+- [ ] Verify 80%+ component test coverage (per Constitution Principle II)
 
 **Acceptance Criteria**:
-- Shared components have comprehensive tests
-- Key page rendering scenarios tested
-- Code coverage ≥ 80% on tested components
-- All tests pass
+- ✅ All shared components have bUnit tests
+- ✅ All layout components have bUnit tests
+- ✅ **All page components (Dashboard, Medications, INR, Profile) have bUnit tests**
+- ✅ Tests verify rendering, parameters, events, conditional logic
+- ✅ **80%+ code coverage for all components (Constitution requirement)**
+- ✅ All tests pass in CI/CD pipeline
+- ✅ Tests use mocked services (no real API calls)
+- ✅ Coverage report generated and reviewed
+
+**Why This Matters**:
+Constitution Principle II requires 90%+ overall test coverage. Without page component tests, we cannot meet this requirement since pages contain significant logic (state management, API calls, error handling).
+
 
 ---
 
-### T003-014: Accessibility Testing [P1]
+### T003-014: Accessibility Testing (WCAG 2.1 AA) [P1]
 **Owner**: TBD  
-**Estimate**: 1 day  
+**Estimate**: 1.5 days  
 **Status**: TODO
 
 **Tasks**:
-- [ ] Install accessibility testing tools (axe DevTools, Lighthouse)
-- [ ] Test keyboard navigation:
-  - [ ] Tab through all interactive elements
-  - [ ] Enter/Space activate buttons and links
-  - [ ] Escape closes modals/drawers
-- [ ] Test screen reader compatibility:
-  - [ ] All images have alt text
-  - [ ] Form inputs have labels
-  - [ ] ARIA labels on custom components
-- [ ] Run automated accessibility audit:
-  - [ ] Lighthouse accessibility score ≥ 95
-  - [ ] axe DevTools reports no critical issues
-- [ ] Test color contrast (WCAG 2.1 AA):
-  - [ ] Text contrast ratio ≥ 4.5:1
-  - [ ] Large text contrast ratio ≥ 3:1
-- [ ] Document accessibility findings and fixes
+- [ ] **Automated Accessibility Audits**:
+  - [ ] Run Lighthouse accessibility audit on all pages (Dashboard, Medications, INR, Profile, Login)
+  - [ ] Run axe DevTools scan on all pages
+  - [ ] Fix all HIGH and CRITICAL issues
+  - [ ] Document any MEDIUM issues for future work
+
+- [ ] **Keyboard Navigation Testing (WCAG 2.1.1, 2.1.2, 2.4.7)**:
+  - [ ] **Tab Order**: Verify logical tab order on all pages
+  - [ ] **Focus Indicators**: All interactive elements show visible focus (MudBlazor default + custom)
+  - [ ] **Keyboard Shortcuts**:
+    - [ ] Enter activates buttons/links
+    - [ ] Space toggles checkboxes/switches
+    - [ ] Escape closes dialogs/menus
+    - [ ] Arrow keys navigate within MudDataGrid/MudTable
+  - [ ] **No Keyboard Traps**: Can tab in and out of all components
+  - [ ] **Skip Links**: Add "Skip to main content" link on MainLayout
+
+- [ ] **Screen Reader Testing (WCAG 4.1.2, 4.1.3)**:
+  - [ ] Test with NVDA (Windows) OR JAWS (if available)
+  - [ ] **Forms**: All inputs have labels, error messages announced
+  - [ ] **Tables**: MudDataGrid has proper headers, row/cell associations
+  - [ ] **Buttons**: All buttons have accessible names (not just icons)
+  - [ ] **Status Messages**: Loading/error states announced to screen reader
+  - [ ] **Navigation**: Landmarks properly identified (nav, main, aside)
+  - [ ] **Alt Text**: All icons have aria-label or title
+
+- [ ] **Color Contrast (WCAG 1.4.3)**:
+  - [ ] **Text Contrast**: All text meets 4.5:1 ratio (3:1 for large text ≥18pt)
+  - [ ] **Interactive Element Contrast**: Buttons, links, inputs meet 3:1 ratio
+  - [ ] Use WebAIM Contrast Checker for verification
+  - [ ] Test MudBlazor theme colors against white/dark backgrounds
+  - [ ] **Out-of-Range INR Values**: Red text must meet contrast (add background if needed)
+
+- [ ] **High Contrast Mode Testing**:
+  - [ ] Enable Windows High Contrast
+  - [ ] Verify all UI elements visible
+  - [ ] Test focus indicators still visible
+
+- [ ] **Mobile Accessibility (Touch Targets - WCAG 2.5.5)**:
+  - [ ] All touch targets ≥44x44 CSS pixels
+  - [ ] Test on real device (Android/iOS)
+  - [ ] Drawer navigation accessible with screen reader
+
+- [ ] **Document Accessibility Features**:
+  - [ ] Create accessibility statement (supported assistive technologies)
+  - [ ] Document keyboard shortcuts in user guide
+  - [ ] Add ARIA landmarks documentation for developers
 
 **Acceptance Criteria**:
-- Lighthouse accessibility score ≥ 95
-- No critical accessibility issues
-- WCAG 2.1 AA compliance verified
-- Keyboard navigation works on all pages
+- ✅ **Lighthouse accessibility score ≥95 on all pages**
+- ✅ **axe DevTools reports 0 HIGH/CRITICAL issues**
+- ✅ All pages navigable by keyboard only (no mouse)
+- ✅ Tab order is logical and intuitive
+- ✅ Focus indicators visible on all interactive elements
+- ✅ Escape closes all dialogs/menus
+- ✅ **Screen reader announces all form labels, errors, and status changes**
+- ✅ **All text meets 4.5:1 contrast ratio (WCAG AA)**
+- ✅ **Interactive elements meet 3:1 contrast ratio**
+- ✅ High contrast mode displays all UI elements
+- ✅ Touch targets meet 44x44px minimum
+- ✅ **WCAG 2.1 AA compliant** (verified with checklist)
+- ✅ Accessibility statement created
+
+**WCAG 2.1 AA Compliance Checklist**:
+- [ ] 1.1.1 Non-text Content (Alt text)
+- [ ] 1.3.1 Info and Relationships (Semantic HTML)
+- [ ] 1.4.3 Contrast (4.5:1 text, 3:1 UI)
+- [ ] 2.1.1 Keyboard Access
+- [ ] 2.1.2 No Keyboard Trap
+- [ ] 2.4.1 Bypass Blocks (Skip links)
+- [ ] 2.4.7 Focus Visible
+- [ ] 3.2.1 On Focus (No unexpected changes)
+- [ ] 3.3.1 Error Identification
+- [ ] 3.3.2 Labels or Instructions
+- [ ] 4.1.2 Name, Role, Value (ARIA)
+- [ ] 4.1.3 Status Messages
+
+**Testing Tools**:
+- Lighthouse (Chrome DevTools)
+- axe DevTools (browser extension)
+- NVDA screen reader (free)
+- WebAIM Contrast Checker
+- Windows High Contrast mode
+
 
 ---
 
@@ -767,13 +893,19 @@ Convert authentication and profile pages to MudBlazor forms.
 - **Phase 1 (Authentication & Architecture)**: 4 tasks (6 days) - includes critical auth fix
 - **Phase 2 (MudBlazor Migration)**: 4 tasks (5 days)
 - **Phase 3 (Components & Cleanup)**: 4 tasks (3 days)
-- **Phase 4 (Testing)**: 3 tasks (4 days)
+- **Phase 4 (Testing)**: 3 tasks (4.5 days) - **expanded T003-013 and T003-014**
 - **Phase 5 (Documentation)**: 2 tasks (2 days)
 - **Phase 6 (Polish)**: 2 tasks (1 day)
 
-**Total Estimated Effort**: 21 days (4.2 weeks with buffer)
+**Total Estimated Effort**: 21.5 days (~4.3 weeks with buffer)
 
 **CRITICAL PATH**: T003-001 (Auth Fix) must be completed first - all other work depends on working authentication.
+
+**Recent Updates** (from spec analysis remediation):
+- T003-001: Clarified OAuth Razor page approach (vs MVC controller)
+- T003-013: Expanded to include page component tests (Constitution compliance)
+- T003-014: Added detailed WCAG 2.1 AA checklist with specific test cases
+
 
 ---
 
