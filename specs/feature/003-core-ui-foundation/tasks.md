@@ -181,6 +181,67 @@ The following components exist and exceed the original spec requirements:
 - [ ] E2E test: Complete logout flow (click logout → token cleared → login page)
 - [ ] E2E test: Expired token detection and auto-logout
 
+**Rollback Plan**:
+
+If authentication fix causes regressions or production issues:
+
+1. **Immediate Rollback** (revert code changes):
+   - Revert DI registration changes in `Program.cs` (remove CustomAuthenticationStateProvider registration)
+   - Disable OAuth callback routes (comment out `@page` directives in OAuthCallback.razor)
+   - Restore previous MainLayout.razor with Bootstrap dropdown
+   - Keep existing AuthorizationMessageHandler (broken, but maintains status quo)
+   
+2. **Verification After Rollback**:
+   - Application builds and runs without errors
+   - Users can access login page
+   - Existing broken auth behavior restored (known issue, documented)
+   
+3. **No Data Migration Required**:
+   - No database schema changes in this feature
+   - No data loss possible from rollback
+   
+4. **Communication**:
+   - Document rollback in git commit message: "Revert: T003-001 authentication fix due to [specific issue]"
+   - Create GitHub issue with regression details
+   - Plan fix iteration with learnings from regression
+   
+5. **Rollback Decision Criteria**:
+   - Application fails to start after deployment
+   - OAuth login completely broken (worse than current state)
+   - API requests fail with 500 errors (not just 401s)
+   - Browser console errors prevent page rendering
+   
+6. **Forward Fix vs Rollback**:
+   - Prefer forward fix for minor issues (error messages, UI glitches)
+   - Choose rollback only for critical failures that block all users
+
+**Concurrent Token Refresh Handling**:
+- Implement lock/flag in CustomAuthenticationStateProvider to prevent concurrent refresh attempts
+- Use `SemaphoreSlim` or boolean flag to ensure only one refresh operation at a time
+- If refresh in progress, queue other API calls until refresh completes
+- Pseudocode:
+  ```csharp
+  private SemaphoreSlim _refreshSemaphore = new SemaphoreSlim(1, 1);
+  
+  private async Task<string> RefreshTokenIfNeededAsync()
+  {
+      await _refreshSemaphore.WaitAsync();
+      try
+      {
+          // Check if token still expired (may have been refreshed by another call)
+          if (!IsTokenExpired()) return _currentToken;
+          
+          // Perform refresh
+          var newToken = await CallRefreshEndpointAsync();
+          return newToken;
+      }
+      finally
+      {
+          _refreshSemaphore.Release();
+      }
+  }
+  ```
+
 ---
 
 ### T003-002: Remove Bootstrap & Font Awesome Dependencies [P0]
@@ -253,14 +314,65 @@ Create service abstractions to separate API calls from UI components.
   - [ ] `CreateINRTestAsync(CreateINRTestRequest request)`
   - [ ] `UpdateINRTestAsync(Guid id, UpdateINRTestRequest request)`
   - [ ] `DeleteINRTestAsync(Guid id)`
-- [ ] Register services in `Program.cs`
+- [ ] Register services in `Program.cs`:
+  ```csharp
+  builder.Services.AddScoped<IMedicationService, MedicationService>();
+  builder.Services.AddScoped<IINRService, INRService>();
+  ```
+  - Lifetime: Scoped (per request/circuit in Blazor Server)
+  - Order: After HttpClient registration, before AddRazorComponents
 - [ ] Update pages to use services instead of direct HttpClient
+
+**Service Layer Error Handling Requirements**:
+- All service methods return `Result<T>` or `Result` wrapper (success/failure pattern)
+- Catch and wrap all exceptions - no exceptions thrown to UI layer
+- Exception handling:
+  - `HttpRequestException` → `Result.Failure("Network error. Please check your connection.")`
+  - `JsonException` → `Result.Failure("Invalid response from server. Please try again.")`
+  - `TaskCanceledException` → `Result.Failure("Request timed out. Please try again.")`
+  - `UnauthorizedAccessException` → Handled by AuthorizationMessageHandler (triggers logout)
+- Log all errors at Error level with request context (method, endpoint, user)
+- Include correlation ID in logs for request tracing
+
+**API Resilience (Retry/Timeout) Requirements**:
+- **Timeout**: 30 seconds for all API calls (configurable via appsettings.json)
+- **Retry Policy**: 3 attempts with exponential backoff (1s, 2s, 4s)
+- **Retry Conditions**:
+  - Network errors (HttpRequestException)
+  - Server errors (5xx status codes)
+  - Timeouts (TaskCanceledException)
+- **No Retry Conditions**:
+  - Client errors (4xx except 401)
+  - 401 Unauthorized (handled by AuthorizationMessageHandler - triggers token refresh or logout)
+  - 403 Forbidden (user lacks permission)
+- **Implementation**: Use Polly library for retry policies
+  ```csharp
+  services.AddHttpClient<IMedicationService, MedicationService>()
+      .AddPolicyHandler(GetRetryPolicy())
+      .AddPolicyHandler(GetTimeoutPolicy());
+  ```
+
+**Result<T> Pattern Example**:
+```csharp
+public class Result<T>
+{
+    public bool IsSuccess { get; }
+    public T? Value { get; }
+    public string? Error { get; }
+    
+    public static Result<T> Success(T value) => new Result<T>(true, value, null);
+    public static Result<T> Failure(string error) => new Result<T>(false, default, error);
+}
+```
 
 **Acceptance Criteria**:
 - All API calls go through service layer
 - Services use dependency injection
 - Services handle errors and return typed results
 - Pages have no direct HttpClient dependencies
+- All errors caught and wrapped (no uncaught exceptions)
+- Retry policy configured for transient failures
+- Timeout policy prevents hanging requests
 
 ---
 

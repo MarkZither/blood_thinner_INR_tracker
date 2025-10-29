@@ -149,12 +149,65 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - Replace Bootstrap-dependent logout dropdown with MudBlazor MudMenu component
 - Add authentication state logging for debugging
 
+**Authentication State Persistence**:
+- On application startup, check localStorage for existing JWT token
+- If token found, validate expiry before marking user as authenticated
+- If token expired, clear storage and redirect to login
+- If token valid, restore authentication state and continue to requested page
+- Persistence works across browser refreshes and tab reopening
+- Token validation occurs before any API call to prevent using stale tokens
+
+**Refresh Token Flow**:
+- **Trigger**: Automatic on 401 Unauthorized response from API
+- **Process**: 
+  1. Extract refresh token from localStorage
+  2. Call API `/auth/refresh` endpoint with refresh token
+  3. If success: Store new access token, retry original API call
+  4. If failure: Clear all tokens, redirect to login with message "Your session expired. Please sign in again."
+- **Concurrency Protection**: Use lock/flag to prevent multiple simultaneous refresh attempts
+- **User Experience**: Completely transparent - user sees brief loading state, no interruption
+- **Security**: Refresh token rotates on each refresh (API responsibility)
+
+**Authentication Logging**:
+- **Information**: "User {UserId} authenticated successfully via {Provider}" (on login success)
+- **Warning**: "Authentication attempt failed for {Provider}: {Reason}" (on OAuth failure)
+- **Error**: "Token validation failed: {Reason}" (on expired/invalid token)
+- **Debug**: "Auth state: IsAuthenticated={bool}, HasToken={bool}, TokenExpiry={datetime}" (on page load)
+- **All logs must exclude sensitive data** (no tokens, passwords, or PII)
+
+**Error Messages** (User-Facing):
+- HttpContext null: "Authentication service unavailable. Please try again." (with retry button)
+- Authentication failed: "Sign-in failed. Please check your credentials and try again."
+- No access token: "Authorization incomplete. Please sign in again."
+- Token storage failed: "Unable to complete sign-in. Check browser settings allow localStorage."
+- Network error: "Connection lost. Please check your internet connection."
+- Token expired: "Your session expired. Please sign in again."
+- Token invalid: "Your session is invalid. Please sign in again."
+- Refresh failed: "Your session expired. Please sign in again."
+
 **Security Considerations**:
 - Tokens must be stored in browser's localStorage/sessionStorage (not cookies for SPA)
 - Token validation must check expiry before every API call
 - Refresh token flow should be automatic and transparent to user
 - Failed authentication attempts must be logged
 - No medical data should be visible in browser cache when logged out
+
+**Token Storage Security**:
+- Storage location: localStorage for "remember me", sessionStorage for session-only login
+- Encryption: Not required (browser storage is origin-isolated by browser security model)
+- XSS protection: Use Content Security Policy (CSP) headers to prevent script injection
+- Clear on logout: Both localStorage AND sessionStorage must be cleared completely
+- Validate origin: Tokens only accessible from same origin (browser enforces)
+- No cookies: Avoid cookie-based storage to prevent CSRF attacks
+
+**Partial Authentication State Handling**:
+- If token present in storage but fails validation:
+  - Clear all auth tokens from storage
+  - Set authentication state to unauthenticated
+  - Redirect to login with message "Your session is invalid. Please sign in again."
+- If token present but API returns 403 Forbidden (not 401):
+  - Keep user authenticated but show "Access denied" message
+  - Do not clear tokens (user may have access to other resources)
 - All tables use MudDataGrid or MudTable
 - All cards use MudCard
 - All alerts/notifications use MudAlert or MudSnackbar
@@ -166,6 +219,78 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - Inconsistent component behavior across pages
 - Larger bundle size due to multiple frameworks
 - Harder maintenance due to multiple styling approaches
+
+---
+
+### Authentication Threat Model
+
+**Threats Addressed by This Feature**:
+
+1. **Unauthorized Access to Medical Data**
+   - **Threat**: Unauthenticated users accessing protected health information
+   - **Mitigation**: OAuth 2.0 authentication + JWT bearer tokens on all API requests
+   - **Verification**: Route guards redirect unauthenticated users to login
+
+2. **Token Theft via XSS (Cross-Site Scripting)**
+   - **Threat**: Malicious script injecting code to steal tokens from localStorage
+   - **Mitigation**: Content Security Policy (CSP) headers prevent script injection
+   - **API Responsibility**: CSP configured at API/hosting level
+   - **Blazor Protection**: Razor syntax auto-escapes user input
+
+3. **Token Theft via Network Interception**
+   - **Threat**: Man-in-the-middle attack capturing tokens in transit
+   - **Mitigation**: HTTPS enforced for all connections (API requirement)
+   - **Verification**: API must reject HTTP requests, accept only HTTPS
+
+4. **Session Fixation Attacks**
+   - **Threat**: Attacker forces user to authenticate with attacker-controlled session
+   - **Mitigation**: Server-generated JWT tokens (not client-generated)
+   - **API Responsibility**: OAuth provider generates tokens
+
+5. **CSRF (Cross-Site Request Forgery)**
+   - **Threat**: Malicious site making requests on behalf of authenticated user
+   - **Mitigation**: Token-based authentication (no cookies vulnerable to CSRF)
+   - **Additional**: CORS policy restricts API access to authorized origins
+
+6. **Token Replay After Logout**
+   - **Threat**: Stolen token used after user logs out
+   - **Mitigation**: Tokens cleared from localStorage on logout
+   - **Future Enhancement**: Token revocation list on API (Feature 008)
+
+7. **Expired Token Exploitation**
+   - **Threat**: Using expired token to access resources
+   - **Mitigation**: Token expiry validation before every API call
+   - **API Responsibility**: API validates token expiry and signature
+
+**Threats NOT Addressed** (Deferred to Future Features):
+
+- **Multi-Factor Authentication (MFA/2FA)**: Deferred to Feature 008
+- **Biometric Authentication**: Deferred to Feature 009  
+- **Device Fingerprinting**: Deferred to Feature 010
+- **Rate Limiting/Brute Force Protection**: API responsibility
+- **Token Revocation**: API responsibility (future enhancement)
+- **Password Security**: OAuth providers' responsibility
+
+**Security Assumptions**:
+
+1. OAuth providers (Microsoft, Google) are trusted and secure
+2. API properly validates JWT signatures and expiry
+3. HTTPS is enforced for all connections (API/hosting configuration)
+4. Browser localStorage is secure (origin-isolated by browser)
+5. Content Security Policy (CSP) headers configured (API/hosting)
+6. Users are not installing malicious browser extensions
+7. User devices are not compromised by malware
+
+**Security Testing Requirements** (T003-001):
+
+- [ ] Verify unauthenticated users cannot access protected pages
+- [ ] Verify expired tokens trigger automatic logout
+- [ ] Verify 401 responses clear tokens and redirect to login
+- [ ] Verify tokens cleared from storage on logout
+- [ ] Verify OAuth callback validates provider responses
+- [ ] Verify bearer tokens included in all API requests
+- [ ] Manual test: Attempt to access API directly without token (should fail)
+- [ ] Manual test: Modify token in localStorage (should be rejected by API)
 
 ---
 
