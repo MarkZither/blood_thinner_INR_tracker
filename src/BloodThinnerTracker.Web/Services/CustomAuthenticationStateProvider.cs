@@ -76,12 +76,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     }
 
     /// <summary>
-    /// Marks the user as authenticated and stores the JWT token.
+    /// Marks the user as authenticated and stores the access token.
     /// </summary>
-    /// <param name="token">The JWT access token.</param>
+    /// <param name="token">The access token (can be JWT or opaque token).</param>
     /// <param name="refreshToken">The refresh token (optional).</param>
+    /// <param name="principal">The authenticated claims principal (optional, for OAuth scenarios).</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task MarkUserAsAuthenticatedAsync(string token, string? refreshToken = null)
+    public async Task MarkUserAsAuthenticatedAsync(string token, string? refreshToken = null, ClaimsPrincipal? principal = null)
     {
         try
         {
@@ -92,8 +93,27 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 await SetRefreshTokenAsync(refreshToken);
             }
 
-            // Extract user info from token and store it
-            var claims = ParseClaimsFromJwt(token);
+            IEnumerable<Claim> claims;
+            
+            // If a principal is provided (e.g., from OAuth), use its claims
+            if (principal?.Identity?.IsAuthenticated == true)
+            {
+                claims = principal.Claims;
+                _logger.LogInformation("Using claims from provided principal (OAuth flow)");
+            }
+            else
+            {
+                // Try to parse as JWT (for API-generated tokens)
+                claims = ParseClaimsFromJwt(token);
+                if (!claims.Any())
+                {
+                    _logger.LogWarning("No claims found - token might not be a JWT or parsing failed");
+                    // Create minimal claims from token storage
+                    claims = new List<Claim>();
+                }
+            }
+
+            // Extract user info from claims and store it
             var userInfo = new
             {
                 Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
@@ -103,12 +123,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             await SetItemAsync(UserInfoKey, JsonSerializer.Serialize(userInfo));
 
-            var identity = new ClaimsIdentity(claims, "jwt");
+            var identity = new ClaimsIdentity(claims, principal != null ? "oauth" : "jwt");
             var user = new ClaimsPrincipal(identity);
 
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
             
-            _logger.LogInformation("User authenticated successfully: {Email}", userInfo.Email);
+            _logger.LogInformation("User authenticated successfully: {Email} (Claims count: {Count})", 
+                userInfo.Email ?? "Unknown", claims.Count());
         }
         catch (Exception ex)
         {
@@ -219,12 +240,21 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         
         try
         {
-            var payload = jwt.Split('.')[1];
+            // Validate JWT format (must have 3 parts separated by dots)
+            var parts = jwt.Split('.');
+            if (parts.Length != 3)
+            {
+                _logger.LogError("Invalid JWT format: Expected 3 parts (header.payload.signature), got {Count} parts", parts.Length);
+                return claims;
+            }
+
+            var payload = parts[1];
             var jsonBytes = ParseBase64WithoutPadding(payload);
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
             if (keyValuePairs == null)
             {
+                _logger.LogWarning("JWT payload deserialized to null");
                 return claims;
             }
 
@@ -246,11 +276,12 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 }
             }
 
+            _logger.LogInformation("Successfully parsed {Count} claims from JWT", claims.Count);
             return claims;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing JWT claims");
+            _logger.LogError(ex, "Error parsing JWT claims from token. Token might not be a valid JWT.");
             return claims;
         }
     }

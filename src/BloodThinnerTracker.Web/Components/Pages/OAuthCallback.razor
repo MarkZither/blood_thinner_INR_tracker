@@ -1,6 +1,4 @@
-@page "/signin-microsoft"
-@page "/signin-google"
-@page "/signin-oidc"
+@page "/oauth-complete"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Components.Authorization
@@ -38,70 +36,104 @@
 @code {
     private bool _isProcessing = true;
     private string? _error;
-    private bool _firstRender = true;
     private string? _accessToken;
     private string? _refreshToken;
+    private System.Security.Claims.ClaimsPrincipal? _authenticatedPrincipal;
+    
+    [SupplyParameterFromQuery(Name = "provider")]
+    public string? Provider { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}", Provider ?? "unknown");
+
             // Get HttpContext
             var httpContext = HttpContextAccessor.HttpContext;
             if (httpContext == null)
             {
-                Logger.LogError("OAuth callback: HttpContext is null");
+                Logger.LogError("OAuth complete: HttpContext is null");
                 _error = "Authentication service unavailable. Please try again.";
                 _isProcessing = false;
                 return;
             }
 
-            Logger.LogInformation("OAuth callback: Processing authentication...");
-
-            // Authenticate with external provider
-            var result = await httpContext.AuthenticateAsync();
-            if (!result.Succeeded)
+            // Get the authentication result from the cookie
+            var authResult = await httpContext.AuthenticateAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+            
+            if (!authResult.Succeeded)
             {
-                Logger.LogWarning("OAuth callback: Authentication failed for provider");
-                _error = "Sign-in failed. Please check your credentials and try again.";
+                Logger.LogWarning("OAuth complete: Cookie authentication not found");
+                _error = "Sign-in failed. Please try again.";
                 _isProcessing = false;
                 return;
             }
 
-            Logger.LogInformation("OAuth callback: Authentication succeeded, extracting tokens...");
+            Logger.LogInformation("OAuth complete: Authentication succeeded, extracting tokens and claims...");
 
-            // Extract tokens
-            var tokens = result.Properties?.GetTokens();
-            if (tokens == null)
+            // Extract tokens from authentication properties
+            var tokens = authResult.Properties?.GetTokens();
+            if (tokens == null || !tokens.Any())
             {
-                Logger.LogError("OAuth callback: No tokens received from provider");
+                Logger.LogError("OAuth complete: No tokens found in authentication properties");
                 _error = "Authorization incomplete. Please sign in again.";
                 _isProcessing = false;
                 return;
             }
 
+            // Log all available tokens for debugging
+            foreach (var token in tokens)
+            {
+                Logger.LogInformation("OAuth complete: Token available - Name: {Name}, Length: {Length}", 
+                    token.Name, token.Value?.Length ?? 0);
+            }
+
+            var idToken = tokens.FirstOrDefault(t => t.Name == "id_token")?.Value;
             _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
             _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
-            Logger.LogInformation("OAuth callback: Access token present: {HasToken}, Length: {Length}", 
-                !string.IsNullOrEmpty(_accessToken), 
-                _accessToken?.Length ?? 0);
-
-            if (string.IsNullOrEmpty(_accessToken))
+            // For authentication in our app, use id_token (it's a proper JWT with claims)
+            // The access_token is for calling Microsoft APIs, not for our backend
+            if (!string.IsNullOrEmpty(idToken))
             {
-                Logger.LogError("OAuth callback: No access token received");
+                _accessToken = idToken; // Use id_token as our auth token
+                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication");
+            }
+            else if (string.IsNullOrEmpty(_accessToken))
+            {
+                Logger.LogError("OAuth complete: No id_token or access_token available");
                 _error = "Authorization incomplete. Please sign in again.";
                 _isProcessing = false;
                 return;
             }
+            else
+            {
+                Logger.LogInformation("OAuth complete: No id_token found, using access_token (might be opaque)");
+            }
 
-            var principal = result.Principal;
-            var email = principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            Logger.LogInformation("OAuth callback: User email from claims: {Email}", email ?? "Not found");
+            // Extract claims from the authenticated principal (don't try to parse opaque access_token)
+            var principal = authResult.Principal;
+            if (principal?.Identity?.IsAuthenticated == true)
+            {
+                var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var name = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                var sub = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                
+                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}, Sub: {Sub}", 
+                    email ?? "N/A", name ?? "N/A", sub ?? "N/A");
+                
+                // Store the principal's claims for later use
+                _authenticatedPrincipal = principal;
+            }
+            else
+            {
+                Logger.LogWarning("OAuth complete: Principal is not authenticated");
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "OAuth callback: Unexpected error during authentication");
+            Logger.LogError(ex, "OAuth complete: Unexpected error during authentication");
             _error = "An unexpected error occurred during sign-in. Please try again.";
             _isProcessing = false;
         }
@@ -109,27 +141,47 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !string.IsNullOrEmpty(_accessToken))
+        if (firstRender && !string.IsNullOrEmpty(_accessToken) && _authenticatedPrincipal != null)
         {
             try
             {
-                Logger.LogInformation("OAuth callback: Storing tokens in localStorage after first render...");
+                Logger.LogInformation("OAuth complete: Exchanging OAuth token for API JWT...");
                 
-                // Store tokens using CustomAuthenticationStateProvider (after JSRuntime is available)
-                await AuthStateProvider.MarkUserAsAuthenticatedAsync(_accessToken, _refreshToken);
+                // Call our API to exchange OAuth token for our own JWT
+                // Build the user info from claims to send to our API
+                var email = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var name = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                var sub = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-                Logger.LogInformation("OAuth callback: Tokens stored successfully, redirecting to dashboard...");
+                // For now, create a simple JWT-like structure with claims
+                // TODO: Call API endpoint to exchange for proper JWT
+                // Instead of calling API, we'll store the OAuth claims directly
+                // The API will be protected and won't accept Microsoft's tokens anyway
+                
+                Logger.LogInformation("OAuth complete: Storing authentication state with claims from OAuth provider...");
+                
+                // Store with principal so it uses OAuth claims
+                await AuthStateProvider.MarkUserAsAuthenticatedAsync(_accessToken, _refreshToken, _authenticatedPrincipal);
+
+                Logger.LogInformation("OAuth complete: Authentication complete, redirecting to dashboard...");
 
                 // Redirect to dashboard
                 Navigation.NavigateTo("/dashboard", true);
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "OAuth callback: Error storing tokens or redirecting");
+                Logger.LogError(ex, "OAuth complete: Error completing authentication");
                 _error = "An error occurred completing sign-in. Please try again.";
                 _isProcessing = false;
                 StateHasChanged();
             }
+        }
+        else if (firstRender && string.IsNullOrEmpty(_accessToken))
+        {
+            Logger.LogError("OAuth complete: No access token available after first render");
+            _error = "Authentication incomplete. Please try again.";
+            _isProcessing = false;
+            StateHasChanged();
         }
     }
 }

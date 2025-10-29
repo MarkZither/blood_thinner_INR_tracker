@@ -51,6 +51,15 @@ builder.Services.AddAuthentication(options =>
         options.ClientSecret = adOptions.ClientSecret;
         options.SaveTokens = true;
         options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
+        
+        // Hook into the OAuth callback to redirect to our Blazor page
+        options.Events.OnTicketReceived = context =>
+        {
+            // Redirect to our Blazor callback page which will handle token storage
+            context.Response.Redirect($"/oauth-complete?provider=microsoft");
+            context.HandleResponse();
+            return Task.CompletedTask;
+        };
     })
     .AddGoogle(options =>
     {
