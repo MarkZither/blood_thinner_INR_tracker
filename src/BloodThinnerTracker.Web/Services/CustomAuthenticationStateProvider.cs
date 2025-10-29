@@ -6,15 +6,15 @@ namespace BloodThinnerTracker.Web.Services;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 /// <summary>
-/// Custom authentication state provider for managing JWT-based authentication in Blazor Web.
-/// Handles token storage, validation, and authentication state management.
+/// Custom authentication state provider for managing JWT-based authentication in Blazor Server.
+/// Handles token storage, validation, and authentication state management using server-side protected storage.
 /// </summary>
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
-    private readonly IJSRuntime _jsRuntime;
+    private readonly ProtectedSessionStorage _sessionStorage;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
     private const string TokenKey = "authToken";
     private const string RefreshTokenKey = "refreshToken";
@@ -23,13 +23,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomAuthenticationStateProvider"/> class.
     /// </summary>
-    /// <param name="jsRuntime">JavaScript runtime for browser storage access.</param>
+    /// <param name="sessionStorage">Protected session storage for secure token storage.</param>
     /// <param name="logger">Logger instance.</param>
     public CustomAuthenticationStateProvider(
-        IJSRuntime jsRuntime,
+        ProtectedSessionStorage sessionStorage,
         ILogger<CustomAuthenticationStateProvider> logger)
     {
-        _jsRuntime = jsRuntime;
+        _sessionStorage = sessionStorage;
         _logger = logger;
     }
 
@@ -313,16 +313,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         return new AuthenticationState(anonymous);
     }
 
-    // Browser localStorage access methods
+    // Server-side protected session storage methods
     private async Task<string?> GetItemAsync(string key)
     {
         try
         {
-            return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+            var result = await _sessionStorage.GetAsync<string>(key);
+            return result.Success ? result.Value : null;
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            // JSRuntime not available during prerendering
+            _logger.LogError(ex, "Error retrieving {Key} from session storage", key);
             return null;
         }
     }
@@ -331,19 +332,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
-            _logger.LogInformation("Attempting to store {Key} in localStorage (length: {Length})", key, value?.Length ?? 0);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, value);
-            _logger.LogInformation("Successfully stored {Key} in localStorage", key);
-        }
-        catch (InvalidOperationException ex)
-        {
-            // JSRuntime not available during prerendering
-            _logger.LogError(ex, "JSRuntime not available - cannot store {Key} in localStorage", key);
-            throw new InvalidOperationException($"Cannot store {key} - JSRuntime not available. This should only be called after OnAfterRenderAsync.", ex);
+            _logger.LogInformation("Storing {Key} in session storage (length: {Length})", key, value?.Length ?? 0);
+            await _sessionStorage.SetAsync(key, value ?? string.Empty);
+            _logger.LogInformation("Successfully stored {Key} in session storage", key);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error storing {Key} in localStorage", key);
+            _logger.LogError(ex, "Error storing {Key} in session storage", key);
             throw;
         }
     }
@@ -352,11 +347,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);
+            await _sessionStorage.DeleteAsync(key);
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            // JSRuntime not available during prerendering - ignore
+            _logger.LogError(ex, "Error removing {Key} from session storage", key);
         }
     }
 }
