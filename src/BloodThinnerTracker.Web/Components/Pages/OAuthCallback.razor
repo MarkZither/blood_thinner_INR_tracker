@@ -38,6 +38,9 @@
 @code {
     private bool _isProcessing = true;
     private string? _error;
+    private bool _firstRender = true;
+    private string? _accessToken;
+    private string? _refreshToken;
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,6 +56,8 @@
                 return;
             }
 
+            Logger.LogInformation("OAuth callback: Processing authentication...");
+
             // Authenticate with external provider
             var result = await httpContext.AuthenticateAsync();
             if (!result.Succeeded)
@@ -62,6 +67,8 @@
                 _isProcessing = false;
                 return;
             }
+
+            Logger.LogInformation("OAuth callback: Authentication succeeded, extracting tokens...");
 
             // Extract tokens
             var tokens = result.Properties?.GetTokens();
@@ -73,10 +80,14 @@
                 return;
             }
 
-            var accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
-            var refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
+            _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
+            _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
-            if (string.IsNullOrEmpty(accessToken))
+            Logger.LogInformation("OAuth callback: Access token present: {HasToken}, Length: {Length}", 
+                !string.IsNullOrEmpty(_accessToken), 
+                _accessToken?.Length ?? 0);
+
+            if (string.IsNullOrEmpty(_accessToken))
             {
                 Logger.LogError("OAuth callback: No access token received");
                 _error = "Authorization incomplete. Please sign in again.";
@@ -84,21 +95,41 @@
                 return;
             }
 
-            // Store tokens using CustomAuthenticationStateProvider
-            await AuthStateProvider.MarkUserAsAuthenticatedAsync(accessToken, refreshToken);
-
             var principal = result.Principal;
             var email = principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            Logger.LogInformation("User {Email} authenticated successfully via OAuth", email ?? "Unknown");
-
-            // Redirect to dashboard
-            Navigation.NavigateTo("/dashboard", true);
+            Logger.LogInformation("OAuth callback: User email from claims: {Email}", email ?? "Not found");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "OAuth callback: Unexpected error during authentication");
             _error = "An unexpected error occurred during sign-in. Please try again.";
             _isProcessing = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(_accessToken))
+        {
+            try
+            {
+                Logger.LogInformation("OAuth callback: Storing tokens in localStorage after first render...");
+                
+                // Store tokens using CustomAuthenticationStateProvider (after JSRuntime is available)
+                await AuthStateProvider.MarkUserAsAuthenticatedAsync(_accessToken, _refreshToken);
+
+                Logger.LogInformation("OAuth callback: Tokens stored successfully, redirecting to dashboard...");
+
+                // Redirect to dashboard
+                Navigation.NavigateTo("/dashboard", true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "OAuth callback: Error storing tokens or redirecting");
+                _error = "An error occurred completing sign-in. Please try again.";
+                _isProcessing = false;
+                StateHasChanged();
+            }
         }
     }
 }
