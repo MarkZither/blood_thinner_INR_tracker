@@ -3,10 +3,13 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Components.Authorization
 @using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Shared.Models.Authentication
+@using System.Net.Http.Json
 @inject IHttpContextAccessor HttpContextAccessor
 @inject CustomAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ILogger<OAuthCallback> Logger
+@inject HttpClient Http
 
 <PageTitle>Signing in...</PageTitle>
 
@@ -149,31 +152,72 @@
         {
             try
             {
-                Logger.LogInformation("OAuth complete: Exchanging OAuth token for API JWT...");
+                Logger.LogInformation("OAuth complete: Exchanging OAuth ID token for API JWT...");
                 
-                // Call our API to exchange OAuth token for our own JWT
-                // Build the user info from claims to send to our API
+                // Extract user info from claims
                 var email = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
                 var sub = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-                // For now, create a simple JWT-like structure with claims
-                // TODO: Call API endpoint to exchange for proper JWT
-                // Instead of calling API, we'll store the OAuth claims directly
-                // The API will be protected and won't accept Microsoft's tokens anyway
-                
-                Logger.LogInformation("OAuth complete: Storing authentication state with claims from OAuth provider...");
-                
-                // Store with principal so it uses OAuth claims
-                await AuthStateProvider.MarkUserAsAuthenticatedAsync(_accessToken, _refreshToken, _authenticatedPrincipal);
+                if (string.IsNullOrEmpty(email))
+                {
+                    Logger.LogError("OAuth complete: No email claim found in principal");
+                    _error = "Authentication failed: No email address found.";
+                    _isProcessing = false;
+                    StateHasChanged();
+                    return;
+                }
 
-                // Determine redirect target - use returnUrl if provided, otherwise dashboard
-                var redirectTarget = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
-                Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target}...", redirectTarget);
+                // Call API to exchange ID token for our JWT
+                var exchangeRequest = new ExternalLoginRequest
+                {
+                    Provider = Provider == "microsoft" ? "AzureAD" : "Google",
+                    IdToken = _accessToken, // This is the id_token we stored
+                    DeviceId = "web-app",
+                    DevicePlatform = "Web"
+                };
 
-                // Redirect WITHOUT force reload to preserve session
-                // forceLoad: false ensures we keep the same SignalR circuit and session
-                Navigation.NavigateTo(redirectTarget, forceLoad: false);
+                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}", email);
+                
+                var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var authResponse = await response.Content.ReadFromJsonAsync<AuthenticationResponse>();
+                    
+                    if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
+                    {
+                        Logger.LogInformation("Token exchange successful! Got our JWT for user: {Email}", authResponse.User?.Email);
+                        
+                        // Store OUR JWT (not Microsoft's token)
+                        await AuthStateProvider.MarkUserAsAuthenticatedAsync(
+                            authResponse.AccessToken, 
+                            authResponse.RefreshToken, 
+                            _authenticatedPrincipal);
+
+                        // Determine redirect target
+                        var redirectTarget = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
+                        Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target}...", redirectTarget);
+
+                        // Redirect WITHOUT force reload to preserve session
+                        Navigation.NavigateTo(redirectTarget, forceLoad: false);
+                    }
+                    else
+                    {
+                        Logger.LogError("Token exchange returned empty response");
+                        _error = "Authentication failed: Invalid response from server.";
+                        _isProcessing = false;
+                        StateHasChanged();
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Logger.LogError("Token exchange failed: {Status} - {Error}", response.StatusCode, errorContent);
+                    _error = $"Authentication failed: {response.StatusCode}";
+                    _isProcessing = false;
+                    StateHasChanged();
+                }
             }
             catch (Exception ex)
             {
