@@ -331,11 +331,20 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
+            _logger.LogInformation("Attempting to store {Key} in localStorage (length: {Length})", key, value?.Length ?? 0);
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, value);
+            _logger.LogInformation("Successfully stored {Key} in localStorage", key);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            // JSRuntime not available during prerendering - ignore
+            // JSRuntime not available during prerendering
+            _logger.LogError(ex, "JSRuntime not available - cannot store {Key} in localStorage", key);
+            throw new InvalidOperationException($"Cannot store {key} - JSRuntime not available. This should only be called after OnAfterRenderAsync.", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error storing {Key} in localStorage", key);
+            throw;
         }
     }
 
