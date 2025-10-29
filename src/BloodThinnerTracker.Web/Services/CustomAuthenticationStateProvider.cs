@@ -38,41 +38,71 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         _logger = logger;
     }
 
-    private string GetCacheKey(string key)
+    private string GetCacheKey(string key, string? userIdentifier = null)
     {
         var httpContext = _httpContextAccessor.HttpContext;
         
-        // Try to get a stable identifier across HTTP and SignalR contexts
-        // Option 1: Use the authentication cookie session ticket ID
-        var cookieValue = httpContext?.Request.Cookies[".AspNetCore.Cookies"];
+        // If user identifier is explicitly provided, use it (for storing during OAuth)
+        if (!string.IsNullOrEmpty(userIdentifier))
+        {
+            // Use hash for privacy and consistent length
+            var hashedId = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(userIdentifier))).Substring(0, 16);
+            var cacheKey = $"{hashedId}:{key}";
+            _logger.LogInformation("GetCacheKey: Using EXPLICIT user identifier - hashed to {HashedId}, full key: {CacheKey}", 
+                hashedId, cacheKey);
+            return cacheKey;
+        }
         
-        // Option 2: Use session ID if available
+        // Try to get a stable identifier across HTTP and SignalR contexts
+        // Priority 1: Use user's email/sub claim from authenticated user (most stable)
+        // Priority 2: Use session ID if available
+        // Priority 3: Use connection ID as last resort
+        
         string? identifier = null;
         
-        if (!string.IsNullOrEmpty(cookieValue))
+        // Try to get from authenticated user claims first
+        var user = httpContext?.User;
+        if (user?.Identity?.IsAuthenticated == true)
         {
-            // Use hash of cookie as identifier (stable across requests)
-            identifier = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
-                System.Text.Encoding.UTF8.GetBytes(cookieValue))).Substring(0, 16);
-            _logger.LogDebug("Using auth cookie hash as cache key identifier");
-        }
-        else if (httpContext?.Session != null)
-        {
-            // Fallback to session ID
-            _ = httpContext.Session.IsAvailable; // Load session
-            identifier = httpContext.Session.Id;
-            _logger.LogDebug("Using session ID as cache key identifier");
+            var email = user.FindFirst(ClaimTypes.Email)?.Value;
+            var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            _logger.LogInformation("GetCacheKey: Found authenticated user - email: {Email}, sub: {Sub}", 
+                email ?? "none", sub ?? "none");
+            
+            identifier = email ?? sub;
+            if (!string.IsNullOrEmpty(identifier))
+            {
+                // Use hash for privacy and consistent length
+                identifier = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes(identifier))).Substring(0, 16);
+                _logger.LogInformation("GetCacheKey: Using AUTHENTICATED USER identifier - hashed to {Identifier}", identifier);
+            }
         }
         else
         {
-            // Last resort: use connection ID
-            identifier = httpContext?.Connection?.Id ?? "global";
-            _logger.LogWarning("No stable identifier available, using connection ID: {Identifier}", identifier);
+            _logger.LogWarning("GetCacheKey: No authenticated user found in HttpContext");
         }
         
-        var cacheKey = $"{identifier}:{key}";
-        _logger.LogDebug("Cache key: {CacheKey}", cacheKey);
-        return cacheKey;
+        // Fallback to session ID
+        if (string.IsNullOrEmpty(identifier) && httpContext?.Session != null)
+        {
+            _ = httpContext.Session.IsAvailable; // Load session
+            identifier = httpContext.Session.Id;
+            _logger.LogInformation("GetCacheKey: Using SESSION ID as fallback: {SessionId}", identifier);
+        }
+        
+        // Last resort: connection ID
+        if (string.IsNullOrEmpty(identifier))
+        {
+            identifier = httpContext?.Connection?.Id ?? "global";
+            _logger.LogWarning("GetCacheKey: Using CONNECTION ID as last resort: {Identifier}", identifier);
+        }
+        
+        var resultKey = $"{identifier}:{key}";
+        _logger.LogInformation("GetCacheKey: Final cache key: {CacheKey}", resultKey);
+        return resultKey;
     }
 
     /// <summary>
@@ -150,13 +180,6 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
-            await SetTokenAsync(token);
-            
-            if (!string.IsNullOrEmpty(refreshToken))
-            {
-                await SetRefreshTokenAsync(refreshToken);
-            }
-
             IEnumerable<Claim> claims;
             
             // If a principal is provided (e.g., from OAuth), use its claims
@@ -177,18 +200,31 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 }
             }
 
+            // Extract user identifier for cache key
+            var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var sub = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var userIdentifier = email ?? sub ?? "anonymous";
+
+            // Store with user-specific key
+            await SetItemAsync(TokenKey, token, userIdentifier);
+            
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await SetRefreshTokenAsync(refreshToken, userIdentifier);
+            }
+
             // Extract user info from claims and store it
             var userInfo = new
             {
-                Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
+                Email = email,
                 Name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
-                Id = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+                Id = sub
             };
 
-            await SetItemAsync(UserInfoKey, JsonSerializer.Serialize(userInfo));
+            await SetItemAsync(UserInfoKey, JsonSerializer.Serialize(userInfo), userIdentifier);
 
             // Also store claims for retrieval
-            await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })));
+            await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })), userIdentifier);
 
             var identity = new ClaimsIdentity(claims, principal != null ? "oauth" : "jwt");
             var user = new ClaimsPrincipal(identity);
@@ -284,14 +320,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
     }
 
-    private async Task SetTokenAsync(string token)
+    private async Task SetTokenAsync(string token, string? userIdentifier = null)
     {
-        await SetItemAsync(TokenKey, token);
+        await SetItemAsync(TokenKey, token, userIdentifier);
     }
 
-    private async Task SetRefreshTokenAsync(string refreshToken)
+    private async Task SetRefreshTokenAsync(string refreshToken, string? userIdentifier = null)
     {
-        await SetItemAsync(RefreshTokenKey, refreshToken);
+        await SetItemAsync(RefreshTokenKey, refreshToken, userIdentifier);
     }
 
     private async Task ClearAuthenticationAsync()
@@ -382,11 +418,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     }
 
     // Server-side memory cache storage methods
-    private Task<string?> GetItemAsync(string key)
+    private Task<string?> GetItemAsync(string key, string? userIdentifier = null)
     {
         try
         {
-            var cacheKey = GetCacheKey(key);
+            var cacheKey = GetCacheKey(key, userIdentifier);
             var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
             var value = _cache.Get<string>(cacheKey);
             _logger.LogInformation("Retrieving {Key} from cache with session ID {SessionId}, full key: {CacheKey}, found: {Found}", 
@@ -400,14 +436,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
     }
 
-    private Task SetItemAsync(string key, string value)
+    private Task SetItemAsync(string key, string value, string? userIdentifier = null)
     {
         try
         {
-            var cacheKey = GetCacheKey(key);
+            var cacheKey = GetCacheKey(key, userIdentifier);
             var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
-            _logger.LogInformation("Storing {Key} in memory cache with session ID {SessionId} (length: {Length})", 
-                key, sessionId, value?.Length ?? 0);
+            _logger.LogInformation("Storing {Key} in memory cache with session ID {SessionId}, user: {UserIdentifier} (length: {Length})", 
+                key, sessionId, userIdentifier ?? "auto", value?.Length ?? 0);
             
             // Store with sliding expiration (30 days of inactivity)
             var cacheOptions = new MemoryCacheEntryOptions()
@@ -424,11 +460,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
     }
 
-    private Task RemoveItemAsync(string key)
+    private Task RemoveItemAsync(string key, string? userIdentifier = null)
     {
         try
         {
-            var cacheKey = GetCacheKey(key);
+            var cacheKey = GetCacheKey(key, userIdentifier);
             _cache.Remove(cacheKey);
             return Task.CompletedTask;
         }
