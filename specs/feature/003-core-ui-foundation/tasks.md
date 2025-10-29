@@ -152,16 +152,24 @@ The following components exist and exceed the original spec requirements:
   - [X] Fix context naming conflict in Profile.razor (EditForm vs Authorized)
   - [ ] Test redirect flow: unauthenticated → login → return to original page
 
-- [ ] **Fix Logout UI Visibility**
-  - [ ] Replace Bootstrap dropdown in MainLayout with MudBlazor MudMenu
-  - [ ] Ensure logout link is visible and clickable
+- [X] **Fix Logout UI Visibility**
+  - [X] Replace Bootstrap dropdown in MainLayout with MudBlazor MudMenu
+  - [X] Ensure logout link is visible and clickable
+  - [X] Use MudBlazor Icons (Material Design) instead of FontAwesome
   - [ ] Test logout flow: click → `/logout` → token cleared → redirect to `/login`
 
-- [ ] **Add Authentication State Debugging**
+- [X] **Add Authentication State Debugging**
+  - [X] Create `/auth/status` debug page (AuthStatus.razor) with:
+    - [X] IsAuthenticated status display
+    - [X] Token present/absent indicator
+    - [X] Token expiry time and status (Valid/Expiring Soon/Expired)
+    - [X] User claims table with all claim types and values
+    - [X] Quick action buttons (Refresh, Dashboard, Login/Logout)
+    - [X] Loading state with MudProgressCircular
+    - [X] Responsive MudBlazor layout (MudContainer, MudCard, MudPaper, MudGrid)
   - [ ] Log authentication state on every protected page load
   - [ ] Log token presence/absence before API calls
   - [ ] Add `[Authorize]` attribute validation logging
-  - [ ] Create `/auth/status` debug page showing: IsAuthenticated, Token Present, Claims
 
 **Acceptance Criteria**:
 - ✅ CustomAuthenticationStateProvider is registered and injectable
