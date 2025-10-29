@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -10,7 +11,9 @@
 
 <PageTitle>Profile - Blood Thinner Tracker</PageTitle>
 
-<div class="container-fluid py-4">
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <div class="container-fluid py-4">
     <div class="row">
         <div class="col-12">
             <nav aria-label="breadcrumb">
@@ -455,6 +458,19 @@
         </div>
     </div>
 </div>
+    </Authorized>
+    <Authorizing>
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    </Authorizing>
+    <NotAuthorized>
+        @{
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private string _activeTab = "profile";

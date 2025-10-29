@@ -1,6 +1,7 @@
 @page "/inr"
 @using BloodThinnerTracker.Shared.Models
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @inject NavigationManager Navigation
 @inject HttpClient Http
@@ -10,7 +11,9 @@
 
 <PageTitle>INR Tracking - Blood Thinner Tracker</PageTitle>
 
-<div class="inr-container">
+<AuthorizeView>
+    <Authorized>
+        <div class="inr-container">
     <!-- Medical Disclaimer -->
     <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
         <div class="d-flex align-items-center">
@@ -289,6 +292,19 @@
         </div>
     </div>
 </div>
+    </Authorized>
+    <Authorizing>
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    </Authorizing>
+    <NotAuthorized>
+        @{
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     // Current status data

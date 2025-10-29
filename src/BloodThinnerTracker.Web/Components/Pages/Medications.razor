@@ -1,6 +1,7 @@
 @page "/medications"
 @using BloodThinnerTracker.Shared.Models
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
@@ -11,7 +12,9 @@
 
 <PageTitle>Medications - Blood Thinner Tracker</PageTitle>
 
-<div class="medications-container">
+<AuthorizeView>
+    <Authorized>
+        <div class="medications-container">
     <!-- Medical Disclaimer -->
     <div class="alert alert-info medical-disclaimer mb-4" role="alert">
         <div class="d-flex align-items-center">
@@ -271,6 +274,19 @@
         </div>
     }
 </div>
+    </Authorized>
+    <Authorizing>
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    </Authorizing>
+    <NotAuthorized>
+        @{
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     // Filter and search properties

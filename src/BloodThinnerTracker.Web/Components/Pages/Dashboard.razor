@@ -2,6 +2,7 @@
 @using BloodThinnerTracker.Shared.Models
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
@@ -11,9 +12,11 @@
 
 <PageTitle>Medical Dashboard - Blood Thinner Tracker</PageTitle>
 
-<div class="dashboard-container">
-    <!-- Medical Disclaimer Banner -->
-    <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
+<AuthorizeView>
+    <Authorized>
+        <div class="dashboard-container">
+            <!-- Medical Disclaimer Banner -->
+            <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
         <div class="d-flex align-items-center">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <div>
@@ -300,6 +303,19 @@
         </div>
     </div>
 </div>
+    </Authorized>
+    <Authorizing>
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    </Authorizing>
+    <NotAuthorized>
+        @{
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     // Data properties
