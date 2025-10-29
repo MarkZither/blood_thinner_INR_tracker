@@ -86,6 +86,32 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 
 ---
 
+### US-003-04: Consistent UI Framework (MudBlazor Only)
+**As a** developer  
+**I want** the entire application to use only MudBlazor components  
+**So that** we have a consistent, maintainable UI codebase
+
+**Acceptance Criteria**:
+- All Bootstrap components replaced with MudBlazor equivalents
+- All Font Awesome icons replaced with MudBlazor icons
+- No Bootstrap CSS or JavaScript dependencies remain
+- No Font Awesome CSS dependencies remain
+- All pages use MudBlazor layout components (MudLayout, MudAppBar, MudDrawer)
+- All forms use MudBlazor form components (MudTextField, MudButton, etc.)
+- All tables use MudDataGrid or MudTable
+- All cards use MudCard
+- All alerts/notifications use MudAlert or MudSnackbar
+- Custom CSS only for medical-specific styling (not framework replacement)
+- Project builds without Bootstrap or Font Awesome references
+
+**Technical Debt Being Addressed**:
+- Mixed UI frameworks (Bootstrap + MudBlazor + Font Awesome)
+- Inconsistent component behavior across pages
+- Larger bundle size due to multiple frameworks
+- Harder maintenance due to multiple styling approaches
+
+---
+
 ## Technical Design
 
 ### Architecture
@@ -168,22 +194,87 @@ User → Page Component → Service → HttpClient → API → Database
 
 ---
 
-### Phase 2: Navigation & Layout
-**Duration**: 2 days
+### Phase 2: MudBlazor Migration & Standardization
+**Duration**: 5 days
 
-1. **Create NavMenu.razor with MudBlazor components**
-   - MudNavMenu with authentication state
-   - Links to: Dashboard, Medications, INR History, Logout
+**CRITICAL**: Remove all Bootstrap and Font Awesome dependencies. Use MudBlazor exclusively.
 
-2. **Create MainLayout.razor**
-   - MudLayout with AppBar and Drawer
-   - Authentication state display (username, avatar)
-   - Responsive breakpoints for mobile
+1. **Remove Bootstrap Dependencies**
+   - Remove Bootstrap CSS from `wwwroot/css`
+   - Remove Bootstrap JavaScript references
+   - Remove `bootstrap.bundle.min.js` script tags
+   - Update `_Imports.razor` to remove Bootstrap references
+   - Remove Bootstrap NuGet packages (if any)
 
-3. **Create Index.razor (Dashboard)**
-   - Welcome message with user's name
-   - Quick stats (total medications, latest INR)
-   - Links to main pages
+2. **Remove Font Awesome Dependencies**
+   - Remove Font Awesome CSS from `wwwroot/css` or CDN
+   - Remove all `<i class="fas fa-*">` icon references
+   - Replace with MudBlazor `<MudIcon>` components
+
+3. **Migrate MainLayout.razor to MudBlazor**
+   - Replace `<nav class="navbar navbar-expand-lg">` with `<MudAppBar>`
+   - Replace collapsible menu with `<MudDrawer>`
+   - Use `<MudLayout>` as root container
+   - Add `<MudThemeProvider Theme="@_theme" />`
+   - Configure responsive breakpoints (Breakpoint.Sm, Md, Lg)
+   - Add user avatar with `<MudAvatar>` in AppBar
+   - Add logout button with `<MudIconButton>`
+
+4. **Create NavMenu.razor with MudBlazor**
+   - Use `<MudNavMenu>` for navigation
+   - Use `<MudNavLink>` for each menu item
+   - Replace Font Awesome icons with `<MudIcon Icon="@Icons.Material.*">`
+   - Add active page highlighting with `Match="NavLinkMatch.All"`
+   - Add authentication state display
+   - Links: Dashboard, Medications, INR History, Profile, Logout
+
+5. **Migrate Dashboard.razor**
+   - Replace `<div class="card">` with `<MudCard>`
+   - Replace `<div class="alert">` with `<MudAlert>`
+   - Replace stats cards with `<MudPaper>` and `<MudText>`
+   - Replace Font Awesome icons with `<MudIcon>`
+   - Use `<MudGrid>` instead of Bootstrap grid
+   - Use MudBlazor spacing (Class="mt-4 mb-2" → Class="mt-4")
+
+6. **Migrate Medications.razor**
+   - Replace Bootstrap table with `<MudDataGrid>` or `<MudTable>`
+   - Replace `<input class="form-control">` with `<MudTextField>`
+   - Replace `<select class="form-select">` with `<MudSelect>`
+   - Replace `<button class="btn">` with `<MudButton>`
+   - Replace cards with `<MudCard>` and `<MudCardContent>`
+   - Replace dropdowns with `<MudMenu>`
+   - Use `<MudIcon>` for all icons
+
+7. **Migrate INRTracking.razor**
+   - Same pattern as Medications.razor
+   - Replace all Bootstrap components with MudBlazor equivalents
+   - Use `<MudChip>` for status indicators
+   - Use `<MudProgressLinear>` for time-in-range indicator
+
+8. **Migrate Profile.razor**
+   - Replace form controls with MudBlazor form components
+   - Use `<MudTextField>` with validation
+   - Use `<MudDatePicker>` for date fields
+   - Use `<MudSwitch>` for toggle settings
+   - Use `<MudButton Variant="Filled">` for primary actions
+
+9. **Migrate Remaining Pages**
+   - Login.razor → MudBlazor forms
+   - Register.razor → MudBlazor forms
+   - Help.razor → MudBlazor content
+   - Error pages → MudBlazor alerts
+
+10. **Update Shared CSS**
+    - Remove Bootstrap utilities
+    - Add MudBlazor theme customization in `wwwroot/css/app.css`
+    - Keep only medical-specific custom styles
+    - Use MudBlazor CSS variables for theming
+
+11. **Verify Migration**
+    - Check all pages render correctly
+    - Test responsive behavior at all breakpoints
+    - Ensure no console warnings about missing CSS
+    - Verify bundle size reduction
 
 ---
 

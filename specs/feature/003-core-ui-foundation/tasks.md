@@ -82,7 +82,38 @@ The following components exist and exceed the original spec requirements:
 
 ## Phase 1: Architecture & Code Organization (5 days)
 
-### T003-001: Create Service Layer [P0]
+### T003-001: Remove Bootstrap & Font Awesome Dependencies [P0]
+**Owner**: TBD  
+**Estimate**: 1 day  
+**Status**: TODO
+
+Remove all non-MudBlazor UI framework dependencies per Constitution Principle III.
+
+**Tasks**:
+- [ ] Audit `BloodThinnerTracker.Web.csproj` for UI framework packages
+- [ ] Remove Bootstrap NuGet packages (if any)
+- [ ] Remove Font Awesome NuGet packages (if any)
+- [ ] Delete `wwwroot/css/bootstrap*.css` files
+- [ ] Delete `wwwroot/js/bootstrap*.js` files
+- [ ] Delete `wwwroot/css/fontawesome*.css` files
+- [ ] Remove Bootstrap CDN links from `_Host.cshtml` or `App.razor`
+- [ ] Remove Font Awesome CDN links
+- [ ] Remove `bootstrap.bundle.min.js` script references
+- [ ] Update `_Imports.razor` to remove Bootstrap usings
+- [ ] Verify MudBlazor is sole UI dependency
+- [ ] Document custom CSS that remains (medical-specific only)
+
+**Acceptance Criteria**:
+- No Bootstrap packages in `.csproj`
+- No Font Awesome packages in `.csproj`
+- No Bootstrap/Font Awesome files in `wwwroot/`
+- No Bootstrap/Font Awesome CDN references
+- Project builds successfully without these dependencies
+- Only MudBlazor and custom medical CSS remain
+
+---
+
+### T003-002: Create Service Layer [P0]
 **Owner**: TBD  
 **Estimate**: 2 days  
 **Status**: TODO
@@ -115,37 +146,47 @@ Create service abstractions to separate API calls from UI components.
 
 ---
 
-### T003-002: Refactor Layout to MudBlazor [P1]
+### T003-003: Migrate Layout to MudBlazor [P0]
 **Owner**: TBD  
 **Estimate**: 2 days  
 **Status**: TODO
 
-Replace Bootstrap navigation with MudBlazor components for consistency.
+Replace Bootstrap navigation with MudBlazor components per Constitution Principle III.
 
 **Tasks**:
-- [ ] Update `MainLayout.razor` to use MudBlazor components
-  - [ ] Replace Bootstrap navbar with `MudAppBar`
-  - [ ] Add `MudDrawer` for side navigation
-  - [ ] Implement responsive drawer (collapsible on mobile)
-  - [ ] Add `MudThemeProvider` configuration
-- [ ] Create new `NavMenu.razor` with MudBlazor
-  - [ ] Use `MudNavMenu` and `MudNavLink` components
-  - [ ] Add icons with `MudIcon`
-  - [ ] Highlight active page
-  - [ ] Add user info/avatar
-  - [ ] Add logout button
-- [ ] Update CSS/styling
-  - [ ] Remove Bootstrap navbar styles
-  - [ ] Add MudBlazor theme customization
-  - [ ] Ensure mobile responsiveness
-- [ ] Test navigation on all breakpoints (320px, 768px, 1024px, 1440px)
+- [ ] Update `MainLayout.razor` structure:
+  - [ ] Add `<MudThemeProvider />` with custom theme
+  - [ ] Add `<MudPopoverProvider />`
+  - [ ] Add `<MudDialogProvider />`
+  - [ ] Add `<MudSnackbarProvider />`
+  - [ ] Replace `<nav class="navbar">` with `<MudLayout>`
+  - [ ] Add `<MudAppBar>` for top navigation
+  - [ ] Add `<MudDrawer>` for side navigation menu
+  - [ ] Configure drawer to be responsive (collapse on mobile)
+  - [ ] Add user info/avatar in AppBar using `<MudAvatar>`
+  - [ ] Add logout button with `<MudIconButton>`
+- [ ] Create new `NavMenu.razor` with MudBlazor:
+  - [ ] Use `<MudNavMenu>` as container
+  - [ ] Use `<MudNavLink>` for each menu item
+  - [ ] Replace all Font Awesome icons with `<MudIcon Icon="@Icons.Material.Filled.*">`
+  - [ ] Dashboard → `Icons.Material.Filled.Dashboard`
+  - [ ] Medications → `Icons.Material.Filled.Medication`
+  - [ ] INR Tracking → `Icons.Material.Filled.ShowChart`
+  - [ ] Profile → `Icons.Material.Filled.Person`
+  - [ ] Logout → `Icons.Material.Filled.Logout`
+  - [ ] Add active page highlighting with `Match="NavLinkMatch.All"`
+- [ ] Remove all Bootstrap navbar CSS classes
+- [ ] Test responsive behavior (320px, 768px, 1024px, 1440px)
+- [ ] Test drawer open/close on mobile
+- [ ] Test navigation on desktop
 
 **Acceptance Criteria**:
-- All pages use MudBlazor layout components
-- Navigation works on mobile and desktop
-- Current page highlighted in navigation
-- Responsive drawer closes automatically on mobile after navigation
-- No Bootstrap navbar dependencies remain
+- Layout uses only MudBlazor components
+- No Bootstrap classes (`navbar`, `navbar-nav`, `nav-item`, etc.)
+- No Font Awesome icon classes (`fas fa-*`)
+- Responsive drawer works on mobile
+- Navigation highlights active page
+- All pages render within MudLayout
 
 ---
 
@@ -176,9 +217,154 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-## Phase 2: Shared Components (3 days)
+## Phase 2: Page Migration to MudBlazor (5 days)
 
-### T003-004: Create LoadingSpinner Component [P0]
+## Phase 3: Shared Components & Cleanup (3 days)
+
+### T003-008: Create LoadingSpinner Component [P0]
+**Owner**: TBD  
+**Estimate**: 1 day  
+**Status**: TODO
+
+Convert Dashboard page to use only MudBlazor components.
+
+**Tasks**:
+- [ ] Replace Bootstrap grid with `<MudGrid>` and `<MudItem>`
+- [ ] Replace `<div class="card">` with `<MudCard>` and `<MudCardContent>`
+- [ ] Replace `<div class="alert alert-warning">` with `<MudAlert Severity="Severity.Warning">`
+- [ ] Replace stat cards:
+  - [ ] Remove Bootstrap `stat-card` classes
+  - [ ] Use `<MudPaper>` for card containers
+  - [ ] Use `<MudText Typo="Typo.h5">` for titles
+  - [ ] Use `<MudIcon>` for stat icons (replace `<i class="fas fa-*">`)
+- [ ] Replace all Font Awesome icons:
+  - [ ] `fa-pills` → `Icons.Material.Filled.Medication`
+  - [ ] `fa-check-circle` → `Icons.Material.Filled.CheckCircle`
+  - [ ] `fa-chart-line` → `Icons.Material.Filled.ShowChart`
+  - [ ] `fa-calendar-clock` → `Icons.Material.Filled.CalendarToday`
+- [ ] Remove all Bootstrap utility classes (`mb-4`, `mt-3`, `d-flex`, etc.)
+- [ ] Use MudBlazor spacing (Class="mt-4 mb-2")
+- [ ] Test responsive layout at all breakpoints
+
+**Acceptance Criteria**:
+- No Bootstrap classes remain
+- No Font Awesome icon classes remain
+- Uses only MudBlazor components
+- Responsive design works 320px-2560px
+- Medical disclaimer uses `<MudAlert>`
+
+---
+
+### T003-005: Migrate Medications.razor to MudBlazor [P0]
+**Owner**: TBD  
+**Estimate**: 2 days  
+**Status**: TODO
+
+Convert Medications page to use only MudBlazor components.
+
+**Tasks**:
+- [ ] Replace search/filter controls:
+  - [ ] `<input class="form-control">` → `<MudTextField>`
+  - [ ] `<select class="form-select">` → `<MudSelect>`
+  - [ ] `<button class="btn">` → `<MudButton>`
+- [ ] Replace medication cards/table:
+  - [ ] Option A: Use `<MudDataGrid>` for table view
+  - [ ] Option B: Use `<MudCard>` for card view
+  - [ ] Implement responsive switch (table on desktop, cards on mobile)
+- [ ] Replace dropdown menu:
+  - [ ] `<div class="dropdown">` → `<MudMenu>`
+  - [ ] Add `<MudMenuItem>` for each action
+- [ ] Replace all icons:
+  - [ ] `fa-search` → `Icons.Material.Filled.Search`
+  - [ ] `fa-plus` → `Icons.Material.Filled.Add`
+  - [ ] `fa-pills` → `Icons.Material.Filled.Medication`
+  - [ ] `fa-edit` → `Icons.Material.Filled.Edit`
+  - [ ] `fa-trash` → `Icons.Material.Filled.Delete`
+  - [ ] `fa-times` → `Icons.Material.Filled.Close`
+- [ ] Replace status badges:
+  - [ ] Bootstrap badges → `<MudChip>` with appropriate color
+- [ ] Remove all Bootstrap grid classes (`row`, `col-*`)
+- [ ] Use `<MudGrid>` and `<MudItem>` for layout
+- [ ] Test search and filter functionality
+- [ ] Test responsive behavior
+
+**Acceptance Criteria**:
+- No Bootstrap form controls remain
+- No Font Awesome icons remain
+- Uses MudDataGrid or MudCard consistently
+- Search and filter work correctly
+- Add/Edit/Delete actions work
+- Mobile view is user-friendly
+
+---
+
+### T003-006: Migrate INRTracking.razor to MudBlazor [P0]
+**Owner**: TBD  
+**Estimate**: 1 day  
+**Status**: TODO
+
+Convert INR Tracking page to use only MudBlazor components.
+
+**Tasks**:
+- [ ] Replace stat cards (same pattern as Dashboard)
+- [ ] Replace alerts:
+  - [ ] `<div class="alert alert-warning">` → `<MudAlert Severity="Severity.Warning">`
+- [ ] Replace INR value table/list:
+  - [ ] Use `<MudDataGrid>` or `<MudTable>`
+  - [ ] Add sortable columns
+  - [ ] Add color-coded INR values (red for out-of-range)
+- [ ] Replace status indicators:
+  - [ ] Bootstrap badges → `<MudChip Color="Color.Success/Error">`
+- [ ] Replace all icons (same pattern as other pages)
+- [ ] Add `<MudProgressLinear>` for time-in-range visualization
+- [ ] Replace buttons with `<MudButton Variant="Filled/Outlined">`
+- [ ] Remove Bootstrap grid classes
+- [ ] Test responsive layout
+
+**Acceptance Criteria**:
+- No Bootstrap classes remain
+- No Font Awesome icons remain
+- INR values display with proper color coding
+- Time-in-range shows visually (progress bar)
+- Add/Edit/Delete INR tests work correctly
+
+---
+
+### T003-007: Migrate Form Pages (Login, Register, Profile) [P0]
+**Owner**: TBD  
+**Estimate**: 1 day  
+**Status**: TODO
+
+Convert authentication and profile pages to MudBlazor forms.
+
+**Tasks**:
+- [ ] **Login.razor**:
+  - [ ] Replace `<input type="email">` → `<MudTextField T="string" InputType="InputType.Email">`
+  - [ ] Replace `<input type="password">` → `<MudTextField T="string" InputType="InputType.Password">`
+  - [ ] Replace `<button class="btn-primary">` → `<MudButton Variant="Filled" Color="Color.Primary">`
+  - [ ] Add validation styling with `Error="true"` and `ErrorText="@errorMessage"`
+- [ ] **Register.razor**:
+  - [ ] Same pattern as Login
+  - [ ] Add `<MudCheckBox>` for terms acceptance
+  - [ ] Add `<MudDatePicker>` for date of birth (if exists)
+- [ ] **Profile.razor**:
+  - [ ] Replace all form controls with MudBlazor equivalents
+  - [ ] Use `<MudSwitch>` for boolean settings
+  - [ ] Use `<MudNumericField>` for INR target ranges
+  - [ ] Use `<MudTextField>` with validation for text inputs
+  - [ ] Replace tabs (if any) with `<MudTabs>` and `<MudTabPanel>`
+- [ ] Remove all Bootstrap form classes (`form-control`, `form-label`, `form-select`)
+- [ ] Test form validation
+- [ ] Test form submission
+
+**Acceptance Criteria**:
+- All forms use MudBlazor form components
+- Validation works correctly
+- Error messages display properly
+- Forms submit successfully
+- No Bootstrap form classes remain
+
+---
 **Owner**: TBD  
 **Estimate**: 0.5 days  
 **Status**: TODO
@@ -200,7 +386,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-005: Create ErrorMessage Component [P0]
+### T003-009: Create ErrorMessage Component [P0]
 **Owner**: TBD  
 **Estimate**: 0.5 days  
 **Status**: TODO
@@ -224,7 +410,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-006: Create EmptyState Component [P0]
+### T003-010: Create EmptyState Component [P0]
 **Owner**: TBD  
 **Estimate**: 0.5 days  
 **Status**: TODO
@@ -249,7 +435,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-007: Refactor Pages to Use Shared Components [P1]
+### T003-011: Refactor Pages to Use Shared Components [P1]
 **Owner**: TBD  
 **Estimate**: 1.5 days  
 **Status**: TODO
@@ -274,9 +460,9 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-## Phase 3: Testing (4 days)
+## Phase 4: Testing (4 days)
 
-### T003-008: Unit Tests for Services [P0]
+### T003-012: Unit Tests for Services [P0]
 **Owner**: TBD  
 **Estimate**: 1.5 days  
 **Status**: TODO
@@ -304,7 +490,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-009: Component Tests with bUnit [P1]
+### T003-013: Component Tests with bUnit [P1]
 **Owner**: TBD  
 **Estimate**: 1.5 days  
 **Status**: TODO
@@ -331,7 +517,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-010: Accessibility Testing [P1]
+### T003-014: Accessibility Testing [P1]
 **Owner**: TBD  
 **Estimate**: 1 day  
 **Status**: TODO
@@ -362,9 +548,9 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-## Phase 4: Documentation (2 days)
+## Phase 5: Documentation (2 days)
 
-### T003-011: User Documentation [P1]
+### T003-015: User Documentation [P1]
 **Owner**: TBD  
 **Estimate**: 1 day  
 **Status**: TODO
@@ -395,7 +581,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-012: Developer Documentation [P1]
+### T003-016: Developer Documentation [P1]
 **Owner**: TBD  
 **Estimate**: 1 day  
 **Status**: TODO
@@ -426,9 +612,9 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-## Phase 5: Final Polish & Validation (1 day)
+## Phase 6: Final Polish & Validation (1 day)
 
-### T003-013: Performance Testing [P2]
+### T003-017: Performance Testing [P2]
 **Owner**: TBD  
 **Estimate**: 0.5 days  
 **Status**: TODO
@@ -451,7 +637,7 @@ Remove unused code and ensure consistent patterns.
 
 ---
 
-### T003-014: Cross-Browser Testing [P2]
+### T003-018: Cross-Browser Testing [P2]
 **Owner**: TBD  
 **Estimate**: 0.5 days  
 **Status**: TODO
@@ -477,25 +663,26 @@ Remove unused code and ensure consistent patterns.
 ## Summary Statistics
 
 ### Overall Progress
-- **Total Tasks**: 14
+- **Total Tasks**: 18
 - **Completed**: 0
 - **In Progress**: 0
-- **TODO**: 14
+- **TODO**: 18
 - **Blocked**: 0
 
 ### By Priority
-- **P0 (Critical)**: 5 tasks
+- **P0 (Critical)**: 9 tasks
 - **P1 (High)**: 7 tasks
 - **P2 (Medium)**: 2 tasks
 
 ### By Phase
-- **Phase 1 (Architecture)**: 3 tasks (5 days)
-- **Phase 2 (Components)**: 4 tasks (3 days)
-- **Phase 3 (Testing)**: 3 tasks (4 days)
-- **Phase 4 (Documentation)**: 2 tasks (2 days)
-- **Phase 5 (Polish)**: 2 tasks (1 day)
+- **Phase 1 (Architecture & Removal)**: 3 tasks (5 days)
+- **Phase 2 (MudBlazor Migration)**: 4 tasks (5 days)
+- **Phase 3 (Components & Cleanup)**: 4 tasks (3 days)
+- **Phase 4 (Testing)**: 3 tasks (4 days)
+- **Phase 5 (Documentation)**: 2 tasks (2 days)
+- **Phase 6 (Polish)**: 2 tasks (1 day)
 
-**Total Estimated Effort**: 15 days (3 weeks with buffer)
+**Total Estimated Effort**: 20 days (4 weeks with buffer)
 
 ---
 
