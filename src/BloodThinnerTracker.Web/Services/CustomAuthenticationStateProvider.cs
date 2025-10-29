@@ -60,8 +60,30 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 return CreateAnonymousState();
             }
 
-            var claims = ParseClaimsFromJwt(token);
+            // Try to get stored claims first (from OAuth flow)
+            var claimsJson = await GetItemAsync(ClaimsKey);
+            IEnumerable<Claim> claims;
             
+            if (!string.IsNullOrEmpty(claimsJson))
+            {
+                // Use stored claims from OAuth
+                var claimData = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(claimsJson);
+                claims = claimData?.Select(c => new Claim(c["Type"], c["Value"])) ?? Enumerable.Empty<Claim>();
+                _logger.LogInformation("Retrieved {Count} claims from stored OAuth data", claims.Count());
+            }
+            else
+            {
+                // Fall back to parsing JWT token
+                claims = ParseClaimsFromJwt(token);
+                _logger.LogInformation("Parsed {Count} claims from JWT token", claims.Count());
+            }
+            
+            if (!claims.Any())
+            {
+                _logger.LogWarning("No claims available, user not authenticated");
+                return CreateAnonymousState();
+            }
+
             // Check if token is expired
             var expiryClaim = claims.FirstOrDefault(c => c.Type == "exp");
             if (expiryClaim != null)
@@ -75,7 +97,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 }
             }
 
-            var identity = new ClaimsIdentity(claims, "jwt");
+            var identity = new ClaimsIdentity(claims, "oauth");
             var user = new ClaimsPrincipal(identity);
 
             return new AuthenticationState(user);
@@ -247,6 +269,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         await RemoveItemAsync(TokenKey);
         await RemoveItemAsync(RefreshTokenKey);
         await RemoveItemAsync(UserInfoKey);
+        await RemoveItemAsync(ClaimsKey);
     }
 
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
