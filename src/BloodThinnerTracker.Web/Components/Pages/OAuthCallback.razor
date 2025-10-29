@@ -100,12 +100,16 @@
             _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
             _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
+            Logger.LogInformation("OAuth complete: id_token present: {HasIdToken}, access_token present: {HasAccessToken}", 
+                !string.IsNullOrEmpty(idToken), !string.IsNullOrEmpty(_accessToken));
+
             // For authentication in our app, use id_token (it's a proper JWT with claims)
             // The access_token is for calling Microsoft APIs, not for our backend
             if (!string.IsNullOrEmpty(idToken))
             {
                 _accessToken = idToken; // Use id_token as our auth token
-                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication");
+                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication, length: {Length}, starts with: {Prefix}", 
+                    idToken.Length, idToken.Substring(0, Math.Min(50, idToken.Length)));
             }
             else if (string.IsNullOrEmpty(_accessToken))
             {
@@ -116,7 +120,8 @@
             }
             else
             {
-                Logger.LogInformation("OAuth complete: No id_token found, using access_token (might be opaque)");
+                Logger.LogWarning("OAuth complete: No id_token found, using access_token (might be opaque). Length: {Length}, starts with: {Prefix}", 
+                    _accessToken.Length, _accessToken.Substring(0, Math.Min(50, _accessToken.Length)));
             }
 
             // Extract claims from the authenticated principal (don't try to parse opaque access_token)
@@ -177,7 +182,8 @@
                     DevicePlatform = "Web"
                 };
 
-                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}", email);
+                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}", 
+                    email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
                 
                 var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
 

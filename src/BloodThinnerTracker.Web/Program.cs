@@ -50,6 +50,13 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = adOptions.ClientId;
         options.ClientSecret = adOptions.ClientSecret;
         options.SaveTokens = true;
+        
+        // Request OpenID Connect scopes to get id_token
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+        
         options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
         
         // Hook into the OAuth callback to redirect to our Blazor page
