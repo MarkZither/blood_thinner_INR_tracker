@@ -6,31 +6,43 @@ namespace BloodThinnerTracker.Web.Services;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Caching.Memory;
 
 /// <summary>
 /// Custom authentication state provider for managing JWT-based authentication in Blazor Server.
-/// Handles token storage, validation, and authentication state management using server-side protected storage.
+/// Handles token storage, validation, and authentication state management using server-side memory cache.
 /// </summary>
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
-    private readonly ProtectedSessionStorage _sessionStorage;
+    private readonly IMemoryCache _cache;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
     private const string TokenKey = "authToken";
     private const string RefreshTokenKey = "refreshToken";
     private const string UserInfoKey = "userInfo";
+    private const string ClaimsKey = "userClaims";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomAuthenticationStateProvider"/> class.
     /// </summary>
-    /// <param name="sessionStorage">Protected session storage for secure token storage.</param>
+    /// <param name="cache">Memory cache for token storage.</param>
+    /// <param name="httpContextAccessor">HTTP context accessor for session identification.</param>
     /// <param name="logger">Logger instance.</param>
     public CustomAuthenticationStateProvider(
-        ProtectedSessionStorage sessionStorage,
+        IMemoryCache cache,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<CustomAuthenticationStateProvider> logger)
     {
-        _sessionStorage = sessionStorage;
+        _cache = cache;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+    }
+
+    private string GetCacheKey(string key)
+    {
+        // Use session ID as part of cache key to isolate user data
+        var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "anonymous";
+        return $"{sessionId}:{key}";
     }
 
     /// <summary>
@@ -122,6 +134,9 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             };
 
             await SetItemAsync(UserInfoKey, JsonSerializer.Serialize(userInfo));
+
+            // Also store claims for retrieval
+            await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })));
 
             var identity = new ClaimsIdentity(claims, principal != null ? "oauth" : "jwt");
             var user = new ClaimsPrincipal(identity);
@@ -313,45 +328,56 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         return new AuthenticationState(anonymous);
     }
 
-    // Server-side protected session storage methods
-    private async Task<string?> GetItemAsync(string key)
+    // Server-side memory cache storage methods
+    private Task<string?> GetItemAsync(string key)
     {
         try
         {
-            var result = await _sessionStorage.GetAsync<string>(key);
-            return result.Success ? result.Value : null;
+            var cacheKey = GetCacheKey(key);
+            var value = _cache.Get<string>(cacheKey);
+            return Task.FromResult(value);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving {Key} from session storage", key);
-            return null;
+            _logger.LogError(ex, "Error retrieving {Key} from cache", key);
+            return Task.FromResult<string?>(null);
         }
     }
 
-    private async Task SetItemAsync(string key, string value)
+    private Task SetItemAsync(string key, string value)
     {
         try
         {
-            _logger.LogInformation("Storing {Key} in session storage (length: {Length})", key, value?.Length ?? 0);
-            await _sessionStorage.SetAsync(key, value ?? string.Empty);
-            _logger.LogInformation("Successfully stored {Key} in session storage", key);
+            var cacheKey = GetCacheKey(key);
+            _logger.LogInformation("Storing {Key} in memory cache (length: {Length})", key, value?.Length ?? 0);
+            
+            // Store with sliding expiration (30 days of inactivity)
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromDays(30));
+            
+            _cache.Set(cacheKey, value ?? string.Empty, cacheOptions);
+            _logger.LogInformation("Successfully stored {Key} in memory cache", key);
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error storing {Key} in session storage", key);
+            _logger.LogError(ex, "Error storing {Key} in cache", key);
             throw;
         }
     }
 
-    private async Task RemoveItemAsync(string key)
+    private Task RemoveItemAsync(string key)
     {
         try
         {
-            await _sessionStorage.DeleteAsync(key);
+            var cacheKey = GetCacheKey(key);
+            _cache.Remove(cacheKey);
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing {Key} from session storage", key);
+            _logger.LogError(ex, "Error removing {Key} from cache", key);
+            return Task.CompletedTask;
         }
     }
 }
