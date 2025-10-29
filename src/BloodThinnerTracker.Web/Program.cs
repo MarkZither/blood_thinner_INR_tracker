@@ -55,8 +55,11 @@ builder.Services.AddAuthentication(options =>
         // Hook into the OAuth callback to redirect to our Blazor page
         options.Events.OnTicketReceived = context =>
         {
-            // Redirect to our Blazor callback page which will handle token storage
-            context.Response.Redirect($"/oauth-complete?provider=microsoft");
+            // Get the returnUrl from authentication properties
+            var returnUrl = context.Properties?.RedirectUri ?? "/dashboard";
+            
+            // Redirect to our Blazor callback page with provider and returnUrl
+            context.Response.Redirect($"/oauth-complete?provider=microsoft&returnUrl={Uri.EscapeDataString(returnUrl)}");
             context.HandleResponse();
             return Task.CompletedTask;
         };

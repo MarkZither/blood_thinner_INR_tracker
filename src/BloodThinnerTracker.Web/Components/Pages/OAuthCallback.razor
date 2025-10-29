@@ -42,6 +42,9 @@
     
     [SupplyParameterFromQuery(Name = "provider")]
     public string? Provider { get; set; }
+    
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,10 +166,13 @@
                 // Store with principal so it uses OAuth claims
                 await AuthStateProvider.MarkUserAsAuthenticatedAsync(_accessToken, _refreshToken, _authenticatedPrincipal);
 
-                Logger.LogInformation("OAuth complete: Authentication complete, redirecting to dashboard...");
+                // Determine redirect target - use returnUrl if provided, otherwise dashboard
+                var redirectTarget = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
+                Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target}...", redirectTarget);
 
-                // Redirect to dashboard
-                Navigation.NavigateTo("/dashboard", true);
+                // Redirect WITHOUT force reload to preserve session
+                // forceLoad: false ensures we keep the same SignalR circuit and session
+                Navigation.NavigateTo(redirectTarget, forceLoad: false);
             }
             catch (Exception ex)
             {

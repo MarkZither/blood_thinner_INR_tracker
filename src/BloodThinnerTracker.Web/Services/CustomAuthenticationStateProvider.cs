@@ -40,8 +40,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     private string GetCacheKey(string key)
     {
+        // Ensure session is loaded before accessing session ID
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.Session != null)
+        {
+            // This will load the session if not already loaded
+            _ = httpContext.Session.IsAvailable;
+        }
+        
         // Use session ID as part of cache key to isolate user data
-        var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "anonymous";
+        var sessionId = httpContext?.Session?.Id ?? "anonymous";
+        _logger.LogDebug("Using cache key: {SessionId}:{Key}", sessionId, key);
         return $"{sessionId}:{key}";
     }
 
