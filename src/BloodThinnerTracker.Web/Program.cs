@@ -50,7 +50,7 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = adOptions.ClientId;
         options.ClientSecret = adOptions.ClientSecret;
         options.SaveTokens = true;
-        options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-microsoft" : adOptions.CallbackPath;
+        options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
     })
     .AddGoogle(options =>
     {
