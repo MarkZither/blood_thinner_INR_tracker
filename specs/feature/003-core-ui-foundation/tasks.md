@@ -97,35 +97,35 @@ The following components exist and exceed the original spec requirements:
 5. Logout button invisible (Bootstrap dropdown requires JavaScript)
 
 **Tasks**:
-- [ ] **Register CustomAuthenticationStateProvider in Program.cs**
-  - [ ] Add `builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();`
-  - [ ] Add `builder.Services.AddScoped<CustomAuthenticationStateProvider>();` (for direct injection)
+- [X] **Register CustomAuthenticationStateProvider in Program.cs**
+  - [X] Add `builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();`
+  - [X] Add `builder.Services.AddScoped<CustomAuthenticationStateProvider>();` (for direct injection)
   - [ ] Verify injection works in AuthorizationMessageHandler
 
-- [ ] **Implement OAuth Callback Handlers**
-  - [ ] **Create Razor page approach** (recommended for Blazor Server):
-    - [ ] Create `Components/Pages/OAuthCallback.razor` with `@page "/signin-microsoft"` and `@page "/signin-google"`
-    - [ ] Use `@inject IHttpContextAccessor` to access HttpContext
-    - [ ] Use `@rendermode InteractiveServer` for OAuth processing
+- [X] **Implement OAuth Callback Handlers**
+  - [X] **Create Razor page approach** (recommended for Blazor Server):
+    - [X] Create `Components/Pages/OAuthCallback.razor` with `@page "/signin-microsoft"` and `@page "/signin-google"`
+    - [X] Use `@inject IHttpContextAccessor` to access HttpContext
+    - [X] Use `@rendermode InteractiveServer` for OAuth processing
   - [ ] **Alternative MVC controller approach** (NOT recommended - adds complexity):
     - [ ] Would require mixing MVC and Blazor in same app
     - [ ] Complicates routing and state management
     - [ ] **DO NOT USE unless Razor page fails**
-  - [ ] In `OnInitializedAsync()` method:
-    - [ ] Get HttpContext: `var httpContext = HttpContextAccessor.HttpContext;`
-    - [ ] Authenticate: `var result = await httpContext.AuthenticateAsync();`
-    - [ ] Extract tokens: `var tokens = result.Properties?.GetTokens();`
-    - [ ] Get access_token and refresh_token from tokens
-  - [ ] Call `CustomAuthenticationStateProvider.MarkUserAsAuthenticatedAsync(token, refreshToken)`
-  - [ ] Redirect to `/dashboard` on success using `Navigation.NavigateTo()`
-  - [ ] Redirect to `/login?error=...` on failure with descriptive error code
-  - [ ] Add comprehensive error logging for each failure point:
-    - [ ] HttpContext is null
-    - [ ] Authentication failed
-    - [ ] No access token received
-    - [ ] Token storage failed
-    - [ ] General exception caught
-  - [ ] Register `IHttpContextAccessor` in Program.cs: `builder.Services.AddHttpContextAccessor();`
+  - [X] In `OnInitializedAsync()` method:
+    - [X] Get HttpContext: `var httpContext = HttpContextAccessor.HttpContext;`
+    - [X] Authenticate: `var result = await httpContext.AuthenticateAsync();`
+    - [X] Extract tokens: `var tokens = result.Properties?.GetTokens();`
+    - [X] Get access_token and refresh_token from tokens
+  - [X] Call `CustomAuthenticationStateProvider.MarkUserAsAuthenticatedAsync(token, refreshToken)`
+  - [X] Redirect to `/dashboard` on success using `Navigation.NavigateTo()`
+  - [X] Redirect to `/login?error=...` on failure with descriptive error code
+  - [X] Add comprehensive error logging for each failure point:
+    - [X] HttpContext is null
+    - [X] Authentication failed
+    - [X] No access token received
+    - [X] Token storage failed
+    - [X] General exception caught
+  - [X] Register `IHttpContextAccessor` in Program.cs: `builder.Services.AddHttpContextAccessor();`
 
   **Why Razor Page Approach**:
   - Keeps everything in Blazor ecosystem (no MVC mixing)

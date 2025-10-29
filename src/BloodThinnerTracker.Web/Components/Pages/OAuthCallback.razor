@@ -1,0 +1,103 @@
+@page "/signin-microsoft"
+@page "/signin-google"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Components.Authorization
+@using BloodThinnerTracker.Web.Services
+@inject IHttpContextAccessor HttpContextAccessor
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<OAuthCallback> Logger
+
+<PageTitle>Signing in...</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="2" Class="pa-6">
+        @if (_isProcessing)
+        {
+            <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6">Completing sign-in...</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Please wait while we authenticate you.</MudText>
+            </MudStack>
+        }
+        else if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                <MudText Typo="Typo.h6">Sign-in Failed</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">@_error</MudText>
+                <MudButton Href="/login" Variant="Variant.Text" Color="Color.Default" Class="mt-4">
+                    Try Again
+                </MudButton>
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isProcessing = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get HttpContext
+            var httpContext = HttpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                Logger.LogError("OAuth callback: HttpContext is null");
+                _error = "Authentication service unavailable. Please try again.";
+                _isProcessing = false;
+                return;
+            }
+
+            // Authenticate with external provider
+            var result = await httpContext.AuthenticateAsync();
+            if (!result.Succeeded)
+            {
+                Logger.LogWarning("OAuth callback: Authentication failed for provider");
+                _error = "Sign-in failed. Please check your credentials and try again.";
+                _isProcessing = false;
+                return;
+            }
+
+            // Extract tokens
+            var tokens = result.Properties?.GetTokens();
+            if (tokens == null)
+            {
+                Logger.LogError("OAuth callback: No tokens received from provider");
+                _error = "Authorization incomplete. Please sign in again.";
+                _isProcessing = false;
+                return;
+            }
+
+            var accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
+            var refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
+
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                Logger.LogError("OAuth callback: No access token received");
+                _error = "Authorization incomplete. Please sign in again.";
+                _isProcessing = false;
+                return;
+            }
+
+            // Store tokens using CustomAuthenticationStateProvider
+            await AuthStateProvider.MarkUserAsAuthenticatedAsync(accessToken, refreshToken);
+
+            var principal = result.Principal;
+            var email = principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            Logger.LogInformation("User {Email} authenticated successfully via OAuth", email ?? "Unknown");
+
+            // Redirect to dashboard
+            Navigation.NavigateTo("/dashboard", true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "OAuth callback: Unexpected error during authentication");
+            _error = "An unexpected error occurred during sign-in. Please try again.";
+            _isProcessing = false;
+        }
+    }
+}

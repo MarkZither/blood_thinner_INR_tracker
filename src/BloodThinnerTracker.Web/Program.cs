@@ -64,6 +64,13 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 
+// Register CustomAuthenticationStateProvider for JWT token management (T003-001)
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<CustomAuthenticationStateProvider>();
+
+// Add HttpContextAccessor for OAuth callback handling (T003-001)
+builder.Services.AddHttpContextAccessor();
+
 // Add HttpClient for API calls with authentication (T018k)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
 builder.Services.AddScoped(sp =>
