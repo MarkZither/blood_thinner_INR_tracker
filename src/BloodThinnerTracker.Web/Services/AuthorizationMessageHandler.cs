@@ -61,15 +61,20 @@ public class AuthorizationMessageHandler : DelegatingHandler
         // Handle 401 Unauthorized - token might be expired
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            _logger.LogWarning("Received 401 Unauthorized response. Token may be expired.");
+            _logger.LogWarning("Received 401 Unauthorized response from {Uri}. This is expected until token exchange is implemented.", 
+                request.RequestUri);
             
             // TODO: Implement automatic token refresh using refresh token
-            // For now, just log the user out
-            if (_authStateProvider is CustomAuthenticationStateProvider provider)
-            {
-                _logger.LogInformation("Logging out user due to 401 response");
-                await provider.MarkUserAsLoggedOutAsync();
-            }
+            // TODO: Implement token exchange with API to get proper JWT
+            // For now, DON'T log the user out - they're authenticated with OAuth
+            // The 401 is expected because API doesn't accept Microsoft tokens yet
+            
+            // Commenting out automatic logout until token exchange is implemented
+            // if (_authStateProvider is CustomAuthenticationStateProvider provider)
+            // {
+            //     _logger.LogInformation("Logging out user due to 401 response");
+            //     await provider.MarkUserAsLoggedOutAsync();
+            // }
         }
 
         return response;
