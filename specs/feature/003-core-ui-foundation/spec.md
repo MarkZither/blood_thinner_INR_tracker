@@ -17,9 +17,9 @@
 
 ## Overview
 
-Establish the foundational UI structure for the Blood Thinner Tracker application using Blazor Server and MudBlazor components. This feature provides authentication-protected pages for viewing existing medication and INR data (read-only initially) with mobile-responsive design.
+Establish the foundational UI structure for the Blood Thinner Tracker application using Blazor Server and MudBlazor components. This feature validates and polishes the existing authentication-protected pages for medication and INR data with mobile-responsive design. **Note**: The current implementation already includes full CRUD functionality; this feature focuses on architecture cleanup (authentication fix, MudBlazor migration, service layer, testing).
 
-**Why This Feature**: Creates the baseline UI framework that all subsequent features will build upon. Users can authenticate and view their data before we add complex data entry functionality.
+**Why This Feature**: Creates a production-ready UI framework with proper authentication, consistent UI components (MudBlazor-only), service layer abstraction, and comprehensive testing that all subsequent features will build upon.
 
 ---
 
@@ -30,7 +30,7 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 2. Integrate MudBlazor component library for consistent UI
 3. Create read-only medication list page
 4. Create read-only INR reading history page
-5. Implement mobile-responsive navigation
+5. Implement mobile-responsive design (navigation layout AND data presentation)
 
 ### Secondary Goals
 1. Set up page routing and layouts
@@ -104,6 +104,8 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - No Font Awesome CSS dependencies remain
 - All pages use MudBlazor layout components (MudLayout, MudAppBar, MudDrawer)
 - All forms use MudBlazor form components (MudTextField, MudButton, etc.)
+- All tables use MudDataGrid or MudTable (no Bootstrap tables)
+- All data grids use MudBlazor components (no third-party grid libraries)
 
 ---
 
@@ -139,7 +141,11 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - Implement OAuth callback handlers that exchange authorization code for JWT tokens
 - Call `MarkUserAsAuthenticatedAsync(token, refreshToken)` after successful OAuth exchange
 - Add proper error handling for token refresh failures
-- Implement route guards that check authentication before rendering protected pages
+- **Implement route guards using two approaches**:
+  - Declarative: Use `<AuthorizeView>` component wrapper in pages for conditional rendering
+  - Programmatic: Use `NavigationManager.NavigateTo("/login?returnUrl=...")` in `OnInitializedAsync()` lifecycle method
+  - Validate authentication state before rendering medical data
+  - Redirect unauthenticated users to login page with return URL
 - Replace Bootstrap-dependent logout dropdown with MudBlazor MudMenu component
 - Add authentication state logging for debugging
 

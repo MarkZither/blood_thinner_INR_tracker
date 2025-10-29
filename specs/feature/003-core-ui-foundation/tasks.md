@@ -144,10 +144,12 @@ The following components exist and exceed the original spec requirements:
   - [ ] Verify 401 responses trigger logout (already implemented in handler)
 
 - [ ] **Add Authentication Route Guards**
-  - [ ] Create `AuthorizedLayoutBase` or similar base component
-  - [ ] Check authentication state in `OnInitializedAsync`
-  - [ ] Redirect to `/login?returnUrl={currentUrl}` if not authenticated
-  - [ ] Apply to Dashboard, Medications, INR, Profile pages
+  - [ ] **Approach**: Use `<AuthorizeView>` + NavigationManager (not custom base component)
+  - [ ] Wrap page content in `<AuthorizeView>` with `<Authorizing>` and `<NotAuthorized>` templates
+  - [ ] In `<NotAuthorized>`: Use NavigationManager to redirect to `/login?returnUrl={currentUrl}`
+  - [ ] In `<Authorizing>`: Show LoadingSpinner component
+  - [ ] Apply to Dashboard.razor, Medications.razor, INRTracking.razor, Profile.razor
+  - [ ] Test redirect flow: unauthenticated → login → return to original page
 
 - [ ] **Fix Logout UI Visibility**
   - [ ] Replace Bootstrap dropdown in MainLayout with MudBlazor MudMenu
@@ -383,10 +385,11 @@ Convert Medications page to use only MudBlazor components.
   - [ ] `<input class="form-control">` → `<MudTextField>`
   - [ ] `<select class="form-select">` → `<MudSelect>`
   - [ ] `<button class="btn">` → `<MudButton>`
-- [ ] Replace medication cards/table:
-  - [ ] Option A: Use `<MudDataGrid>` for table view
-  - [ ] Option B: Use `<MudCard>` for card view
-  - [ ] Implement responsive switch (table on desktop, cards on mobile)
+- [ ] Replace medication cards/table with responsive design:
+  - [ ] Desktop (≥768px): Use `<MudDataGrid>` for sortable, filterable table view
+  - [ ] Mobile (<768px): Use `<MudCard>` in grid layout for touch-friendly cards
+  - [ ] Implement responsive breakpoint switch using MudBlazor `Breakpoint.Md`
+  - [ ] Test transition between views at breakpoint
 - [ ] Replace dropdown menu:
   - [ ] `<div class="dropdown">` → `<MudMenu>`
   - [ ] Add `<MudMenuItem>` for each action
@@ -411,6 +414,8 @@ Convert Medications page to use only MudBlazor components.
 - Search and filter work correctly
 - Add/Edit/Delete actions work
 - Mobile view is user-friendly
+
+**Note**: Detailed migration steps and component mapping tables are in spec.md Phase 2 (lines 240-327). Tasks above reference this comprehensive guide.
 
 ---
 
@@ -779,12 +784,23 @@ Constitution Principle II requires 90%+ overall test coverage. Without page comp
 - [ ] Create `docs/user-guide/inr-tracking.md`
   - [ ] How to view INR history
   - [ ] Understanding INR values and ranges
+  - [ ] Interpreting color-coded results
   - [ ] What to do if INR is out of range
   - [ ] (Future: How to add INR tests)
 - [ ] Create `docs/user-guide/getting-started.md`
   - [ ] First login guide
   - [ ] Dashboard overview
   - [ ] Navigation guide
+- [ ] Create `docs/user-guide/authentication.md`
+  - [ ] How to sign in with Microsoft/Google
+  - [ ] Understanding authentication status
+  - [ ] How to log out
+  - [ ] Troubleshooting login issues
+- [ ] Create `docs/user-guide/faq.md`
+  - [ ] "Why can't I add medications yet?" (future feature)
+  - [ ] "Why can't I add INR tests yet?" (future feature)
+  - [ ] Authentication troubleshooting
+  - [ ] Browser compatibility
 - [ ] Add screenshots to user guides
 - [ ] Update main `README.md` with user guide links
 
