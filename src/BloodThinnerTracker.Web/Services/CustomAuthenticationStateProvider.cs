@@ -40,18 +40,39 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     private string GetCacheKey(string key)
     {
-        // Ensure session is loaded before accessing session ID
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext?.Session != null)
+        
+        // Try to get a stable identifier across HTTP and SignalR contexts
+        // Option 1: Use the authentication cookie session ticket ID
+        var cookieValue = httpContext?.Request.Cookies[".AspNetCore.Cookies"];
+        
+        // Option 2: Use session ID if available
+        string? identifier = null;
+        
+        if (!string.IsNullOrEmpty(cookieValue))
         {
-            // This will load the session if not already loaded
-            _ = httpContext.Session.IsAvailable;
+            // Use hash of cookie as identifier (stable across requests)
+            identifier = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(cookieValue))).Substring(0, 16);
+            _logger.LogDebug("Using auth cookie hash as cache key identifier");
+        }
+        else if (httpContext?.Session != null)
+        {
+            // Fallback to session ID
+            _ = httpContext.Session.IsAvailable; // Load session
+            identifier = httpContext.Session.Id;
+            _logger.LogDebug("Using session ID as cache key identifier");
+        }
+        else
+        {
+            // Last resort: use connection ID
+            identifier = httpContext?.Connection?.Id ?? "global";
+            _logger.LogWarning("No stable identifier available, using connection ID: {Identifier}", identifier);
         }
         
-        // Use session ID as part of cache key to isolate user data
-        var sessionId = httpContext?.Session?.Id ?? "anonymous";
-        _logger.LogDebug("Using cache key: {SessionId}:{Key}", sessionId, key);
-        return $"{sessionId}:{key}";
+        var cacheKey = $"{identifier}:{key}";
+        _logger.LogDebug("Cache key: {CacheKey}", cacheKey);
+        return cacheKey;
     }
 
     /// <summary>
@@ -366,7 +387,10 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         try
         {
             var cacheKey = GetCacheKey(key);
+            var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
             var value = _cache.Get<string>(cacheKey);
+            _logger.LogInformation("Retrieving {Key} from cache with session ID {SessionId}, full key: {CacheKey}, found: {Found}", 
+                key, sessionId, cacheKey, value != null);
             return Task.FromResult(value);
         }
         catch (Exception ex)
@@ -381,14 +405,16 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         try
         {
             var cacheKey = GetCacheKey(key);
-            _logger.LogInformation("Storing {Key} in memory cache (length: {Length})", key, value?.Length ?? 0);
+            var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
+            _logger.LogInformation("Storing {Key} in memory cache with session ID {SessionId} (length: {Length})", 
+                key, sessionId, value?.Length ?? 0);
             
             // Store with sliding expiration (30 days of inactivity)
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromDays(30));
             
             _cache.Set(cacheKey, value ?? string.Empty, cacheOptions);
-            _logger.LogInformation("Successfully stored {Key} in memory cache", key);
+            _logger.LogInformation("Successfully stored {Key} in memory cache with full key: {CacheKey}", key, cacheKey);
             return Task.CompletedTask;
         }
         catch (Exception ex)

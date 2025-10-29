@@ -50,7 +50,8 @@
     {
         try
         {
-            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}", Provider ?? "unknown");
+            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}, returnUrl {ReturnUrl}", 
+                Provider ?? "unknown", ReturnUrl ?? "not provided");
 
             // Get HttpContext
             var httpContext = HttpContextAccessor.HttpContext;
