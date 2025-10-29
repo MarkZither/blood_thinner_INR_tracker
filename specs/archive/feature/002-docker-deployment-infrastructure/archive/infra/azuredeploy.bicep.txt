@@ -1,0 +1,70 @@
+// Original azuredeploy.bicep (archived as text)
+param location string = resourceGroup().location
+param apiName string = 'bloodthinnertracker-api'
+param webName string = 'bloodthinnertracker-web'
+param dbName string = 'bloodtracker-db'
+param keyVaultName string = 'bloodthinnertracker-kv'
+
+resource apiApp 'Microsoft.App/containerApps@2022-03-01' = {
+  name: apiName
+  location: location
+  properties: {
+    configuration: {
+      secrets: []
+    }
+    template: {
+      containers: [
+        {
+          image: 'REPLACE_WITH_API_IMAGE'
+          name: apiName
+        }
+      ]
+    }
+  }
+}
+
+resource webApp 'Microsoft.App/containerApps@2022-03-01' = {
+  name: webName
+  location: location
+  properties: {
+    configuration: {
+      secrets: []
+    }
+    template: {
+      containers: [
+        {
+          image: 'REPLACE_WITH_WEB_IMAGE'
+          name: webName
+        }
+      ]
+    }
+  }
+}
+
+resource db 'Microsoft.DBforPostgreSQL/servers@2022-01-01' = {
+  name: dbName
+  location: location
+  properties: {
+    administratorLogin: 'bloodtracker_dev'
+    administratorLoginPassword: 'dev_password'
+    version: '16'
+    storageProfile: {
+      storageMB: 5120
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
+    }
+  }
+}
+
+resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    tenantId: subscription().tenantId
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    accessPolicies: []
+  }
+}

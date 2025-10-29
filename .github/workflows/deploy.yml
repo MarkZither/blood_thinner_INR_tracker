@@ -1,0 +1,7 @@
+# OUT OF SCOPE: CI/CD deployment workflow for Azure Container Apps. Kept for reference only.
+
+name: Archived - deploy workflow (OUT-OF-SCOPE)
+
+# This workflow has been archived for feature 002 and will not run.
+# Original workflow content is preserved in specs/feature/002-docker-deployment-infrastructure/archive/infra/deploy.yml.txt
+

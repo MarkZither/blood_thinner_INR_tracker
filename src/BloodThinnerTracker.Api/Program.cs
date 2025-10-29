@@ -8,12 +8,26 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
 using System.Text;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
 // This application handles medical data and must comply with healthcare regulations.
 // Ensure proper security measures are in place before deployment.
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Azure Key Vault integration for production secrets
+if (builder.Environment.IsProduction())
+{
+    var keyVaultUri = builder.Configuration["ConnectionStrings:KeyVaultUri"];
+    if (!string.IsNullOrEmpty(keyVaultUri))
+    {
+        builder.Configuration.AddAzureKeyVault(
+            new Uri(keyVaultUri),
+            new Azure.Identity.DefaultAzureCredential());
+    }
+}
 
 // Add service defaults (logging, health checks, etc.)
 // Note: Temporarily commented out until ServiceDefaults.AddServiceDefaults is properly implemented

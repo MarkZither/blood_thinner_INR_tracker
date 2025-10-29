@@ -5,6 +5,7 @@ namespace BloodThinnerTracker.Web.Services;
 
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+// KeyVaultService usage removed; configuration-based Key Vault is used instead.
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
@@ -64,3 +65,5 @@ public class BlazorAuthenticationHandler : AuthenticationHandler<AuthenticationS
         return Task.CompletedTask;
     }
 }
+
+// KeyVaultService is intentionally not used; secrets are provided via IConfiguration (AddAzureKeyVault) when enabled.

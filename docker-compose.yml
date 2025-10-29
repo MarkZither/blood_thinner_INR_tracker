@@ -1,0 +1,7 @@
+# OUT OF SCOPE: This docker-compose.yml was created during an earlier iteration but Docker Compose is OUT OF SCOPE for this feature.
+# We will use .NET Aspire/local orchestration in a future feature. Keep file for reference only.
+
+# OUT-OF-SCOPE (archived)
+# The docker-compose.yml previously created for this feature is archived.
+# See specs/feature/002-docker-deployment-infrastructure/archive/infra/docker-compose.yml.txt for the original contents.
+

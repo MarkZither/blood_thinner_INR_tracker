@@ -1,0 +1,54 @@
+# Original docker-compose.yml (archived as text)
+
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+    ports:
+      - "7001:80"
+    depends_on:
+      - db
+    volumes:
+      - ./src/BloodThinnerTracker.Api:/src
+      - /src/bin
+      - /src/obj
+    command: ["dotnet", "watch", "--project", "src/BloodThinnerTracker.Api", "run", "--urls", "http://+:80"]
+
+  web:
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Web/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+    ports:
+      - "7002:80"
+    depends_on:
+      - api
+    volumes:
+      - ./src/BloodThinnerTracker.Web:/src
+      - /src/bin
+      - /src/obj
+    command: ["dotnet", "watch", "--project", "src/BloodThinnerTracker.Web", "run", "--urls", "http://+:80"]
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: bloodtracker_dev
+      POSTGRES_USER: bloodtracker_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

@@ -1,0 +1,11 @@
+@code {
+    // TODO: Call API /health endpoint and display status
+    private string status = "Unknown";
+    protected override async Task OnInitializedAsync()
+    {
+        // Example: await Http.GetFromJsonAsync<HealthStatus>("/health");
+        status = "Healthy";
+    }
+}
+
+<h3>Health Status: @status</h3>
