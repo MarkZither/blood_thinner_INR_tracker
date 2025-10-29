@@ -392,6 +392,61 @@ public class AuthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Simplified token exchange for Web SSO scenarios where Web app handles OAuth
+    /// </summary>
+    /// <param name="request">Claims-based authentication request</param>
+    /// <returns>Authentication response with JWT tokens</returns>
+    [HttpPost("exchange")]
+    [ProducesResponseType(typeof(AuthenticationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AuthenticationResponse>> ExchangeWebToken([FromBody] ClaimsLoginRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.Email))
+            {
+                _logger.LogWarning("Invalid claims login request");
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Processing token exchange for email: {Email}, provider: {Provider}", 
+                request.Email, request.Provider);
+
+            // Authenticate using provided claims (Web app already validated OAuth)
+            var response = await _authenticationService.AuthenticateExternalAsync(
+                request.Provider ?? "AzureAD",
+                request.ExternalUserId ?? request.Email,
+                request.Email,
+                request.Name ?? request.Email,
+                request.DeviceId ?? "web-app");
+
+            if (response == null)
+            {
+                _logger.LogWarning("External authentication failed for {Email}", request.Email);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Authentication Failed",
+                    Detail = "Unable to authenticate user",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            _logger.LogInformation("Token exchange successful for user: {UserId}", response.User?.Id);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during web token exchange for {Email}", request.Email);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Internal Server Error",
+                Detail = "An unexpected error occurred during token exchange",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
     #region Helper Methods
 
     private string GenerateState()

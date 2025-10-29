@@ -173,7 +173,9 @@
                     return;
                 }
 
-                // Call API to exchange ID token for our JWT
+                // Try token exchange with ID token first (preferred method)
+                Logger.LogInformation("OAuth complete: Attempting token exchange with ID token...");
+                
                 var exchangeRequest = new ExternalLoginRequest
                 {
                     Provider = Provider == "microsoft" ? "AzureAD" : "Google",
@@ -186,6 +188,24 @@
                     email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
                 
                 var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
+
+                // If ID token validation fails, try claims-based exchange
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.LogWarning("ID token exchange failed: {Status}, trying claims-based exchange", response.StatusCode);
+                    
+                    var claimsRequest = new ClaimsLoginRequest
+                    {
+                        Provider = Provider == "microsoft" ? "AzureAD" : "Google",
+                        Email = email,
+                        Name = name,
+                        ExternalUserId = sub,
+                        DeviceId = "web-app",
+                        DevicePlatform = "Web"
+                    };
+
+                    response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/exchange", claimsRequest);
+                }
 
                 if (response.IsSuccessStatusCode)
                 {

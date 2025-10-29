@@ -51,8 +51,8 @@ builder.Services.AddAuthentication(options =>
         options.ClientSecret = adOptions.ClientSecret;
         options.SaveTokens = true;
         
-        // Request OpenID Connect scopes to get id_token
-        options.Scope.Clear();
+        // Add OpenID Connect scopes (keep defaults and add what we need)
+        // Don't clear - Microsoft Account provider needs its default scopes
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
