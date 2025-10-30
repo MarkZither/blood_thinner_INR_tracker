@@ -225,8 +225,13 @@
                         var redirectTarget = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
                         Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target}...", redirectTarget);
 
-                        // Redirect WITHOUT force reload to preserve session
-                        Navigation.NavigateTo(redirectTarget, forceLoad: false);
+                        // CRITICAL: Wait a moment for auth state to propagate to Blazor circuit
+                        // Without this, the target page may still see user as unauthenticated
+                        await Task.Delay(100);
+
+                        // Use forceLoad=true to ensure the entire page reloads with auth state
+                        // This prevents the redirect loop where Dashboard thinks user is not logged in
+                        Navigation.NavigateTo(redirectTarget, forceLoad: true);
                     }
                     else
                     {
