@@ -479,6 +479,99 @@ builder.Build().Run();
 
 ---
 
+## R-009: Connection String Security Strategy
+
+**Question**: How should PostgreSQL connection strings be secured for local development? What password approach balances security with developer experience?
+
+**Decision**: **Phase 1** - Start with hardcoded password `local_dev_only_password`; **Phase 2** - Upgrade to environment variable before feature completion
+
+**Rationale**:
+- **Local development only** - No patient data, no network exposure, acceptable risk
+- **Iterative approach** - Get basic functionality working first, then enhance security
+- **Constitution compliance** - Feature is explicitly "LOCAL DEVELOPMENT ONLY" (Principle VI)
+- **Clear migration path** - Environment variables provide sufficient security for local dev
+- **Developer experience** - Predictable passwords simplify debugging initially
+- **Security upgrade planned** - Tasks T073a and T073b ensure env var migration
+
+**Phase 1 Configuration (Initial Implementation)**:
+```csharp
+// AppHost/Program.cs - Initial approach (T040)
+var postgres = builder.AddPostgres("postgres")
+    .WithEnvironment("POSTGRES_USER", "postgres")
+    .WithEnvironment("POSTGRES_PASSWORD", "local_dev_only_password")  // Hardcoded
+    .WithEnvironment("POSTGRES_DB", "bloodtracker")
+    .WithDataVolume("aspire-postgres-data");
+
+var db = postgres.AddDatabase("bloodtracker");
+
+var api = builder.AddProject<Projects.BloodThinnerTracker_Api>("api")
+    .WithReference(db);  // Injects: Host=localhost;Port=5432;Username=postgres;Password=local_dev_only_password;Database=bloodtracker
+```
+
+**Phase 2 Configuration (Security Upgrade - T073a)**:
+```csharp
+// AppHost/Program.cs - Environment variable approach
+var postgresPassword = builder.Configuration["POSTGRES_PASSWORD"] 
+    ?? throw new InvalidOperationException("POSTGRES_PASSWORD environment variable required");
+
+var postgres = builder.AddPostgres("postgres")
+    .WithEnvironment("POSTGRES_USER", "postgres")
+    .WithEnvironment("POSTGRES_PASSWORD", postgresPassword)  // From environment
+    .WithEnvironment("POSTGRES_DB", "bloodtracker")
+    .WithDataVolume("aspire-postgres-data");
+```
+
+**Developer Setup (Phase 2)**:
+```powershell
+# Windows - Add to user environment variables
+[Environment]::SetEnvironmentVariable("POSTGRES_PASSWORD", "MySecureLocalPassword123", "User")
+
+# Or set temporarily in PowerShell session
+$env:POSTGRES_PASSWORD = "MySecureLocalPassword123"
+
+# Linux/macOS - Add to ~/.bashrc or ~/.zshrc
+export POSTGRES_PASSWORD="MySecureLocalPassword123"
+```
+
+**Documentation Requirements**:
+- quickstart.md must document Phase 2 environment variable requirement (added in T073b)
+- reset-database.ps1 must handle both approaches (T073b)
+- README.md must include security note about local dev passwords
+
+**Security Boundaries**:
+- ✅ Acceptable for local development (no patient data)
+- ✅ Not committed to source control (environment-specific)
+- ✅ Not exposed to network (localhost binding)
+- ✅ Documented as non-production approach
+- ⚠️ Visible in process environment variables (acceptable trade-off)
+- ❌ NOT acceptable for production (use Azure PostgreSQL managed identity)
+
+**Production Approach** (Out of Scope):
+- Azure PostgreSQL with Azure Managed Identity (no passwords at all)
+- Connection string from Azure Key Vault
+- Handled by separate production deployment feature
+
+**Alternatives Considered**:
+- ❌ **Random password per session**: Rejected because breaks data persistence between runs (Docker volume would have different password)
+- ❌ **User Secrets (dotnet user-secrets)**: Rejected because requires per-developer setup before F5 works
+- ❌ **Azure Key Vault for local dev**: Rejected as overkill for local development
+- ❌ **No password (trust authentication)**: Rejected because PostgreSQL requires authentication
+
+**Migration Timeline**:
+- **T040**: Phase 1 implementation (hardcoded password)
+- **T040a**: Document Phase 1 approach with security note
+- **US1-US5**: Focus on functionality with Phase 1
+- **T073a**: Phase 2 implementation (environment variable)
+- **T073b**: Update tooling (reset script)
+- **T074**: Update documentation with Phase 2 setup instructions
+
+**References**:
+- https://learn.microsoft.com/en-us/aspire/database/postgresql-component
+- https://www.postgresql.org/docs/current/auth-password.html
+- Blood Thinner Tracker Constitution Principle VI (Cloud Deployment - Local Dev Only)
+
+---
+
 ## Summary
 
 All research tasks completed. Key technology decisions:
@@ -492,6 +585,7 @@ All research tasks completed. Key technology decisions:
 | Service Discovery | Aspire built-in | (included in Aspire) |
 | Container Storage | Docker named volumes | (persistent by default) |
 | Authentication | None (local dev only) | N/A |
+| Connection Security | Phase 1: Hardcoded → Phase 2: Env Var | PostgreSQL 16-alpine |
 
 **Exit Criteria**: ✅ All research questions answered with documented rationale and alternatives considered.
 

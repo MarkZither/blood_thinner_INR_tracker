@@ -1,4 +1,4 @@
-# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire
+# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire# Feature Specification: Local Development Orchestration with .NET Aspire
 
 
 
@@ -8,86 +8,103 @@
 
 **Status**: Draft  **Feature Branch**: `004-as-a-developer`  
 
-**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"
 
-**Created**: October 30, 2025  
 
-## User Scenarios & Testing
+**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"**Created**: October 30, 2025  
 
-**Status**: Draft  
+
+
+---**Status**: Draft  **Feature Branch**: `004-as-a-developer`  
+
+
+
+## User Scenarios & Testing**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"
+
+
+
+### User Story 1 - One-Click Local Development Environment (Priority: P1)**Created**: October 30, 2025  
+
+
+
+As a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.## User Scenarios & Testing
+
+
+
+**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.**Status**: Draft  
+
 **Feature Branch**: `004-as-a-developer`
-
-### User Story 1 - One-Click Local Development Environment (Priority: P1)
-
-**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"
-
-As a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.
-
-**Created**: 2025-01-30  **Created**: October 30, 2025  
-
-**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.
-
-## User Scenarios & Testing
 
 **Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.
 
-**Status**: Draft  **Status**: Draft  
+### User Story 1 - One-Click Local Development Environment (Priority: P1)
 
 **Acceptance Scenarios**:
 
+**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"
+
+1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web) start successfully and are accessible
+
+As a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.
+
+2. **Given** the solution requires Docker containers (PostgreSQL database), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention
+
+**Created**: 2025-01-30  **Created**: October 30, 2025  
+
+3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses
+
+**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.
+
+4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate services
+
+## User Scenarios & Testing
+
+---
+
+**Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.
+
+### User Story 2 - Real-Time Observability Dashboard (Priority: P1)
+
+**Status**: Draft  **Status**: Draft  
+
+As a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.
+
+**Acceptance Scenarios**:
+
+**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.
+
 ### User Story 1 - One-Click Local Development Environment (Priority: P1)
+
+**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000). Delivers complete visibility into running services.
 
 1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web, Mobile backend services) start successfully and are accessible
 
+**Acceptance Scenarios**:
+
 2. **Given** the solution requires Docker containers (databases, caching), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"**Input**: User description: "as a developer i should be able to press f5 and the solution will run locally, running the services needed from the solution and spinning up any containers needed and taking care of connectionstrings and service discovery, i should also see a dashboard showing the state of the services and logging and telemetry"
 
+1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)
+
 3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses
-
-4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate servicesAs a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.
-
-
-
----
-
-
-
-### User Story 2 - Real-Time Observability Dashboard (Priority: P1)**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.
-
-
-
-As a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.## User Scenarios & Testing## User Scenarios & Testing *(mandatory)*
-
-
-
-**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.
-
-
-
-**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.
-
-
-
-**Acceptance Scenarios**:**Acceptance Scenarios**:
-
-
-
-1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)### User Story 1 - One-Click Local Development Environment (Priority: P1)### User Story 1 - One-Click Local Development Startup (Priority: P1)
 
 2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities
 
-3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web, Mobile backend services) start successfully and are accessible
+4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate servicesAs a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.
+
+3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services
+
+
 
 4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service
 
-2. **Given** the solution requires Docker containers (databases, caching), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention
+---
 
 ---
 
-3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses
+
 
 ### User Story 3 - Container Lifecycle Management (Priority: P2)
 
-4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate servicesAs a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.As a developer, I want to press F5 in Visual Studio and have all necessary services start automatically so that I can begin development immediately without manual infrastructure setup.
+### User Story 2 - Real-Time Observability Dashboard (Priority: P1)**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.
 
 As a developer, I want Docker containers (databases, caching services, message queues) to be automatically managed by the development orchestration, so I don't have to manually start, stop, or configure containers.
 
@@ -95,71 +112,83 @@ As a developer, I want Docker containers (databases, caching services, message q
 
 **Why this priority**: Container management is essential for local development but is a lower priority than the core F5 experience (P1). It's a supporting capability that enhances the primary workflow.
 
----
+As a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.## User Scenarios & Testing## User Scenarios & Testing *(mandatory)*
 
-**Independent Test**: Can be fully tested by verifying that required containers (SQLite/PostgreSQL, Redis if needed) are automatically started when the application runs and stopped when it terminates. Delivers hands-free container management.
+**Independent Test**: Can be fully tested by verifying that required containers (PostgreSQL) are automatically started when the application runs and stopped when it terminates. Delivers hands-free container management.
 
 
 
 **Acceptance Scenarios**:
 
-### User Story 2 - Real-Time Observability Dashboard (Priority: P1)**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.**Why this priority**: This is the core value proposition - eliminating the friction of local development setup. Without this, the feature provides no value.
+**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.
 
 1. **Given** the application requires a PostgreSQL database, **When** the developer starts the application, **Then** a PostgreSQL container is automatically started with appropriate configuration
 
+
+
 2. **Given** containers are running, **When** the developer stops the application, **Then** containers are either stopped or left running based on configuration
+
+**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.
 
 3. **Given** a container fails to start, **When** the developer views the dashboard, **Then** they see clear error messages explaining why the container failed
 
-4. **Given** the developer needs to reset local data, **When** they trigger a "clean start" command, **Then** containers are recreated with fresh stateAs a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.
 
 
+4. **Given** the developer needs to reset local data, **When** they trigger a "clean start" command, **Then** containers are recreated with fresh state
+
+**Acceptance Scenarios**:**Acceptance Scenarios**:
 
 ---
 
 
 
-### User Story 4 - Service Configuration and Discovery (Priority: P2)**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.**Independent Test**: Can be fully tested by pressing F5 in Visual Studio and verifying all services start and the application runs. Delivers immediate developer productivity improvement.
+### User Story 4 - Service Configuration and Discovery (Priority: P2)
 
-
+1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)### User Story 1 - One-Click Local Development Environment (Priority: P1)### User Story 1 - One-Click Local Development Startup (Priority: P1)
 
 As a developer, I want services to automatically discover each other's endpoints and have their configuration injected at runtime, so I don't have to manually maintain URLs, ports, and connection strings in configuration files.
 
+2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities
 
+**Why this priority**: Service discovery is important for multi-service development but builds on the core F5 experience (P1). It reduces configuration burden but is secondary to getting services running.
 
-**Why this priority**: Service discovery is important for multi-service development but builds on the core F5 experience (P1). It reduces configuration burden but is secondary to getting services running.**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.
-
-
+3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web, Mobile backend services) start successfully and are accessible
 
 **Independent Test**: Can be fully tested by verifying that services can successfully call each other using service names (not hardcoded URLs) and that configuration values are correctly injected. Delivers configuration-free inter-service communication.
 
+4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service
 
+**Acceptance Scenarios**:
 
-**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:
-
-
+2. **Given** the solution requires Docker containers (databases, caching), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention
 
 1. **Given** the Web project needs to call the API, **When** the application starts, **Then** the Web project automatically receives the correct API endpoint URL via configuration
 
+---
+
 2. **Given** multiple instances of a service might be running, **When** a client service calls it, **Then** the request is routed to an available instance
 
-3. **Given** services need environment-specific configuration (dev, staging), **When** the developer changes the environment, **Then** appropriate configuration is automatically applied1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)
+3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses
+
+3. **Given** services need environment-specific configuration (dev, staging), **When** the developer changes the environment, **Then** appropriate configuration is automatically applied
+
+### User Story 3 - Container Lifecycle Management (Priority: P2)
 
 4. **Given** a service endpoint changes (different port), **When** the developer restarts the application, **Then** all dependent services automatically receive the updated endpoint
 
-2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities
+4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate servicesAs a developer, I want to press F5 in Visual Studio/VS Code and have the entire solution automatically start with all required services and dependencies, so I can immediately begin developing and debugging without manual setup steps.As a developer, I want to press F5 in Visual Studio and have all necessary services start automatically so that I can begin development immediately without manual infrastructure setup.
 
 ---
 
-3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web, Mobile backend services) start successfully and are accessible1. **Given** a developer has the solution open in Visual Studio, **When** they press F5, **Then** the orchestrator project starts and launches all configured services
+As a developer, I want Docker containers (databases, caching services, message queues) to be automatically managed by the development orchestration, so I don't have to manually start, stop, or configure containers.
 
 ### User Story 5 - Integrated Debugging Experience (Priority: P3)
 
-4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service
+
 
 As a developer, I want to set breakpoints across multiple services and debug them simultaneously in my IDE, so I can trace issues that span service boundaries without switching tools.
 
-2. **Given** the solution requires Docker containers (databases, caching), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention2. **Given** services are starting, **When** any required containers are not running, **Then** the orchestrator automatically pulls and starts the container images
+**Why this priority**: Container management is essential for local development but is a lower priority than the core F5 experience (P1). It's a supporting capability that enhances the primary workflow.
 
 **Why this priority**: Multi-service debugging is valuable but less critical than basic observability (P1-P2). Developers can use logs/traces initially and add debugging as needed.
 
@@ -167,19 +196,51 @@ As a developer, I want to set breakpoints across multiple services and debug the
 
 **Independent Test**: Can be fully tested by setting breakpoints in multiple projects, making a request that flows across services, and verifying that debugger stops at each breakpoint in sequence. Delivers full-stack debugging capability.
 
-3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses3. **Given** services are running, **When** a developer navigates to the application URL, **Then** the application loads successfully with all dependencies available
+**Independent Test**: Can be fully tested by verifying that required containers (SQLite/PostgreSQL, Redis if needed) are automatically started when the application runs and stopped when it terminates. Delivers hands-free container management.
 
 **Acceptance Scenarios**:
 
-### User Story 3 - Container Lifecycle Management (Priority: P2)
+
 
 1. **Given** the developer has set breakpoints in both Web and API projects, **When** they make a request from the browser, **Then** the debugger stops at breakpoints in both projects in the correct sequence
 
-2. **Given** the developer is debugging one service, **When** they want to inspect another service's state, **Then** they can view logs and traces from the Aspire dashboard without stopping the debugger4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate services4. **Given** services have been started, **When** the developer stops debugging (Shift+F5), **Then** all services and containers stop gracefully
+**Acceptance Scenarios**:
+
+2. **Given** the developer is debugging one service, **When** they want to inspect another service's state, **Then** they can view logs and traces from the Aspire dashboard without stopping the debugger
+
+### User Story 2 - Real-Time Observability Dashboard (Priority: P1)**Why this priority**: This is the core developer experience requirement - without this working, developers cannot effectively work on the application. It provides immediate value by eliminating manual setup time and reducing onboarding friction.**Why this priority**: This is the core value proposition - eliminating the friction of local development setup. Without this, the feature provides no value.
 
 3. **Given** the developer modifies code while debugging, **When** they use hot reload, **Then** changes are applied without restarting all services
 
-4. **Given** an exception occurs in a background service, **When** the developer views the dashboard, **Then** they can see the exception details and navigate to the source codeAs a developer, I want Docker containers (databases, caching services, message queues) to be automatically managed by the development orchestration, so I don't have to manually start, stop, or configure containers.
+1. **Given** the application requires a PostgreSQL database, **When** the developer starts the application, **Then** a PostgreSQL container is automatically started with appropriate configuration
+
+4. **Given** an exception occurs in a background service, **When** the developer views the dashboard, **Then** they can see the exception details and navigate to the source code
+
+2. **Given** containers are running, **When** the developer stops the application, **Then** containers are either stopped or left running based on configuration
+
+---
+
+3. **Given** a container fails to start, **When** the developer views the dashboard, **Then** they see clear error messages explaining why the container failed
+
+### Edge Cases
+
+4. **Given** the developer needs to reset local data, **When** they trigger a "clean start" command, **Then** containers are recreated with fresh stateAs a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.
+
+- What happens when a required Docker image is not available locally and cannot be pulled (network offline)?
+
+- How does the system handle port conflicts when default ports (5000, 15000, etc.) are already in use by other applications?
+
+- What happens when a service fails to start but others continue running?
+
+- How does the developer restart a single service without restarting the entire solution?---
+
+- What happens when .NET Aspire is not installed or is the wrong version?
+
+- How does the system handle configuration conflicts between local appsettings.json and Aspire-injected configuration?
+
+- What happens when a container runs out of disk space or memory?
+
+- How does the developer switch between using real containers vs. in-memory test doubles for dependencies?### User Story 4 - Service Configuration and Discovery (Priority: P2)**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Independent Test**: Can be fully tested by opening the solution in an IDE, pressing F5, and verifying that all services start successfully and the application is accessible at expected URLs. Delivers complete local development environment.**Independent Test**: Can be fully tested by pressing F5 in Visual Studio and verifying all services start and the application runs. Delivers immediate developer productivity improvement.
 
 
 
@@ -187,143 +248,408 @@ As a developer, I want to set breakpoints across multiple services and debug the
 
 
 
-### Edge Cases**Why this priority**: Container management is essential for local development but is a lower priority than the core F5 experience (P1). It's a supporting capability that enhances the primary workflow.
+## RequirementsAs a developer, I want services to automatically discover each other's endpoints and have their configuration injected at runtime, so I don't have to manually maintain URLs, ports, and connection strings in configuration files.
 
 
-
-- What happens when a required Docker image is not available locally and cannot be pulled (network offline)?------
-
-- How does the system handle port conflicts when default ports (5000, 15000, etc.) are already in use by other applications?
-
-- What happens when a service fails to start but others continue running?**Independent Test**: Can be fully tested by verifying that required containers (SQLite/PostgreSQL, Redis if needed) are automatically started when the application runs and stopped when it terminates. Delivers hands-free container management.
-
-- How does the developer restart a single service without restarting the entire solution?
-
-- What happens when .NET Aspire is not installed or is the wrong version?
-
-- How does the system handle configuration conflicts between local appsettings.json and Aspire-injected configuration?
-
-- What happens when a container runs out of disk space or memory?**Acceptance Scenarios**:
-
-- How does the developer switch between using real containers vs. in-memory test doubles for dependencies?
-
-### User Story 2 - Real-Time Observability Dashboard (Priority: P1)### User Story 2 - Automatic Connection String Management (Priority: P1)
-
-## Requirements
-
-1. **Given** the application requires a PostgreSQL database, **When** the developer starts the application, **Then** a PostgreSQL container is automatically started with appropriate configuration
 
 ### Functional Requirements
 
-2. **Given** containers are running, **When** the developer stops the application, **Then** containers are either stopped or left running based on configuration
 
-- **FR-001**: System MUST automatically start all services defined in the AppHost project when F5 is pressed or `dotnet run` is executed
 
-- **FR-002**: System MUST automatically pull and start required Docker containers (PostgreSQL, Redis, etc.) before starting dependent services3. **Given** a container fails to start, **When** the developer views the dashboard, **Then** they see clear error messages explaining why the container failed
+- **FR-001**: System MUST automatically start all services defined in the AppHost project when F5 is pressed or `dotnet run` is executed**Why this priority**: Service discovery is important for multi-service development but builds on the core F5 experience (P1). It reduces configuration burden but is secondary to getting services running.**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.
 
-- **FR-003**: System MUST provide automatic service discovery so services can reference each other by logical name rather than hardcoded URLs
 
-- **FR-004**: System MUST automatically generate and inject connection strings for databases and caching services into service configuration4. **Given** the developer needs to reset local data, **When** they trigger a "clean start" command, **Then** containers are recreated with fresh stateAs a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.As a developer, I want connection strings and service endpoints to be automatically configured so that I don't need to manually edit configuration files or remember port numbers.
 
-- **FR-005**: System MUST provide a web-based dashboard accessible at a predictable URL (e.g., http://localhost:15000) showing service status
+- **FR-002**: System MUST automatically pull and start required Docker containers (PostgreSQL initially; Redis deferred to future iterations) before starting dependent services
+
+
+
+- **FR-003**: System MUST provide automatic service discovery so services can reference each other by logical name rather than hardcoded URLs**Independent Test**: Can be fully tested by verifying that services can successfully call each other using service names (not hardcoded URLs) and that configuration values are correctly injected. Delivers configuration-free inter-service communication.
+
+
+
+- **FR-004**: System MUST automatically generate and inject connection strings for databases and caching services into service configuration
+
+
+
+- **FR-005**: System MUST provide a web-based dashboard accessible at a predictable URL (e.g., http://localhost:15000) showing service status**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:
+
+
 
 - **FR-006**: Dashboard MUST display real-time logs from all running services with filtering and search capabilities
 
-- **FR-007**: Dashboard MUST display distributed traces showing request flows across service boundaries using OpenTelemetry standards
 
-- **FR-008**: Dashboard MUST display metrics (CPU, memory, request rates, error rates) for each service in real-time---
 
-- **FR-009**: System MUST support debugging multiple services simultaneously with breakpoints across service boundaries
-
-- **FR-010**: System MUST handle graceful shutdown of all services and containers when the developer stops the application
-
-- **FR-011**: System MUST detect and report port conflicts with clear error messages suggesting alternative ports
-
-- **FR-012**: System MUST support environment-specific configuration (Development, Staging) with automatic environment variable injection### User Story 4 - Service Configuration and Discovery (Priority: P2)**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Why this priority**: Manual connection string management is a major source of configuration errors and time waste. This is essential for the "it just works" experience.
-
-- **FR-013**: System MUST provide health check endpoints for all services and display health status in the dashboard
-
-- **FR-014**: System MUST support hot reload for code changes without requiring full application restart
-
-- **FR-015**: System MUST log container startup failures with actionable error messages in the dashboard
-
-- **FR-016**: System MUST support both Windows (PowerShell) and macOS/Linux (bash) development environmentsAs a developer, I want services to automatically discover each other's endpoints and have their configuration injected at runtime, so I don't have to manually maintain URLs, ports, and connection strings in configuration files.
-
-- **FR-017**: System MUST persist container data between runs (databases retain data unless explicitly reset)
-
-- **FR-018**: System MUST provide a mechanism to reset/clean local data (recreate containers with fresh state)
-
-- **FR-019**: System MUST start all services and containers in a single "full stack" profile (multiple profiles can be added in future iterations if needed)
-
-- **FR-020**: Dashboard MUST provide direct links to service endpoints and API documentation (Swagger UI)**Why this priority**: Service discovery is important for multi-service development but builds on the core F5 experience (P1). It reduces configuration burden but is secondary to getting services running.**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.**Independent Test**: Can be tested by examining service configuration before and after startup - no manual configuration changes should be required. Services should discover each other automatically.
+- **FR-007**: Dashboard MUST display distributed traces showing request flows across service boundaries using OpenTelemetry standards1. **Given** the Web project needs to call the API, **When** the application starts, **Then** the Web project automatically receives the correct API endpoint URL via configuration
 
 
 
-### Key Entities
+- **FR-008**: Dashboard MUST display metrics (CPU, memory, request rates, error rates) for each service in real-time2. **Given** multiple instances of a service might be running, **When** a client service calls it, **Then** the request is routed to an available instance
 
 
 
-- **AppHost Project**: .NET Aspire orchestration project that defines service topology and dependencies**Independent Test**: Can be fully tested by verifying that services can successfully call each other using service names (not hardcoded URLs) and that configuration values are correctly injected. Delivers configuration-free inter-service communication.
+- **FR-009**: System MUST support debugging multiple services simultaneously with breakpoints across service boundaries3. **Given** services need environment-specific configuration (dev, staging), **When** the developer changes the environment, **Then** appropriate configuration is automatically applied1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)
 
-- **Service Projects**: Individual ASP.NET Core API, Blazor Web, MAUI backend services that are orchestrated
 
-- **Container Resources**: Docker containers for PostgreSQL, Redis, or other infrastructure dependencies
+
+- **FR-010**: System MUST handle graceful shutdown of all services and containers when the developer stops the application4. **Given** a service endpoint changes (different port), **When** the developer restarts the application, **Then** all dependent services automatically receive the updated endpoint
+
+
+
+- **FR-011**: System MUST detect and report port conflicts with clear error messages suggesting alternative ports2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities
+
+
+
+- **FR-012**: System MUST support environment-specific configuration (Development, Staging) with automatic environment variable injection---
+
+
+
+- **FR-013**: System MUST provide health check endpoints for all services and display health status in the dashboard3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services1. **Given** a developer has cloned the repository, **When** they press F5 in Visual Studio or run `dotnet run` on the AppHost project, **Then** all services (API, Web, Mobile backend services) start successfully and are accessible1. **Given** a developer has the solution open in Visual Studio, **When** they press F5, **Then** the orchestrator project starts and launches all configured services
+
+
+
+- **FR-014**: System MUST support hot reload for code changes without requiring full application restart### User Story 5 - Integrated Debugging Experience (Priority: P3)
+
+
+
+- **FR-015**: System MUST log container startup failures with actionable error messages in the dashboard4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service
+
+
+
+- **FR-016**: System MUST support both Windows (PowerShell) and macOS/Linux (bash) development environmentsAs a developer, I want to set breakpoints across multiple services and debug them simultaneously in my IDE, so I can trace issues that span service boundaries without switching tools.
+
+
+
+- **FR-017**: System MUST persist container data between runs (databases retain data unless explicitly reset)2. **Given** the solution requires Docker containers (databases, caching), **When** the developer starts the application, **Then** all required containers are automatically pulled, created, and started without manual intervention2. **Given** services are starting, **When** any required containers are not running, **Then** the orchestrator automatically pulls and starts the container images
+
+
+
+- **FR-018**: System MUST provide a mechanism to reset/clean local data (recreate containers with fresh state)**Why this priority**: Multi-service debugging is valuable but less critical than basic observability (P1-P2). Developers can use logs/traces initially and add debugging as needed.
+
+
+
+- **FR-019**: System MUST start all services and containers in a single "full stack" profile (multiple profiles can be added in future iterations if needed)---
+
+
+
+- **FR-020**: Dashboard MUST provide direct links to service endpoints and API documentation (Swagger UI)**Independent Test**: Can be fully tested by setting breakpoints in multiple projects, making a request that flows across services, and verifying that debugger stops at each breakpoint in sequence. Delivers full-stack debugging capability.
+
+
+
+### Key Entities3. **Given** services need to communicate with each other, **When** the application starts, **Then** service discovery is configured automatically and services can resolve each other's addresses3. **Given** services are running, **When** a developer navigates to the application URL, **Then** the application loads successfully with all dependencies available
+
+
+
+- **AppHost Project**: .NET Aspire orchestration project that defines service topology and dependencies**Acceptance Scenarios**:
+
+- **Service Projects**: Individual ASP.NET Core API, Blazor Web services that are orchestrated
+
+- **Container Resources**: Docker containers for PostgreSQL or other infrastructure dependencies### User Story 3 - Container Lifecycle Management (Priority: P2)
 
 - **Service Discovery Configuration**: Automatically generated endpoint mappings between services
 
-- **Dashboard**: Web-based UI for observing service state, logs, metrics, and traces**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:
+- **Dashboard**: Web-based UI for observing service state, logs, metrics, and traces1. **Given** the developer has set breakpoints in both Web and API projects, **When** they make a request from the browser, **Then** the debugger stops at breakpoints in both projects in the correct sequence
 
 - **OpenTelemetry Instrumentation**: Distributed tracing and metrics collection across services
 
-- **Environment Configuration**: Development, staging, production settings with automatic injection
+- **Environment Configuration**: Development, staging settings with automatic injection2. **Given** the developer is debugging one service, **When** they want to inspect another service's state, **Then** they can view logs and traces from the Aspire dashboard without stopping the debugger4. **Given** services need database connections, **When** the application starts, **Then** connection strings are automatically generated and injected into the appropriate services4. **Given** services have been started, **When** the developer stops debugging (Shift+F5), **Then** all services and containers stop gracefully
 
 - **Health Checks**: Service health monitoring endpoints for status tracking
 
-1. **Given** the Web project needs to call the API, **When** the application starts, **Then** the Web project automatically receives the correct API endpoint URL via configuration
+3. **Given** the developer modifies code while debugging, **When** they use hot reload, **Then** changes are applied without restarting all services
+
+---
+
+4. **Given** an exception occurs in a background service, **When** the developer views the dashboard, **Then** they can see the exception details and navigate to the source codeAs a developer, I want Docker containers (databases, caching services, message queues) to be automatically managed by the development orchestration, so I don't have to manually start, stop, or configure containers.
 
 ## Success Criteria
 
-2. **Given** multiple instances of a service might be running, **When** a client service calls it, **Then** the request is routed to an available instance
+
 
 ### Measurable Outcomes
 
-3. **Given** services need environment-specific configuration (dev, staging), **When** the developer changes the environment, **Then** appropriate configuration is automatically applied1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)1. **Given** multiple services require database connections, **When** services start, **Then** each service receives correct connection strings automatically
+---
 
 - **SC-001**: Developer can clone the repository and have a fully functional local development environment running within 5 minutes of pressing F5 (excluding initial Docker image downloads)
 
-- **SC-002**: All services start successfully with zero manual configuration or setup steps required beyond cloning the repository4. **Given** a service endpoint changes (different port), **When** the developer restarts the application, **Then** all dependent services automatically receive the updated endpoint
+
+
+- **SC-002**: All services start successfully with zero manual configuration or setup steps required beyond cloning the repository
+
+### Edge Cases**Why this priority**: Container management is essential for local development but is a lower priority than the core F5 experience (P1). It's a supporting capability that enhances the primary workflow.
 
 - **SC-003**: Dashboard is accessible immediately after services start and displays accurate real-time status for all services
 
-- **SC-004**: Developer can view logs from all services in the dashboard with response time under 1 second for log queries2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities2. **Given** services need to communicate with each other, **When** a service makes a request to another service, **Then** the request routes correctly using service discovery
+
+
+- **SC-004**: Developer can view logs from all services in the dashboard with response time under 1 second for log queries
+
+- What happens when a required Docker image is not available locally and cannot be pulled (network offline)?------
 
 - **SC-005**: Distributed traces appear in the dashboard within 5 seconds of request completion showing complete request flow
 
-- **SC-006**: Service discovery resolves endpoint addresses correctly 100% of the time during local development---
+- How does the system handle port conflicts when default ports (5000, 15000, etc.) are already in use by other applications?
+
+- **SC-006**: Service discovery resolves endpoint addresses correctly 100% of the time during local development
+
+- What happens when a service fails to start but others continue running?**Independent Test**: Can be fully tested by verifying that required containers (SQLite/PostgreSQL, Redis if needed) are automatically started when the application runs and stopped when it terminates. Delivers hands-free container management.
 
 - **SC-007**: Container failures are detected and reported in the dashboard within 3 seconds with actionable error messages
 
-- **SC-008**: Developer can set breakpoints in multiple services and debug cross-service requests without tool switching3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services3. **Given** connection strings are environment-specific, **When** running locally, **Then** local development connection strings are used without requiring configuration changes
+- How does the developer restart a single service without restarting the entire solution?
+
+- **SC-008**: Developer can set breakpoints in multiple services and debug cross-service requests without tool switching
+
+- What happens when .NET Aspire is not installed or is the wrong version?
 
 - **SC-009**: Application startup time (from F5 to all services healthy) is under 30 seconds on subsequent runs with warm containers
 
+- How does the system handle configuration conflicts between local appsettings.json and Aspire-injected configuration?
+
+- **SC-010**: Hot reload applies code changes to running services within 2 seconds without requiring full restart
+
+- What happens when a container runs out of disk space or memory?**Acceptance Scenarios**:
+
+---
+
+- How does the developer switch between using real containers vs. in-memory test doubles for dependencies?
+
+## Assumptions
+
+### User Story 2 - Real-Time Observability Dashboard (Priority: P1)### User Story 2 - Automatic Connection String Management (Priority: P1)
+
+1. **Development Environment**: Developers are using Visual Studio 2025, Visual Studio Code with C# Dev Kit, or Rider on Windows, macOS, or Linux
+
+## Requirements
+
+2. **Docker Installation**: Docker Desktop (Windows/macOS) or Docker Engine (Linux) version 20.10+ is installed and running on the developer machine
+
+1. **Given** the application requires a PostgreSQL database, **When** the developer starts the application, **Then** a PostgreSQL container is automatically started with appropriate configuration
+
+3. **.NET Version**: Project targets .NET 10 which includes .NET Aspire 10.x tooling
+
+### Functional Requirements
+
+4. **Network Access**: Developer machine has internet access to pull container images from Docker Hub on first run
+
+2. **Given** containers are running, **When** the developer stops the application, **Then** containers are either stopped or left running based on configuration
+
+5. **Resource Availability**: Developer machine has sufficient resources (8GB+ RAM, 20GB+ disk space, 4+ CPU cores) to run multiple services and containers
+
+- **FR-001**: System MUST automatically start all services defined in the AppHost project when F5 is pressed or `dotnet run` is executed
+
+6. **Solution Structure**: Existing solution follows standard structure with API, Web, and shared projects
+
+- **FR-002**: System MUST automatically pull and start required Docker containers (PostgreSQL, Redis, etc.) before starting dependent services3. **Given** a container fails to start, **When** the developer views the dashboard, **Then** they see clear error messages explaining why the container failed
+
+7. **Database Choice**: PostgreSQL is the primary database for this feature; SQLite used for lightweight scenarios where applicable
+
+- **FR-003**: System MUST provide automatic service discovery so services can reference each other by logical name rather than hardcoded URLs
+
+8. **Service Communication**: Services communicate via HTTP REST APIs
+
+- **FR-004**: System MUST automatically generate and inject connection strings for databases and caching services into service configuration4. **Given** the developer needs to reset local data, **When** they trigger a "clean start" command, **Then** containers are recreated with fresh stateAs a developer, I want to see a dashboard that shows the real-time state of all running services, their logs, metrics, and traces, so I can quickly diagnose issues and understand system behavior during development.As a developer, I want connection strings and service endpoints to be automatically configured so that I don't need to manually edit configuration files or remember port numbers.
+
+9. **Authentication**: Local development uses simplified auth (no real OAuth providers required for this feature)
+
+- **FR-005**: System MUST provide a web-based dashboard accessible at a predictable URL (e.g., http://localhost:15000) showing service status
+
+10. **Port Range**: System can use ports in range 5000-6000 for services and 15000-16000 for infrastructure
+
+- **FR-006**: Dashboard MUST display real-time logs from all running services with filtering and search capabilities
+
+11. **Telemetry Stack**: OpenTelemetry is the standard for logs, metrics, and traces
+
+- **FR-007**: Dashboard MUST display distributed traces showing request flows across service boundaries using OpenTelemetry standards
+
+12. **Dashboard Technology**: .NET Aspire includes a built-in dashboard (no custom dashboard implementation needed)
+
+- **FR-008**: Dashboard MUST display metrics (CPU, memory, request rates, error rates) for each service in real-time---
+
+---
+
+- **FR-009**: System MUST support debugging multiple services simultaneously with breakpoints across service boundaries
+
+## Non-Goals
+
+- **FR-010**: System MUST handle graceful shutdown of all services and containers when the developer stops the application
+
+- **Production Deployment**: This feature is for local development only, not production orchestration (use Kubernetes, Azure Container Apps, or AWS ECS for production)
+
+- **Multi-Developer Synchronization**: Each developer has isolated local environment (no shared dev environments)- **FR-011**: System MUST detect and report port conflicts with clear error messages suggesting alternative ports
+
+- **Automatic Schema Migrations**: Developers should run migrations explicitly via CLI tool
+
+- **Performance Profiling Tools**: Use dedicated profilers like dotMemory or PerfView for deep profiling- **FR-012**: System MUST support environment-specific configuration (Development, Staging) with automatic environment variable injection### User Story 4 - Service Configuration and Discovery (Priority: P2)**Why this priority**: Observability is critical for effective debugging and development. Without visibility into service state and logs, developers waste significant time troubleshooting issues. This delivers immediate diagnostic capabilities.**Why this priority**: Manual connection string management is a major source of configuration errors and time waste. This is essential for the "it just works" experience.
+
+- **Load Testing**: Use separate tools like k6 or JMeter for load/stress testing
+
+- **Security Scanning**: Use dedicated security tools for vulnerability assessment- **FR-013**: System MUST provide health check endpoints for all services and display health status in the dashboard
+
+- **CI/CD Pipeline**: Build and deployment automation (handled separately in GitHub Actions)
+
+- **Secrets Management for Production**: Use Azure Key Vault or similar for production (local dev uses simplified approach)- **FR-014**: System MUST support hot reload for code changes without requiring full application restart
+
+- **Redis Container Support**: Deferred to future iterations; this feature focuses on PostgreSQL only
+
+- **FR-015**: System MUST log container startup failures with actionable error messages in the dashboard
+
+---
+
+- **FR-016**: System MUST support both Windows (PowerShell) and macOS/Linux (bash) development environmentsAs a developer, I want services to automatically discover each other's endpoints and have their configuration injected at runtime, so I don't have to manually maintain URLs, ports, and connection strings in configuration files.
+
+## Technical Constraints
+
+- **FR-017**: System MUST persist container data between runs (databases retain data unless explicitly reset)
+
+1. **Must use .NET Aspire 10.x**: Project requirements specify .NET Aspire as the orchestration framework (aligned with .NET 10 requirement)
+
+- **FR-018**: System MUST provide a mechanism to reset/clean local data (recreate containers with fresh state)
+
+2. **Must support F5 experience**: Primary interaction model is Visual Studio debugging experience
+
+- **FR-019**: System MUST start all services and containers in a single "full stack" profile (multiple profiles can be added in future iterations if needed)
+
+3. **Must be cross-platform**: Solution must work on Windows, macOS, and Linux
+
+- **FR-020**: Dashboard MUST provide direct links to service endpoints and API documentation (Swagger UI)**Why this priority**: Service discovery is important for multi-service development but builds on the core F5 experience (P1). It reduces configuration burden but is secondary to getting services running.**Independent Test**: Can be fully tested by starting the application and accessing the Aspire dashboard at the expected URL (typically http://localhost:15000 or similar). Delivers complete visibility into running services.**Independent Test**: Can be tested by examining service configuration before and after startup - no manual configuration changes should be required. Services should discover each other automatically.
+
+4. **Must use existing project structure**: Cannot require major solution restructuring (integrates with src/BloodThinnerTracker.AppHost/)
+
+
+
+5. **Must preserve existing functionality**: All current API and Web features must continue to work
+
+### Key Entities
+
+6. **Must use Docker**: Container runtime must be Docker-compatible (not Podman or other alternatives)
+
+
+
+7. **Must be version-controlled**: All orchestration configuration must be in source control (no local-only config)
+
+- **AppHost Project**: .NET Aspire orchestration project that defines service topology and dependencies**Independent Test**: Can be fully tested by verifying that services can successfully call each other using service names (not hardcoded URLs) and that configuration values are correctly injected. Delivers configuration-free inter-service communication.
+
+8. **Must be zero-configuration**: Default settings must work out-of-the-box for 90% of developers
+
+- **Service Projects**: Individual ASP.NET Core API, Blazor Web, MAUI backend services that are orchestrated
+
+9. **Must use OpenTelemetry standard**: For observability (logs, metrics, traces)
+
+- **Container Resources**: Docker containers for PostgreSQL, Redis, or other infrastructure dependencies
+
+10. **Must work with Visual Studio 2025, VS Code with C# Dev Kit, and JetBrains Rider**
+
+- **Service Discovery Configuration**: Automatically generated endpoint mappings between services
+
+11. **Dashboard must be web-based**: Accessible via modern browsers (Chrome, Edge, Firefox, Safari)
+
+- **Dashboard**: Web-based UI for observing service state, logs, metrics, and traces**Acceptance Scenarios**:**Acceptance Scenarios**:**Acceptance Scenarios**:
+
+12. **Service discovery must be built-in**: No external service mesh or infrastructure required
+
+- **OpenTelemetry Instrumentation**: Distributed tracing and metrics collection across services
+
+---
+
+- **Environment Configuration**: Development, staging, production settings with automatic injection
+
+## Dependencies
+
+- **Health Checks**: Service health monitoring endpoints for status tracking
+
+### External Dependencies
+
+1. **Given** the Web project needs to call the API, **When** the application starts, **Then** the Web project automatically receives the correct API endpoint URL via configuration
+
+- .NET 10 SDK with .NET Aspire workload installed (`dotnet workload install aspire`)
+
+- Docker Desktop (Windows/macOS) or Docker Engine (Linux) version 20.10 or later## Success Criteria
+
+- Visual Studio 2025, VS Code with C# Dev Kit extension, or JetBrains Rider
+
+- OpenTelemetry SDK packages for .NET (`OpenTelemetry`, `OpenTelemetry.Instrumentation.AspNetCore`, etc.)2. **Given** multiple instances of a service might be running, **When** a client service calls it, **Then** the request is routed to an available instance
+
+- Aspire.Hosting NuGet packages for AppHost project
+
+- Aspire.ServiceDefaults NuGet packages for service projects### Measurable Outcomes
+
+- Container images: `postgres:16-alpine` (Redis deferred to future iterations)
+
+3. **Given** services need environment-specific configuration (dev, staging), **When** the developer changes the environment, **Then** appropriate configuration is automatically applied1. **Given** the application is running, **When** the developer accesses the Aspire dashboard, **Then** they see all services listed with their current status (running, stopped, error)1. **Given** multiple services require database connections, **When** services start, **Then** each service receives correct connection strings automatically
+
+### Internal Dependencies
+
+- **SC-001**: Developer can clone the repository and have a fully functional local development environment running within 5 minutes of pressing F5 (excluding initial Docker image downloads)
+
+- Existing BloodThinnerTracker.Api project
+
+- Existing BloodThinnerTracker.Web project- **SC-002**: All services start successfully with zero manual configuration or setup steps required beyond cloning the repository4. **Given** a service endpoint changes (different port), **When** the developer restarts the application, **Then** all dependent services automatically receive the updated endpoint
+
+- Existing BloodThinnerTracker.Shared project
+
+- Existing BloodThinnerTracker.ServiceDefaults project- **SC-003**: Dashboard is accessible immediately after services start and displays accurate real-time status for all services
+
+- PostgreSQL database schema and migrations
+
+- **SC-004**: Developer can view logs from all services in the dashboard with response time under 1 second for log queries2. **Given** services are generating logs, **When** the developer views the dashboard, **Then** they can see real-time log streams for each service with filtering capabilities2. **Given** services need to communicate with each other, **When** a service makes a request to another service, **Then** the request routes correctly using service discovery
+
+### Prerequisite Features
+
+- **SC-005**: Distributed traces appear in the dashboard within 5 seconds of request completion showing complete request flow
+
+- None (this is a foundational development infrastructure feature)
+
+- **SC-006**: Service discovery resolves endpoint addresses correctly 100% of the time during local development---
+
+---
+
+- **SC-007**: Container failures are detected and reported in the dashboard within 3 seconds with actionable error messages
+
+## Questions
+
+- **SC-008**: Developer can set breakpoints in multiple services and debug cross-service requests without tool switching3. **Given** services are instrumented with OpenTelemetry, **When** the developer views the dashboard, **Then** they can see distributed traces showing request flows across services3. **Given** connection strings are environment-specific, **When** running locally, **Then** local development connection strings are used without requiring configuration changes
+
+None at this time. All requirements are clear and actionable. The specification follows the prioritized user story approach with independently testable journeys (P1-P3).
+
+- **SC-009**: Application startup time (from F5 to all services healthy) is under 30 seconds on subsequent runs with warm containers
+
+---
+
 - **SC-010**: Hot reload applies code changes to running services within 2 seconds without requiring full restart### User Story 5 - Integrated Debugging Experience (Priority: P3)
 
+## Related Documentation
 
 
-## Assumptions4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service4. **Given** a new service is added to the solution, **When** the orchestrator restarts, **Then** the new service is automatically registered and discoverable
 
+- [.NET Aspire Documentation](https://learn.microsoft.com/en-us/dotnet/aspire/)
 
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)## Assumptions4. **Given** services are emitting metrics, **When** the developer views the dashboard, **Then** they can see real-time metrics (CPU, memory, request rates) for each service4. **Given** a new service is added to the solution, **When** the orchestrator restarts, **Then** the new service is automatically registered and discoverable
+
+- [Docker Documentation](https://docs.docker.com/)
+
+- Project README: `README.md`
+
+- Copilot Instructions: `.github/copilot-instructions.md`
 
 - Developers have Docker Desktop (Windows/macOS) or Docker Engine (Linux) installed and runningAs a developer, I want to set breakpoints across multiple services and debug them simultaneously in my IDE, so I can trace issues that span service boundaries without switching tools.
 
+---
+
 - Developers have .NET 10 SDK installed
+
+## Revision History
 
 - Developers are using Visual Studio 2025, VS Code with C# Dev Kit, or Rider
 
-- Project will use .NET Aspire 10.x (compatible with .NET 10)
+| Date       | Version | Changes                                      | Author          |
 
-- SQLite is used for local development databases (lightweight, no container needed)**Why this priority**: Multi-service debugging is valuable but less critical than basic observability (P1-P2). Developers can use logs/traces initially and add debugging as needed.
+|------------|---------|----------------------------------------------|-----------------|- Project will use .NET Aspire 10.x (compatible with .NET 10)
+
+| 2025-10-30 | 0.1     | Initial draft                                | GitHub Copilot  |
+
+| 2025-10-30 | 0.2     | Fixed file corruption, clarified Redis scope | GitHub Copilot  |- SQLite is used for local development databases (lightweight, no container needed)**Why this priority**: Multi-service debugging is valuable but less critical than basic observability (P1-P2). Developers can use logs/traces initially and add debugging as needed.
+
 
 - PostgreSQL containers are used for cloud-like development scenarios (optional)
 

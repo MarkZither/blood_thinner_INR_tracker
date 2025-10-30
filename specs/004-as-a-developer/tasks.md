@@ -1,0 +1,353 @@
+# Tasks: Local Development Orchestration with .NET Aspire
+
+**Branch**: `004-as-a-developer`  
+**Feature**: Local Development Orchestration with .NET Aspire  
+**Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅
+
+**Tests**: Constitution requires 90% test coverage; integration tests and unit tests for core logic included
+
+**Organization**: Tasks grouped by user story to enable independent implementation and testing
+
+## Format: `[ID] [P?] [Story] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (US1, US2, US3, US4, US5)
+- Include exact file paths in descriptions
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Create new AppHost project and prepare existing projects for Aspire integration
+
+- [ ] T001 Update global.json to specify .NET 10 RC2 SDK version (10.0.100-rc.2)
+- [ ] T002 Install .NET Aspire workload via `dotnet workload install aspire`
+- [ ] T003 Create src/BloodThinnerTracker.AppHost project with Aspire.Hosting package
+- [ ] T004 Add Aspire NuGet packages to src/BloodThinnerTracker.ServiceDefaults/BloodThinnerTracker.ServiceDefaults.csproj
+- [ ] T005 [P] Add project references in AppHost to API and Web projects
+- [ ] T006 [P] Add ServiceDefaults project reference to API and Web projects
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core Aspire infrastructure that MUST be complete before ANY user story implementation
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T007 Implement AddServiceDefaults() extension method in src/BloodThinnerTracker.ServiceDefaults/ServiceDefaults.cs
+- [ ] T008 Configure OpenTelemetry (tracing, metrics, OTLP exporter) in ServiceDefaults.cs
+- [ ] T009 Configure Serilog with Console and OpenTelemetry sinks in ServiceDefaults.cs
+- [ ] T010 Configure service discovery integration in ServiceDefaults.cs
+- [ ] T011 Configure Polly standard resilience handler (retry, circuit breaker, timeout) in ServiceDefaults.cs
+- [ ] T012 Configure health checks in ServiceDefaults.cs with MapDefaultEndpoints()
+- [ ] T013 Update src/BloodThinnerTracker.Api/Program.cs to call builder.AddServiceDefaults()
+- [ ] T014 Update src/BloodThinnerTracker.Web/Program.cs to call builder.AddServiceDefaults()
+- [ ] T015 Create src/BloodThinnerTracker.AppHost.Tests project with xUnit and Aspire.Hosting.Testing
+- [ ] T015a [P] Create unit tests for ServiceDefaults extensions in BloodThinnerTracker.ServiceDefaults.Tests/ServiceDefaultsTests.cs
+- [ ] T015b [P] Create unit tests for AppHost configuration logic in BloodThinnerTracker.AppHost.Tests/ConfigurationTests.cs
+- [ ] T015c [P] Verify 90% test coverage for ServiceDefaults project using code coverage tools
+
+**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+
+---
+
+## Phase 3: User Story 1 - One-Click Local Development Environment (Priority: P1) 🎯 MVP
+
+**Goal**: Press F5 in Visual Studio and have all services start automatically with containers, service discovery, and connection strings
+
+**Independent Test**: Open solution, set AppHost as startup project, press F5, verify all services start and API/Web are accessible
+
+### Implementation for User Story 1
+
+- [ ] T016 [US1] Define PostgreSQL container resource with WithDataVolume() in src/BloodThinnerTracker.AppHost/Program.cs
+- [ ] T017 [US1] Define database reference (postgres.AddDatabase("bloodtracker")) in AppHost/Program.cs
+- [ ] T018 [US1] Define API project resource with WithReference(db) in AppHost/Program.cs
+- [ ] T019 [US1] Configure API HTTP/HTTPS endpoints (5234, 7234) in AppHost/Program.cs
+- [ ] T020 [US1] Define Web project resource with WithReference(api) in AppHost/Program.cs
+- [ ] T021 [US1] Configure Web HTTP/HTTPS endpoints (5235, 7235) in AppHost/Program.cs
+- [ ] T022 [US1] Configure AppHost launchSettings.json for F5 debugging experience
+- [ ] T023 [US1] Update API appsettings.Development.json to remove hardcoded connection strings (use injected)
+- [ ] T024 [US1] Update Web appsettings.Development.json to remove hardcoded API URLs (use service discovery)
+- [ ] T025 [US1] Verify API can connect to PostgreSQL using injected connection string
+- [ ] T026 [US1] Verify Web can call API using service discovery (http://api)
+- [ ] T027 [US1] Test complete F5 workflow: Press F5, all services start, navigate to http://localhost:5235
+
+**Checkpoint**: User Story 1 complete - F5 starts all services with automatic configuration
+
+---
+
+## Phase 4: User Story 2 - Real-Time Observability Dashboard (Priority: P1)
+
+**Goal**: Aspire Dashboard shows service status, real-time logs, distributed traces, and metrics
+
+**Independent Test**: Start application, access http://localhost:15000, verify dashboard shows all services and logs
+
+### Implementation for User Story 2
+
+- [ ] T028 [US2] Verify Aspire Dashboard auto-starts on http://localhost:15000 when AppHost runs
+- [ ] T029 [US2] Configure OTEL_EXPORTER_OTLP_ENDPOINT environment variable injection in AppHost/Program.cs
+- [ ] T030 [US2] Add OpenTelemetry instrumentation for ASP.NET Core requests in ServiceDefaults (already in T008)
+- [ ] T031 [US2] Add OpenTelemetry instrumentation for HttpClient calls in ServiceDefaults (already in T008)
+- [ ] T032 [P] [US2] Add OpenTelemetry instrumentation for Entity Framework Core queries in ServiceDefaults
+- [ ] T033 [P] [US2] Implement structured logging pattern in API controllers (use ILogger<T> with structured properties)
+- [ ] T034 [P] [US2] Implement structured logging pattern in Web Blazor pages
+- [ ] T035 [US2] Test log filtering in Dashboard: Search for "medication", "error", verify results
+- [ ] T036 [US2] Test trace visualization: Make API call from Web, verify trace shows Web→API→Database span hierarchy
+- [ ] T037 [US2] Test metrics display: Verify CPU, memory, request duration metrics appear for API and Web services
+- [ ] T038 [US2] Verify health check status displayed in Dashboard for all services
+
+**Checkpoint**: User Story 2 complete - Dashboard provides full observability for all services
+
+---
+
+## Phase 5: User Story 3 - Container Lifecycle Management (Priority: P2)
+
+**Goal**: Docker containers automatically start, stop, and persist data between runs
+
+**Independent Test**: Start application, verify PostgreSQL container auto-starts, stop application, verify data persists
+
+### Implementation for User Story 3
+
+- [ ] T039 [US3] Configure PostgreSQL container with WithLifetime(ContainerLifetime.Persistent) in AppHost/Program.cs
+- [ ] T040 [US3] Configure PostgreSQL container environment variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+- [ ] T040a [US3] Document connection string security approach in plan.md: Use hardcoded password "local_dev_only_password" for initial implementation
+- [ ] T041 [US3] Verify PostgreSQL container pulls image on first run (postgres:16-alpine)
+- [ ] T042 [US3] Verify PostgreSQL container starts automatically when AppHost starts
+- [ ] T043 [US3] Verify PostgreSQL data volume created (aspire-postgres-data)
+- [ ] T044 [US3] Test data persistence: Create test data, restart AppHost, verify data still exists
+- [ ] T045 [US3] Add error handling for container startup failures in AppHost/Program.cs
+- [ ] T046 [US3] Verify Dashboard shows clear error message when container fails to start
+- [ ] T047 [US3] Create tools/scripts/reset-database.ps1 script that safely stops containers and removes volumes
+- [ ] T048 [US3] Document how to reset database (run reset-database.ps1 script) in specs/004-as-a-developer/quickstart.md
+- [ ] T049 [US3] Test offline scenario: Stop Docker, verify AppHost shows actionable error message
+
+**Checkpoint**: User Story 3 complete - Containers managed automatically with data persistence
+
+---
+
+## Phase 6: User Story 4 - Service Configuration and Discovery (Priority: P2)
+
+**Goal**: Services automatically discover each other and receive injected configuration without hardcoded URLs
+
+**Independent Test**: Verify Web calls API using "http://api" (not localhost:5234), verify connection strings injected
+
+### Implementation for User Story 4
+
+- [ ] T050 [US4] Verify WithReference(api) in Web project injects services__api__http__0 environment variable
+- [ ] T051 [US4] Verify WithReference(db) in API project injects ConnectionStrings__bloodtracker environment variable
+- [ ] T052 [US4] Configure HttpClient in Web with BaseAddress = new Uri("http://api")
+- [ ] T053 [US4] Test service discovery resolution: Make API call from Web, verify resolves to http://localhost:5234
+- [ ] T054 [US4] Test connection string injection: Verify API connects to PostgreSQL using injected connection string
+- [ ] T055 [US4] Remove all hardcoded URLs from appsettings.json files (API and Web)
+- [ ] T056 [US4] Test port change scenario: Change API port in AppHost, restart, verify Web discovers new port automatically
+- [ ] T057 [US4] Add environment-specific configuration support (Development, Staging) in AppHost/Program.cs
+- [ ] T058 [US4] Verify ASPNETCORE_ENVIRONMENT=Development injected into all services
+
+**Checkpoint**: User Story 4 complete - All services use service discovery and injected configuration
+
+---
+
+## Phase 7: User Story 5 - Integrated Debugging Experience (Priority: P3)
+
+**Goal**: Set breakpoints across multiple services and debug simultaneously in Visual Studio
+
+**Independent Test**: Set breakpoints in both API and Web, make request, verify debugger stops at both breakpoints
+
+### Implementation for User Story 5
+
+- [ ] T059 [US5] Configure Visual Studio solution (.sln) to support multi-project debugging
+- [ ] T060 [US5] Set AppHost as startup project in Visual Studio
+- [ ] T061 [US5] Test breakpoint in API controller: Set breakpoint, make request from Web, verify stops
+- [ ] T062 [US5] Test breakpoint in Web Blazor page: Set breakpoint, navigate to page, verify stops
+- [ ] T063 [US5] Test cross-service debugging: Set breakpoints in Web and API, verify stops in correct sequence
+- [ ] T064 [US5] Test hot reload for Blazor .razor files: Modify component, save, verify browser updates without restart
+- [ ] T065 [US5] Test hot reload for C# code files: Modify service method, save, verify changes apply without restart
+- [ ] T066 [US5] Document hot reload limitations in specs/004-as-a-developer/quickstart.md (AppHost changes require restart)
+- [ ] T067 [US5] Verify Dashboard accessible during debugging without breaking debugger session
+- [ ] T068 [US5] Test exception handling: Throw exception in API, verify Dashboard shows exception details
+
+**Checkpoint**: User Story 5 complete - Full debugging experience across all services
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Documentation, testing, and quality improvements across all user stories
+
+- [ ] T069 [P] Create integration tests for AppHost startup in src/BloodThinnerTracker.AppHost.Tests/AppHostTests.cs
+- [ ] T070 [P] Create integration tests for service discovery in AppHostTests/ServiceDiscoveryTests.cs
+- [ ] T071 [P] Create integration tests for health checks in AppHostTests/HealthCheckTests.cs
+- [ ] T072 [P] Update README.md with Aspire setup instructions and F5 workflow
+- [ ] T073 [P] Add optional InfluxDB container configuration (behind feature flag) in AppHost/Program.cs
+- [ ] T073a [SECURITY] Upgrade PostgreSQL password from hardcoded to environment variable (POSTGRES_PASSWORD env var)
+- [ ] T073b [SECURITY] Update reset-database.ps1 to handle environment variable-based passwords
+- [ ] T074 Verify all documentation in specs/004-as-a-developer/ is accurate and complete
+- [ ] T075 Run full quickstart.md validation: Fresh clone, press F5, verify all steps work
+- [ ] T076 Test port conflict handling: Occupy port 5234, start AppHost, verify error message
+- [ ] T077 Performance test: Measure startup time (should be <30 seconds with warm containers)
+- [ ] T078 Code review and cleanup: Remove TODO comments, unused code, ensure consistent style
+- [ ] T079 Security review: Verify Dashboard only accessible on localhost, no production secrets
+- [ ] T080 Update .github/copilot-instructions.md with Aspire patterns (run update-agent-context.ps1)
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup (Phase 1) - BLOCKS all user stories
+- **User Stories (Phases 3-7)**: All depend on Foundational (Phase 2) completion
+  - User Story 1 (P1): MUST complete first - foundation for all others
+  - User Story 2 (P1): Depends on US1 (services must exist to observe)
+  - User Story 3 (P2): Depends on US1 (containers referenced in US1)
+  - User Story 4 (P2): Depends on US1 (service discovery built in US1)
+  - User Story 5 (P3): Depends on US1, US2 (debugging requires running services and dashboard)
+- **Polish (Phase 8)**: Depends on all user stories being complete
+
+### User Story Dependencies
+
+- **US1 (P1) - One-Click Dev Environment**: No dependencies on other stories - START HERE
+- **US2 (P1) - Observability Dashboard**: Depends on US1 (needs services to observe)
+- **US3 (P2) - Container Management**: Depends on US1 (containers defined in US1)
+- **US4 (P2) - Service Discovery**: Depends on US1 (discovery configured in US1)
+- **US5 (P3) - Debugging**: Depends on US1, US2 (needs services and dashboard)
+
+### Within Each User Story
+
+- AppHost configuration before service configuration
+- Service defaults before service-specific changes
+- Infrastructure before functionality
+- Implementation before testing/verification
+
+### Parallel Opportunities
+
+**Setup Phase**:
+- T005 (AppHost project references) and T006 (ServiceDefaults references) can run in parallel
+
+**Foundational Phase**:
+- T008 (OpenTelemetry), T009 (Serilog), T010 (Service Discovery), T011 (Polly), T012 (Health Checks) can all be implemented in parallel in ServiceDefaults.cs if file is structured with separate methods
+- T013 (API Program.cs) and T014 (Web Program.cs) can run in parallel
+
+**User Story 2**:
+- T032 (EF Core instrumentation), T033 (API logging), T034 (Web logging) can run in parallel
+
+**User Story 3**:
+- T041 (verify image pull), T042 (verify container start), T043 (verify volume) can be tested in parallel
+
+**Polish Phase**:
+- T068, T069, T070 (all test files) can be written in parallel
+- T071 (README), T072 (copilot-instructions), T073 (InfluxDB config) can run in parallel
+
+**Between User Stories** (if team has capacity):
+- After US1 completes, US2, US3, and US4 can potentially start in parallel (though US2 provides most value)
+- US5 should wait until US1 and US2 are complete for best experience
+
+---
+
+## Parallel Example: Setup Phase
+
+```bash
+# After T004 completes, these can run in parallel:
+Task T005: "Add project references in AppHost to API and Web projects"
+Task T006: "Add ServiceDefaults project reference to API and Web projects"
+
+# Both are modifying different files (.csproj files of different projects)
+```
+
+---
+
+## Parallel Example: User Story 2
+
+```bash
+# After T031 completes, these can run in parallel:
+Task T032: "Add OpenTelemetry instrumentation for Entity Framework Core queries"
+Task T033: "Implement structured logging pattern in API controllers"
+Task T034: "Implement structured logging pattern in Web Blazor pages"
+
+# All are modifying different files in different projects
+```
+
+---
+
+## Implementation Strategy
+
+**MVP Scope** (Minimum Viable Product):
+- **Phase 1**: Setup (ALL tasks) - Required foundation
+- **Phase 2**: Foundational (ALL tasks) - Required infrastructure
+- **Phase 3**: User Story 1 (ALL tasks) - Core F5 experience
+- **Phase 4**: User Story 2 (ALL tasks) - Essential observability
+
+**Why this MVP**: User Stories 1 and 2 are both Priority P1 and deliver the core value proposition - one-click development environment with observability. Without both, the feature provides limited value.
+
+**Incremental Delivery**:
+1. MVP: US1 + US2 = Functional F5 experience with dashboard (Essential for developers)
+2. v1.1: US3 = Better container management (Quality of life improvement)
+3. v1.2: US4 = Enhanced service discovery (Already works in MVP, this phase adds robustness)
+4. v1.3: US5 = Advanced debugging (Nice to have, not critical)
+
+**Task Estimation**:
+- **Phase 1 (Setup)**: 2-3 hours (6 tasks, mostly configuration)
+- **Phase 2 (Foundational)**: 10-12 hours (12 tasks including unit tests, core infrastructure)
+- **Phase 3 (US1)**: 10-12 hours (12 tasks, AppHost topology)
+- **Phase 4 (US2)**: 8-10 hours (11 tasks, observability integration)
+- **Phase 5 (US3)**: 8-10 hours (12 tasks including reset script, container configuration)
+- **Phase 6 (US4)**: 5-6 hours (9 tasks, mostly verification)
+- **Phase 7 (US5)**: 6-8 hours (10 tasks, debugging experience)
+- **Phase 8 (Polish)**: 10-12 hours (15 tasks including security upgrade, testing and documentation)
+
+**Total Estimated Effort**: 59-73 hours (approximately 8-10 working days for one developer)
+
+**Recommended Approach**: Deliver MVP (US1+US2) first (~22-25 hours), then iterate with remaining user stories based on priority and developer feedback.
+
+---
+
+## Success Criteria
+
+### User Story 1 Success
+- [ ] Developer can press F5 and all services start without manual configuration
+- [ ] API connects to PostgreSQL using auto-injected connection string
+- [ ] Web calls API using service discovery (http://api)
+- [ ] Application accessible at http://localhost:5235
+
+### User Story 2 Success
+- [ ] Aspire Dashboard accessible at http://localhost:15000
+- [ ] Dashboard shows all services with status (Running, Stopped, Error)
+- [ ] Logs from all services visible in real-time with filtering
+- [ ] Distributed traces show request flow (Web → API → Database)
+- [ ] Metrics display CPU, memory, request rates for all services
+
+### User Story 3 Success
+- [ ] PostgreSQL container starts automatically on first run
+- [ ] Data persists across application restarts
+- [ ] Clear error messages when container fails
+- [ ] Developer can reset data by deleting Docker volume
+
+### User Story 4 Success
+- [ ] No hardcoded URLs in appsettings.json files
+- [ ] Service discovery resolves "http://api" to actual endpoint
+- [ ] Connection strings auto-injected from AppHost
+- [ ] Port changes in AppHost automatically propagate to dependent services
+
+### User Story 5 Success
+- [ ] Breakpoints work across multiple projects (API and Web)
+- [ ] Hot reload applies changes without full restart
+- [ ] Dashboard accessible during debugging session
+- [ ] Exception details visible in Dashboard
+
+### Overall Feature Success
+- [ ] Complete F5 workflow works end-to-end in under 30 seconds (warm containers)
+- [ ] All constitution principles validated (code quality, testing, performance, security)
+- [ ] Documentation complete and validated (quickstart.md walkthrough works)
+- [ ] Zero manual configuration steps required after git clone
+
+---
+
+## Notes
+
+- All tasks assume .NET 10 RC2 and Aspire 10.0.0-rc.2 installed
+- Docker Desktop must be running before starting application
+- This feature is LOCAL DEVELOPMENT ONLY - no production deployment changes
+- Aspire Dashboard is ephemeral (not persisted, starts fresh each time)
+- Hot reload has limitations documented in quickstart.md (AppHost changes require restart)
+- Optional InfluxDB integration (T073) can be skipped for MVP
