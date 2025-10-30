@@ -31,7 +31,7 @@
         </MudText>
 
         <MudStack Spacing="3">
-            <MudButton Href="/Auth/LoginMicrosoft"
+            <MudButton Href="@GetLoginUrl("/Auth/LoginMicrosoft")"
                        Variant="Variant.Outlined"
                        Color="Color.Primary"
                        FullWidth="true"
@@ -40,7 +40,7 @@
                 Sign in with Microsoft
             </MudButton>
 
-            <MudButton Href="/Auth/LoginGoogle"
+            <MudButton Href="@GetLoginUrl("/Auth/LoginGoogle")"
                        Variant="Variant.Outlined"
                        Color="Color.Error"
                        FullWidth="true"
@@ -77,6 +77,18 @@
 
     [SupplyParameterFromQuery(Name = "message")]
     public string? ErrorMessage { get; set; }
+
+    private string GetLoginUrl(string authEndpoint)
+    {
+        if (string.IsNullOrEmpty(ReturnUrl))
+        {
+            return authEndpoint;
+        }
+
+        // Encode the returnUrl to safely pass it as a query parameter
+        var encodedReturnUrl = Uri.EscapeDataString(ReturnUrl);
+        return $"{authEndpoint}?returnUrl={encodedReturnUrl}";
+    }
 
     protected override async Task OnInitializedAsync()
     {

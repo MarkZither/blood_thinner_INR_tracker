@@ -150,11 +150,11 @@
                                     }
 
                                     <!-- Special Warnings for Blood Thinners -->
-                                    @if (medication.Type == MedicationType.Warfarin)
+                                    @if (medication.Type == MedicationType.VitKAntagonist)
                                     {
                                         <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
                                             <MudText Typo="Typo.caption">
-                                                <strong>Warfarin:</strong> Requires regular INR monitoring
+                                                <strong>Vitamin K Antagonist:</strong> Requires regular INR monitoring
                                             </MudText>
                                         </MudAlert>
                                     }
@@ -386,7 +386,7 @@
         {
             "active" => query.Where(m => m.IsActive),
             "inactive" => query.Where(m => !m.IsActive),
-            "blood-thinners" => query.Where(m => m.Type == MedicationType.Warfarin || m.Type == MedicationType.DOAC || m.Type == MedicationType.Heparin || m.Type == MedicationType.LMWH),
+            "blood-thinners" => query.Where(m => m.Type == MedicationType.VitKAntagonist || m.Type == MedicationType.DOAC || m.Type == MedicationType.Heparin || m.Type == MedicationType.LMWH),
             _ => query
         };
 
@@ -473,7 +473,7 @@
     {
         return type switch
         {
-            MedicationType.Warfarin => Color.Error,
+            MedicationType.VitKAntagonist => Color.Error,
             MedicationType.DOAC => Color.Warning,
             MedicationType.Heparin => Color.Info,
             MedicationType.LMWH => Color.Info,

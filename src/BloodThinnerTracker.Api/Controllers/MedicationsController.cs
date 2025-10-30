@@ -161,8 +161,10 @@ public sealed class MedicationsController : ControllerBase
                     Name = m.Name,
                     BrandName = m.BrandName,
                     GenericName = m.GenericName,
-                    Strength = m.Strength ?? 0,
-                    Unit = m.Unit ?? string.Empty,
+                    Dosage = m.Dosage,
+                    DosageUnit = m.DosageUnit,
+                    Type = m.Type,
+                    Frequency = m.Frequency,
                     Form = m.Form ?? string.Empty,
                     Color = m.Color,
                     Shape = m.Shape,
@@ -249,8 +251,11 @@ public sealed class MedicationsController : ControllerBase
                 Name = request.Name.Trim(),
                 BrandName = request.BrandName?.Trim(),
                 GenericName = request.GenericName?.Trim(),
-                Strength = request.Strength,
-                Unit = request.Unit.Trim(),
+                Type = request.Type,
+                Dosage = request.Dosage,
+                DosageUnit = request.DosageUnit.Trim(),
+                Frequency = request.Frequency,
+                ScheduledTimes = request.ScheduledTimes,
                 Form = request.Form?.Trim() ?? "Tablet",
                 Color = request.Color?.Trim(),
                 Shape = request.Shape?.Trim(),
@@ -283,8 +288,10 @@ public sealed class MedicationsController : ControllerBase
                 Name = medication.Name,
                 BrandName = medication.BrandName,
                 GenericName = medication.GenericName,
-                Strength = medication.Strength,
-                Unit = medication.Unit,
+                Dosage = medication.Dosage,
+                DosageUnit = medication.DosageUnit,
+                Type = medication.Type,
+                Frequency = medication.Frequency,
                 Form = medication.Form,
                 Color = medication.Color,
                 Shape = medication.Shape,
@@ -376,11 +383,11 @@ public sealed class MedicationsController : ControllerBase
             medication.BrandName = request.BrandName?.Trim();
             medication.GenericName = request.GenericName?.Trim();
             
-            if (request.Strength.HasValue)
-                medication.Strength = request.Strength.Value;
+            if (request.Dosage.HasValue)
+                medication.Dosage = request.Dosage.Value;
             
-            if (!string.IsNullOrWhiteSpace(request.Unit))
-                medication.Unit = request.Unit.Trim();
+            if (!string.IsNullOrWhiteSpace(request.DosageUnit))
+                medication.DosageUnit = request.DosageUnit.Trim();
             
             medication.Form = request.Form?.Trim() ?? medication.Form;
             medication.Color = request.Color?.Trim();
@@ -425,8 +432,10 @@ public sealed class MedicationsController : ControllerBase
                 Name = medication.Name,
                 BrandName = medication.BrandName,
                 GenericName = medication.GenericName,
-                Strength = medication.Strength,
-                Unit = medication.Unit,
+                Dosage = medication.Dosage,
+                DosageUnit = medication.DosageUnit,
+                Type = medication.Type,
+                Frequency = medication.Frequency,
                 Form = medication.Form,
                 Color = medication.Color,
                 Shape = medication.Shape,
@@ -557,8 +566,10 @@ public sealed class MedicationsController : ControllerBase
                     Name = m.Name,
                     BrandName = m.BrandName,
                     GenericName = m.GenericName,
-                    Strength = m.Strength ?? 0,
-                    Unit = m.Unit ?? string.Empty,
+                    Dosage = m.Dosage,
+                    DosageUnit = m.DosageUnit,
+                    Type = m.Type,
+                    Frequency = m.Frequency,
                     Form = m.Form ?? string.Empty,
                     Color = m.Color,
                     Shape = m.Shape,
@@ -636,9 +647,9 @@ public sealed class MedicationsController : ControllerBase
         }
 
         // General medication validations
-        if (request.Strength <= 0)
+        if (request.Dosage <= 0)
         {
-            errors.Add("Medication strength must be greater than 0");
+            errors.Add("Medication dosage must be greater than 0");
         }
 
         if (request.MaxDailyDose <= 0)
@@ -709,9 +720,9 @@ public sealed class MedicationsController : ControllerBase
         }
 
         // General validations
-        if (request.Strength.HasValue && request.Strength.Value <= 0)
+        if (request.Dosage.HasValue && request.Dosage.Value <= 0)
         {
-            errors.Add("Medication strength must be greater than 0");
+            errors.Add("Medication dosage must be greater than 0");
         }
 
         if (request.MaxDailyDose.HasValue && request.MaxDailyDose.Value <= 0)
@@ -767,8 +778,6 @@ public sealed class MedicationResponse
     public MedicationFrequency Frequency { get; set; }
     public string? CustomFrequency { get; set; }
     public string? ScheduledTimes { get; set; }
-    public decimal? Strength { get; set; }
-    public string? Unit { get; set; }
     public string? Form { get; set; }
     public string? Color { get; set; }
     public string? Shape { get; set; }
@@ -815,12 +824,21 @@ public sealed class CreateMedicationRequest
     public string? GenericName { get; set; }
 
     [Required]
+    public MedicationType Type { get; set; } = MedicationType.Other;
+
+    [Required]
     [Range(0.01, 1000)]
-    public decimal Strength { get; set; }
+    public decimal Dosage { get; set; }
 
     [Required]
     [StringLength(20, MinimumLength = 1)]
-    public string Unit { get; set; } = string.Empty;
+    public string DosageUnit { get; set; } = string.Empty;
+
+    [Required]
+    public MedicationFrequency Frequency { get; set; } = MedicationFrequency.OnceDaily;
+
+    [StringLength(500)]
+    public string? ScheduledTimes { get; set; }
 
     [StringLength(50)]
     public string? Form { get; set; }
@@ -888,10 +906,10 @@ public sealed class UpdateMedicationRequest
     public string? GenericName { get; set; }
 
     [Range(0.01, 1000)]
-    public decimal? Strength { get; set; }
+    public decimal? Dosage { get; set; }
 
     [StringLength(20, MinimumLength = 1)]
-    public string? Unit { get; set; }
+    public string? DosageUnit { get; set; }
 
     [StringLength(50)]
     public string? Form { get; set; }

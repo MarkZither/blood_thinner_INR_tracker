@@ -127,6 +127,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Register services for UI (T003-004, T003-005)
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
+builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationService, BloodThinnerTracker.Web.Services.MedicationService>();
 
 // Add HttpClient for API calls with authentication (T003-001)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
@@ -142,9 +143,6 @@ builder.Services.AddScoped(sp =>
 
     return httpClient;
 });
-
-// Register application services (T003-004, T003-005)
-builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
 
 var app = builder.Build();
 
