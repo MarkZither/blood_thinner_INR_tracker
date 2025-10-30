@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using MudBlazor
 @inject NavigationManager NavigationManager
@@ -137,25 +138,27 @@
         }
     </MudDrawer>
     
-    <MudMainContent Class="@(_isMobile ? "pa-4 pb-16" : "pa-6")">
-        <AuthorizeView>
-            <Authorized>
-                <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
-                    <MudText Typo="Typo.body2">
-                        <strong>Medical Disclaimer:</strong> This application is for informational purposes only. 
-                        Always consult your healthcare provider for medical decisions.
-                    </MudText>
-                </MudAlert>
-            </Authorized>
-        </AuthorizeView>
-        
-        @Body
+    <MudMainContent Style="@(_isMobile ? "padding-top: 64px; padding-bottom: 80px;" : "")">
+        <div Class="@(_isMobile ? "pa-4" : "pa-6")">
+            <AuthorizeView>
+                <Authorized>
+                    <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+                        <MudText Typo="Typo.body2">
+                            <strong>Medical Disclaimer:</strong> This application is for informational purposes only. 
+                            Always consult your healthcare provider for medical decisions.
+                        </MudText>
+                    </MudAlert>
+                </Authorized>
+            </AuthorizeView>
+            
+            @Body
+        </div>
     </MudMainContent>
 </MudLayout>
 
 @if (_isMobile)
 {
-    <MudPaper Elevation="3" Class="fixed-bottom" Style="z-index: 1300; padding-bottom: env(safe-area-inset-bottom);">
+    <MudPaper Elevation="3" Style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1300; padding-bottom: env(safe-area-inset-bottom);">
         <MudContainer Class="d-flex justify-space-around pa-2" MaxWidth="MaxWidth.False">
             <MudIconButton Href="/dashboard" 
                            Icon="@Icons.Material.Filled.Dashboard" 
@@ -190,13 +193,39 @@
     {
         await LoadUserProfile();
         LoadNotifications();
+        
+        // Close drawer on navigation for mobile
+        NavigationManager.LocationChanged += OnLocationChanged;
     }
     
     private void OnBreakpointChanged(Breakpoint breakpoint)
     {
         // MudBlazor breakpoints: Xs (0-600px), Sm (600-960px), Md (960-1280px), Lg (1280-1920px), Xl (1920px+)
+        var wasMobile = _isMobile;
         _isMobile = breakpoint == Breakpoint.Xs || breakpoint == Breakpoint.Sm;
+        
+        // Close drawer when switching to mobile mode
+        if (_isMobile && !wasMobile)
+        {
+            _drawerOpen = false;
+        }
+        
         InvokeAsync(StateHasChanged);
+    }
+    
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Close drawer after navigation on mobile
+        if (_isMobile && _drawerOpen)
+        {
+            _drawerOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
     
     private async Task LoadUserProfile()

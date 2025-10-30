@@ -17,13 +17,17 @@ public static class CustomTheme
             Success = new MudColor("#4CAF50"),        // Success green
             AppbarBackground = new MudColor("#1976D2"),
             DrawerBackground = new MudColor("#FFFFFF"),
-            Background = new MudColor("#F5F5F5"),
+            Background = new MudColor("#FAFAFA"),     // Very light grey instead of #F5F5F5
+            BackgroundGray = new MudColor("#F5F5F5"),
             Surface = new MudColor("#FFFFFF"),
             TextPrimary = new MudColor("#212121"),
             TextSecondary = new MudColor("#757575"),
             ActionDefault = new MudColor("#757575"),
             ActionDisabled = new MudColor("#BDBDBD"),
-            ActionDisabledBackground = new MudColor("#EEEEEE")
+            ActionDisabledBackground = new MudColor("#EEEEEE"),
+            LinesDefault = new MudColor("#E0E0E0"),
+            Divider = new MudColor("#E0E0E0"),
+            TableLines = new MudColor("#E0E0E0")
         },
         PaletteDark = new PaletteDark()
         {
