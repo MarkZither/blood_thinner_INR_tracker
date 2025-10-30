@@ -20,7 +20,7 @@
     else if (_medication == null)
     {
         <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" 
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
             Back to Medications
         </MudButton>
@@ -68,35 +68,53 @@
                 @* Time Information *@
                 <MudGrid Class="mb-4">
                     <MudItem xs="12" md="6">
-                        <MudDatePicker Label="Scheduled Date" 
+                        <MudDatePicker Label="Scheduled Date"
                                        @bind-Date="_scheduledDate"
+                                       @bind-Date:after="OnTimeChanged"
                                        Required="true"
                                        MaxDate="DateTime.Today.AddDays(1)" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudTimePicker Label="Scheduled Time" 
+                        <MudTimePicker Label="Scheduled Time"
                                        @bind-Time="_scheduledTime"
+                                       @bind-Time:after="OnTimeChanged"
                                        Required="true" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudDatePicker Label="Actual Date" 
+                        <MudDatePicker Label="Actual Date"
                                        @bind-Date="_actualDate"
+                                       @bind-Date:after="OnTimeChanged"
                                        Required="true"
-                                       MaxDate="DateTime.Today.AddDays(1)" />
+                                       MaxDate="DateTime.Today.AddDays(1)"
+                                       Error="@_actualDateError"
+                                       ErrorText="@_actualDateErrorText" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudTimePicker Label="Actual Time Taken" 
+                        <MudTimePicker Label="Actual Time Taken"
                                        @bind-Time="_actualTime"
-                                       Required="true" />
+                                       @bind-Time:after="OnTimeChanged"
+                                       Required="true"
+                                       Error="@_actualTimeError"
+                                       ErrorText="@_actualTimeErrorText" />
                     </MudItem>
                 </MudGrid>
 
                 @* Time Variance Display *@
-                @if (_showTimeVariance)
+                @if (_showTimeVariance && !_isFutureTime)
                 {
                     <MudAlert Severity="@GetTimeVarianceSeverity()" Class="mb-4">
                         <MudText Typo="Typo.body2">
                             <strong>@_viewModel.GetTimingMessage()</strong>
+                        </MudText>
+                    </MudAlert>
+                }
+
+                @* Future Time Error *@
+                @if (_isFutureTime)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            <strong>Cannot log medication doses in the future.</strong> Please adjust the actual date/time.
                         </MudText>
                     </MudAlert>
                 }
@@ -106,7 +124,7 @@
                     <MudItem xs="12" md="6">
                         <MudNumericField @bind-Value="_viewModel.ActualDosage"
                                         Label="Actual Dosage Taken"
-                                        Min="0.01m"
+                                        Min="0.5m"
                                         Max="1000m"
                                         Step="0.5m"
                                         Required="true"
@@ -199,7 +217,7 @@
                     {
                         <MudListItem T="string">
                             <MudText Typo="Typo.body2">
-                                @log.ActualTime?.ToString("MMM dd, h:mm tt") - 
+                                @log.ActualTime?.ToString("MMM dd, h:mm tt") -
                                 @log.ActualDosage @log.ActualDosageUnit
                                 @if (log.Status == MedicationLogStatus.Taken)
                                 {
@@ -209,7 +227,7 @@
                         </MudListItem>
                     }
                 </MudList>
-                <MudButton Variant="Variant.Text" 
+                <MudButton Variant="Variant.Text"
                           Color="Color.Primary"
                           OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/history"))"
                           Class="mt-2">
@@ -228,10 +246,16 @@
     private MedicationLogViewModel _viewModel = new();
     private List<MedicationLogDto> _recentLogs = new();
     private List<string> _safetyWarnings = new();
-    
+
     private bool _loading = true;
     private bool _saving = false;
     private bool _showTimeVariance = false;
+    private bool _isFutureTime = false;
+    
+    private bool _actualDateError = false;
+    private string _actualDateErrorText = string.Empty;
+    private bool _actualTimeError = false;
+    private string _actualTimeErrorText = string.Empty;
 
     private DateTime? _scheduledDate = DateTime.Today;
     private TimeSpan? _scheduledTime = DateTime.Now.TimeOfDay;
@@ -287,11 +311,11 @@
         }
 
         // Check daily dose
-        var today = _recentLogs.Where(l => 
-            l.ActualTime.HasValue && 
+        var today = _recentLogs.Where(l =>
+            l.ActualTime.HasValue &&
             l.ActualTime.Value.Date == DateTime.Today &&
             l.Status == MedicationLogStatus.Taken);
-        
+
         var totalToday = today.Sum(l => l.ActualDosage ?? 0);
         if (totalToday + _medication.Dosage > _medication.MaxDailyDose)
         {
@@ -312,6 +336,35 @@
         }
 
         _showTimeVariance = true;
+        ValidateActualTime();
+    }
+
+    private void OnTimeChanged()
+    {
+        UpdateViewModelTimes();
+    }
+
+    private void ValidateActualTime()
+    {
+        _actualDateError = false;
+        _actualTimeError = false;
+        _isFutureTime = false;
+        _actualDateErrorText = string.Empty;
+        _actualTimeErrorText = string.Empty;
+
+        if (_actualDate.HasValue && _actualTime.HasValue)
+        {
+            var actualDateTime = _actualDate.Value.Date + _actualTime.Value;
+            
+            if (actualDateTime > DateTime.Now)
+            {
+                _isFutureTime = true;
+                _actualDateError = true;
+                _actualTimeError = true;
+                _actualDateErrorText = "Cannot be in the future";
+                _actualTimeErrorText = "Cannot be in the future";
+            }
+        }
     }
 
     private Severity GetTimeVarianceSeverity()
@@ -328,6 +381,13 @@
         if (_medication == null) return;
 
         UpdateViewModelTimes();
+
+        // Check for future time
+        if (_isFutureTime)
+        {
+            Snackbar.Add("Cannot log medication doses in the future. Please adjust the actual date/time.", Severity.Error);
+            return;
+        }
 
         // Final safety check
         if (_safetyWarnings.Any())
@@ -347,6 +407,7 @@
                 Snackbar.Add("Medication dose logged successfully", Severity.Success);
                 Navigation.NavigateTo($"/medications/{Id}/history");
             }
+            // If result is null, the service already showed error snackbar
         }
         finally
         {

@@ -1,0 +1,226 @@
+@page "/medications/edit/{id}"
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using BloodThinnerTracker.Web.ViewModels
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.Data
+@using BloodThinnerTracker.Shared.Models
+@using static BloodThinnerTracker.Shared.Models.MedicationType
+@using static BloodThinnerTracker.Shared.Models.MedicationFrequency
+@inject IMedicationService MedicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Edit Medication - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudText Typo="Typo.body1" Class="mt-2">Loading medication...</MudText>
+    }
+    else if (_medication == null)
+    {
+        <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" 
+                   OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Spacing="4">
+                <!-- Page Header -->
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+                            Edit Medication
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Update medication details and settings
+                        </MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Text"
+                              StartIcon="@Icons.Material.Filled.Close"
+                              OnClick="Cancel"
+                              Color="Color.Default">
+                        Cancel
+                    </MudButton>
+                </MudStack>
+
+                <MudDivider />
+
+                @if (_saving)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                }
+
+                <EditForm Model="@_medication" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <!-- Basic Information Section -->
+                    <MudPaper Elevation="1" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-2" />
+                            Basic Information
+                        </MudText>
+
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_medication.Name"
+                                            Label="Medication Name"
+                                            Required="true"
+                                            MaxLength="100"
+                                            HelperText="Brand or generic name" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="_medication.Type"
+                                          Label="Medication Type"
+                                          Required="true">
+                                    @foreach (MedicationType type in Enum.GetValues(typeof(MedicationType)))
+                                    {
+                                        <MudSelectItem Value="@type">@type</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudNumericField @bind-Value="_medication.Dosage"
+                                               Label="Dosage"
+                                               Required="true"
+                                               Min="0.01m"
+                                               Max="1000m"
+                                               Step="0.5m" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudTextField @bind-Value="_medication.DosageUnit"
+                                            Label="Dosage Unit"
+                                            Required="true"
+                                            MaxLength="20"
+                                            HelperText="e.g., mg, mL" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudSelect @bind-Value="_medication.Frequency"
+                                          Label="Frequency"
+                                          Required="true">
+                                    @foreach (MedicationFrequency freq in Enum.GetValues(typeof(MedicationFrequency)))
+                                    {
+                                        <MudSelectItem Value="@freq">@GetFrequencyDisplayName(freq)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_medication.Notes"
+                                            Label="Notes"
+                                            Lines="3"
+                                            MaxLength="1000" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Validation Summary -->
+                    <ValidationSummary />
+
+                    <!-- Action Buttons -->
+                    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                        <MudButton Variant="Variant.Outlined"
+                                  OnClick="Cancel"
+                                  Disabled="@_saving">
+                            Cancel
+                        </MudButton>
+                        <MudButton ButtonType="ButtonType.Submit"
+                                  Variant="Variant.Filled"
+                                  Color="Color.Primary"
+                                  StartIcon="@Icons.Material.Filled.Save"
+                                  Disabled="@_saving">
+                            @if (_saving)
+                            {
+                                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <span>Save Changes</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </EditForm>
+            </MudStack>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private Medication? _medication;
+    private bool _loading = true;
+    private bool _saving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedication();
+    }
+
+    private async Task LoadMedication()
+    {
+        _loading = true;
+        try
+        {
+            _medication = await MedicationService.GetMedicationByIdAsync(Id);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_medication == null) return;
+
+        _saving = true;
+        try
+        {
+            var success = await MedicationService.UpdateMedicationAsync(Id, _medication);
+
+            if (success)
+            {
+                Snackbar.Add("Medication updated successfully", Severity.Success);
+                Navigation.NavigateTo("/medications");
+            }
+            // If success is false, service already showed error snackbar
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/medications");
+    }
+
+    private string GetFrequencyDisplayName(MedicationFrequency frequency)
+    {
+        return frequency switch
+        {
+            MedicationFrequency.AsNeeded => "As Needed",
+            MedicationFrequency.OnceDaily => "Once Daily",
+            MedicationFrequency.TwiceDaily => "Twice Daily (BID)",
+            MedicationFrequency.ThreeTimesDaily => "Three Times Daily (TID)",
+            MedicationFrequency.FourTimesDaily => "Four Times Daily (QID)",
+            MedicationFrequency.EveryOtherDay => "Every Other Day",
+            MedicationFrequency.Weekly => "Weekly",
+            _ => frequency.ToString()
+        };
+    }
+}
