@@ -1,0 +1,264 @@
+@page "/inr/add"
+@using BloodThinnerTracker.Web.ViewModels
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IINRService INRService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+<PageTitle>Add INR Test</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+    <MudPaper Elevation="2" Class="pa-6">
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.h4">Add INR Test</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Close"
+                           OnClick="Cancel"
+                           Disabled="_isSaving">
+                    Cancel
+                </MudButton>
+            </MudStack>
+
+            <MudDivider />
+
+            <!-- Critical Value Alert -->
+            @if (_model.IsCriticalValue())
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                    <strong>@_model.GetCriticalValueWarning()</strong>
+                </MudAlert>
+            }
+
+            <!-- Form -->
+            <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    <!-- Date and Time Section -->
+                    <MudText Typo="Typo.h6" Color="Color.Primary">Test Date & Time</MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="Test Date"
+                                           @bind-Date="_model.TestDate"
+                                           Required="true"
+                                           MaxDate="DateTime.Today"
+                                           MinDate="DateTime.Today.AddYears(-1)"
+                                           Variant="Variant.Outlined"
+                                           HelperText="Cannot be in future or more than 1 year old" />
+                            <ValidationMessage For="@(() => _model.TestDate)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTimePicker Label="Test Time"
+                                           @bind-Time="_model.TestTime"
+                                           Required="true"
+                                           Variant="Variant.Outlined" />
+                            <ValidationMessage For="@(() => _model.TestTime)" />
+                        </MudItem>
+                    </MudGrid>
+
+                    @if (!string.IsNullOrEmpty(_dateError))
+                    {
+                        <MudAlert Severity="Severity.Error">@_dateError</MudAlert>
+                    }
+
+                    <MudDivider />
+
+                    <!-- INR Values Section -->
+                    <MudText Typo="Typo.h6" Color="Color.Primary">INR Values</MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Label="INR Value"
+                                             @bind-Value="_model.InrValue"
+                                             Required="true"
+                                             Min="0.5m"
+                                             Max="8.0m"
+                                             Step="0.1m"
+                                             Variant="Variant.Outlined"
+                                             HelperText="Range: 0.5 - 8.0"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Filled.ShowChart" />
+                            <ValidationMessage For="@(() => _model.InrValue)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Label="Dosage Adjustment"
+                                             @bind-Value="_model.DosageAdjustment"
+                                             Step="0.5m"
+                                             Variant="Variant.Outlined"
+                                             HelperText="Optional: +/- adjustment in mg"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Filled.TrendingUp" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider />
+
+                    <!-- Target Range Section -->
+                    <MudText Typo="Typo.h6" Color="Color.Primary">Target Range</MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Label="Target Minimum"
+                                             @bind-Value="_model.TargetINRMin"
+                                             Min="0.5m"
+                                             Max="8.0m"
+                                             Step="0.1m"
+                                             Variant="Variant.Outlined" />
+                            <ValidationMessage For="@(() => _model.TargetINRMin)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Label="Target Maximum"
+                                             @bind-Value="_model.TargetINRMax"
+                                             Min="0.5m"
+                                             Max="8.0m"
+                                             Step="0.1m"
+                                             Variant="Variant.Outlined" />
+                            <ValidationMessage For="@(() => _model.TargetINRMax)" />
+                        </MudItem>
+                    </MudGrid>
+
+                    @if (!string.IsNullOrEmpty(_rangeError))
+                    {
+                        <MudAlert Severity="Severity.Error">@_rangeError</MudAlert>
+                    }
+
+                    <!-- Range Indicator -->
+                    @if (_model.InrValue.HasValue && _model.TargetINRMin.HasValue && _model.TargetINRMax.HasValue)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                @if (_model.IsInTargetRange())
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                    <MudText Typo="Typo.body2" Color="Color.Success">
+                                        <strong>In Target Range</strong> (@_model.TargetINRMin - @_model.TargetINRMax)
+                                    </MudText>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+                                    <MudText Typo="Typo.body2" Color="Color.Warning">
+                                        <strong>Outside Target Range</strong> (@_model.TargetINRMin - @_model.TargetINRMax)
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <MudDivider />
+
+                    <!-- Additional Information Section -->
+                    <MudText Typo="Typo.h6" Color="Color.Primary">Additional Information</MudText>
+
+                    <MudTextField Label="Test Location"
+                                  @bind-Value="_model.TestLocation"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="e.g., Home, Clinic, Hospital"
+                                  MaxLength="200"
+                                  Counter="200"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.LocationOn" />
+                    <ValidationMessage For="@(() => _model.TestLocation)" />
+
+                    <MudTextField Label="Notes"
+                                  @bind-Value="_model.Notes"
+                                  Variant="Variant.Outlined"
+                                  Lines="4"
+                                  Placeholder="Any notes about the test, symptoms, or changes..."
+                                  MaxLength="1000"
+                                  Counter="1000" />
+                    <ValidationMessage For="@(() => _model.Notes)" />
+
+                    <MudDivider />
+
+                    <!-- Action Buttons -->
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="Cancel"
+                                   Disabled="_isSaving">
+                            Cancel
+                        </MudButton>
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Save"
+                                   Disabled="_isSaving">
+                            @if (_isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ml-2">Saving...</MudText>
+                            }
+                            else
+                            {
+                                <text>Save Test</text>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </EditForm>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private INRTestViewModel _model = new();
+    private bool _isSaving;
+    private string? _dateError;
+    private string? _rangeError;
+
+    private async Task HandleSubmit()
+    {
+        // Additional custom validations
+        if (!_model.IsValidTestDate(out _dateError))
+        {
+            return;
+        }
+
+        if (!_model.IsValidTargetRange(out _rangeError))
+        {
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            var test = new INRTest
+            {
+                TestDate = _model.GetTestDateTime(),
+                INRValue = _model.InrValue!.Value,
+                TargetINRMin = _model.TargetINRMin!.Value,
+                TargetINRMax = _model.TargetINRMax!.Value,
+                Laboratory = _model.TestLocation,
+                Notes = _model.Notes,
+                DosageChanges = _model.DosageAdjustment?.ToString()
+            };
+
+            await INRService.CreateTestAsync(test);
+
+            Snackbar.Add("INR test recorded successfully", Severity.Success);
+            Navigation.NavigateTo("/inr");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving INR test: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/inr");
+    }
+}

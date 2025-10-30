@@ -125,7 +125,10 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 // Add HttpContextAccessor for OAuth callback handling (T003-001)
 builder.Services.AddHttpContextAccessor();
 
-// Add HttpClient for API calls with authentication (T018k)
+// Register services for UI (T003-004, T003-005)
+builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
+
+// Add HttpClient for API calls with authentication (T003-001)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
 builder.Services.AddScoped(sp =>
 {
@@ -139,6 +142,9 @@ builder.Services.AddScoped(sp =>
 
     return httpClient;
 });
+
+// Register application services (T003-004, T003-005)
+builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
 
 var app = builder.Build();
 
