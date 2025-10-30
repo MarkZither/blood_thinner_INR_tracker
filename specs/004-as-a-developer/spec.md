@@ -117,12 +117,12 @@ As a developer, I want to set breakpoints across multiple services and debug the
 - **FR-003**: System MUST provide automatic service discovery so services can reference each other by logical name rather than hardcoded URLs
 - **FR-004**: System MUST automatically generate and inject connection strings for databases into service configuration
 - **FR-005**: System MUST provide a web-based dashboard accessible at http://localhost:15000 showing service status
-- **FR-006**: Dashboard MUST display real-time logs from all running services with filtering and search capabilities
+- **FR-006**: Dashboard MUST display real-time logs from all running services with filtering and search capabilities. Logs retained for current session only; cleared on application stop (Aspire default behavior).
 - **FR-007**: Dashboard MUST display distributed traces showing request flows across service boundaries using OpenTelemetry standards
 - **FR-008**: Dashboard MUST display metrics (CPU, memory, request rates, error rates) for each service in real-time
 - **FR-009**: System MUST support debugging multiple services simultaneously with breakpoints across service boundaries
 - **FR-010**: System MUST handle graceful shutdown of all services and containers when the developer stops the application
-- **FR-011**: System MUST detect and report port conflicts with clear error messages
+- **FR-011**: System MUST detect port conflicts and automatically assign alternative ports. Dashboard displays port mapping (e.g., "API: http://localhost:5001 → http://localhost:5002"). Service discovery updated with actual ports.
 - **FR-012**: System MUST support environment-specific configuration (Development, Staging) with automatic environment variable injection
 - **FR-013**: System MUST provide health check endpoints for all services and display health status in the dashboard
 - **FR-014**: System MUST support hot reload for code changes without requiring full application restart
@@ -132,6 +132,7 @@ As a developer, I want to set breakpoints across multiple services and debug the
 - **FR-018**: System MUST provide a mechanism to reset/clean local data (reset-database.ps1 script)
 - **FR-019**: System MUST start all services and containers in a single "full stack" profile
 - **FR-020**: Dashboard MUST provide direct links to service endpoints and API documentation (Swagger UI)
+- **FR-021**: System MUST automatically attempt container restart on runtime failure (3 attempts with exponential backoff: 2s, 4s, 8s). Dashboard displays unhealthy status and restart attempts. Services continue in degraded state during recovery.
 
 ### Non-Functional Requirements
 
@@ -205,11 +206,24 @@ As a developer, I want to set breakpoints across multiple services and debug the
 
 ## Edge Cases
 
-- What happens when a required Docker image cannot be pulled (network offline)?
-- How does the system handle port conflicts when default ports are already in use?
-- What happens when a service fails to start but others continue running?
+- What happens when a required Docker image cannot be pulled (network offline)? **→ Fail immediately with clear error message. Include diagnostic info (network status, image name, registry URL). Provide offline troubleshooting guidance.**
+- How does the system handle port conflicts when default ports are already in use? **→ Auto-assign alternative ports and display mapping in dashboard. Service discovery automatically updated with actual ports.**
+- What happens when a service fails to start but others continue running? **→ All services MUST stop immediately (fail-fast). Dashboard displays error with clear diagnostic information. Prevents developers from debugging partially-working system.**
 - What happens when .NET Aspire is not installed or is the wrong version?
-- What happens when a container runs out of disk space or memory?
+- What happens when a container runs out of disk space or memory? **→ Container marked as unhealthy in dashboard with degraded state. Auto-restart attempts (3x with exponential backoff: 2s, 4s, 8s). Services continue running but display degraded status. Dashboard shows error details and resource constraints.**
+- What happens when Docker Desktop/Engine is not running or not installed? **→ Fail immediately with clear error message directing user to install/start Docker. Include platform-specific instructions (Windows: Docker Desktop, Linux: Docker Engine, macOS: Docker Desktop).**
+
+---
+
+## Clarifications
+
+### Session 2025-10-30
+
+- Q: When a service fails to start (e.g., port conflict, missing dependency), what should happen to other already-started services? → A: Stop all services immediately and show error (fail-fast approach)
+- Q: When Docker Desktop/Engine is not running or not installed, what should the startup behavior be? → A: Fail immediately with clear error message directing user to install/start Docker
+- Q: How long should the dashboard retain historical logs after a service is stopped or restarted? → A: Retain logs for current session only; clear on application stop (Aspire default)
+- Q: When port conflicts are detected (default ports already in use), how should the system respond? → A: Auto-assign alternative ports and display mapping in dashboard
+- Q: When a container (PostgreSQL) fails during runtime (not startup), how should the system respond? → A: Mark container as unhealthy in dashboard; services continue but show degraded state with auto-restart attempts (3x with backoff)
 
 ---
 
