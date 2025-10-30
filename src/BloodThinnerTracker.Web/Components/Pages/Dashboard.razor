@@ -196,8 +196,17 @@
                             </CardHeaderActions>
                         </MudCardHeader>
                         <MudCardContent>
-                            <div id="inrChart" style="height: 300px;"></div>
-                            @if (recentINRTests?.Any() != true)
+                            @if (recentINRTests?.Any() == true)
+                            {
+                                <MudChart ChartType="ChartType.Line"
+                                          ChartSeries="@inrChartSeries"
+                                          XAxisLabels="@inrChartLabels"
+                                          Width="100%"
+                                          Height="300px"
+                                          ChartOptions="@inrChartOptions">
+                                </MudChart>
+                            }
+                            else
                             {
                                 <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="py-6">
                                     <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Secondary" />
@@ -338,18 +347,15 @@
     private List<AlertViewModel>? criticalAlerts;
     private List<ReminderViewModel>? upcomingReminders;
 
+    // Chart properties
+    private List<ChartSeries> inrChartSeries = new();
+    private string[] inrChartLabels = Array.Empty<string>();
+    private ChartOptions inrChartOptions = new ChartOptions();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardData();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // JSRuntime can only be called after rendering is complete
-            await LoadINRChart();
-        }
+        PrepareINRChartData();
     }
 
     private async Task LoadDashboardData()
@@ -375,7 +381,7 @@
             }
 
             // Load recent INR tests from API
-            var inrTests = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=5");
+            var inrTests = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/v1/inr/tests?take=5");
             if (inrTests != null && inrTests.Any())
             {
                 recentINRTests = inrTests.Select(r => new INRTest
@@ -424,22 +430,35 @@
         }
     }
 
-    private async Task LoadINRChart()
+    private void PrepareINRChartData()
     {
-        // TODO: Replace JavaScript chart with MudBlazor MudChart component (T003-002)
-        // Mock INR data for chart
-        var chartData = new[]
+        if (recentINRTests?.Any() != true)
         {
-            new { date = DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd"), value = 2.1 },
-            new { date = DateTime.Today.AddDays(-25).ToString("yyyy-MM-dd"), value = 2.4 },
-            new { date = DateTime.Today.AddDays(-20).ToString("yyyy-MM-dd"), value = 2.0 },
-            new { date = DateTime.Today.AddDays(-15).ToString("yyyy-MM-dd"), value = 2.6 },
-            new { date = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd"), value = 2.2 },
-            new { date = DateTime.Today.AddDays(-5).ToString("yyyy-MM-dd"), value = 2.3 }
+            inrChartSeries = new List<ChartSeries>();
+            inrChartLabels = Array.Empty<string>();
+            return;
+        }
+
+        var orderedTests = recentINRTests.OrderBy(t => t.TestDate).ToList();
+        inrChartLabels = orderedTests.Select(t => t.TestDate.ToString("MMM dd")).ToArray();
+
+        var inrValues = orderedTests.Select(t => (double)t.INRValue).ToArray();
+        var targetMin = Enumerable.Repeat(2.0, orderedTests.Count).ToArray();
+        var targetMax = Enumerable.Repeat(3.0, orderedTests.Count).ToArray();
+
+        inrChartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "INR Value", Data = inrValues },
+            new ChartSeries { Name = "Target Min (2.0)", Data = targetMin },
+            new ChartSeries { Name = "Target Max (3.0)", Data = targetMax }
         };
 
-        // await JSRuntime.InvokeVoidAsync("renderINRChart", "inrChart", chartData);
-        await Task.CompletedTask; // Placeholder until MudChart is implemented
+        inrChartOptions = new ChartOptions
+        {
+            YAxisTicks = 1,
+            YAxisLines = true,
+            MaxNumYAxisTicks = 6
+        };
     }
 
     private async Task RefreshMedications()

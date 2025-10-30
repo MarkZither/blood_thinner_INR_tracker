@@ -1,15 +1,15 @@
 /*
  * BloodThinnerTracker.Api - INR Tests Controller
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * REST API controller for INR test management in the blood thinner tracking system.
  * Provides endpoints for logging INR tests, retrieving history, and tracking trends.
- * 
+ *
  * ⚠️ MEDICAL DATA CONTROLLER:
  * This controller handles protected health information (PHI). All operations
  * must comply with healthcare data protection regulations and include proper
  * authentication, authorization, and audit logging.
- * 
+ *
  * IMPORTANT MEDICAL DISCLAIMER:
  * This software is for informational purposes only and should not replace
  * professional medical advice. Users should consult healthcare providers
@@ -271,10 +271,10 @@ public sealed class INRController : ControllerBase
             };
 
             // Set status based on therapeutic range
-            test.Status = test.IsInTargetRange() 
-                ? INRResultStatus.InRange 
-                : (test.INRValue < (test.TargetINRMin ?? 0) 
-                    ? INRResultStatus.BelowRange 
+            test.Status = test.IsInTargetRange()
+                ? INRResultStatus.InRange
+                : (test.INRValue < (test.TargetINRMin ?? 0)
+                    ? INRResultStatus.BelowRange
                     : INRResultStatus.AboveRange);
 
             _context.INRTests.Add(test);
@@ -397,14 +397,14 @@ public sealed class INRController : ControllerBase
                 test.DosageChanges = request.DosageChanges;
             if (request.Notes != null)
                 test.Notes = request.Notes;
-            
+
             test.UpdatedAt = DateTime.UtcNow;
 
             // Update status based on therapeutic range
-            test.Status = test.IsInTargetRange() 
-                ? INRResultStatus.InRange 
-                : (test.INRValue < (test.TargetINRMin ?? 0) 
-                    ? INRResultStatus.BelowRange 
+            test.Status = test.IsInTargetRange()
+                ? INRResultStatus.InRange
+                : (test.INRValue < (test.TargetINRMin ?? 0)
+                    ? INRResultStatus.BelowRange
                     : INRResultStatus.AboveRange);
 
             await _context.SaveChangesAsync();

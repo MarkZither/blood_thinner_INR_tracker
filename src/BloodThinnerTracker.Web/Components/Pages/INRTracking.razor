@@ -26,20 +26,21 @@
     </div>
 
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1">
-                <i class="fas fa-chart-line text-primary me-2"></i>
-                INR Tracking
-            </h1>
-            <p class="text-muted mb-0">Monitor your blood clotting levels and trends</p>
-        </div>
-        <div>
-            <button class="btn btn-primary" @onclick="NavigateToAddINR">
-                <i class="fas fa-plus me-1"></i>Add INR Result
-            </button>
-        </div>
-    </div>
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudStack Spacing="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h4">INR Tracking</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Default">Monitor your blood clotting levels and trends</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NavigateToAddINR">
+            Add INR Result
+        </MudButton>
+    </MudStack>
 
     <!-- Current Status Cards -->
     <div class="row mb-4">
@@ -178,116 +179,114 @@
     <!-- INR History Table -->
     <div class="card shadow-sm">
         <div class="card-header bg-white border-bottom">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-history text-primary me-2"></i>
-                    INR Test History
-                </h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="ExportINRData">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                    <button class="btn btn-sm btn-primary" @onclick="NavigateToAddINR">
-                        <i class="fas fa-plus me-1"></i>Add Result
-                    </button>
-                </div>
-            </div>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">INR Test History</MudText>
+                </MudStack>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               Size="Size.Small"
+                               OnClick="ExportINRData">
+                        Export
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Size="Size.Small"
+                               OnClick="NavigateToAddINR">
+                        Add Result
+                    </MudButton>
+                </MudStack>
+            </MudStack>
         </div>
         <div class="card-body">
             @if (inrTests?.Any() == true)
             {
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>INR Value</th>
-                                <th>Status</th>
-                                <th>Laboratory</th>
-                                <th>Notes</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var test in inrTests.OrderByDescending(t => t.TestDate))
+                <MudTable Items="@inrTests.OrderByDescending(t => t.TestDate)"
+                          Hover="true"
+                          Breakpoint="Breakpoint.Sm"
+                          Dense="false"
+                          Striped="false">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>INR Value</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Laboratory</MudTh>
+                        <MudTh>Notes</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="test">
+                        <MudTd DataLabel="Date" Class="@GetRowClass(test.INRValue)">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2"><strong>@test.TestDate.ToString("MMM dd, yyyy")</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Default">@test.TestDate.ToString("HH:mm")</MudText>
+                            </MudStack>
+                        </MudTd>
+                        <MudTd DataLabel="INR Value" Class="@GetRowClass(test.INRValue)">
+                            <MudText Typo="Typo.body1" Class="@GetValueClass(test.INRValue)">
+                                @test.INRValue.ToString("F1")
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Status" Class="@GetRowClass(test.INRValue)">
+                            <MudChip T="string"
+                                     Color="@GetStatusChipColor(test.INRValue)"
+                                     Size="Size.Small">
+                                @GetStatusText(test.INRValue)
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Laboratory" Class="@GetRowClass(test.INRValue)">
+                            <MudText Typo="Typo.body2">@(test.Laboratory ?? "Not specified")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Notes" Class="@GetRowClass(test.INRValue)">
+                            @if (!string.IsNullOrEmpty(test.Notes))
                             {
-                                <tr class="@GetRowClass(test.INRValue)">
-                                    <td>
-                                        <strong>@test.TestDate.ToString("MMM dd, yyyy")</strong>
-                                        <br>
-                                        <small class="text-muted">@test.TestDate.ToString("HH:mm")</small>
-                                    </td>
-                                    <td>
-                                        <span class="inr-value @GetValueClass(test.INRValue)">
-                                            @test.INRValue.ToString("F1")
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge @GetStatusBadgeClass(test.INRValue)">
-                                            @GetStatusText(test.INRValue)
-                                        </span>
-                                    </td>
-                                    <td>@(test.Laboratory ?? "Not specified")</td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(test.Notes))
-                                        {
-                                            <span title="@test.Notes">
-                                                @(test.Notes.Length > 30 ? test.Notes.Substring(0, 30) + "..." : test.Notes)
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">No notes</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" @onclick="() => EditINRTest(test.Id)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger" @onclick="() => DeleteINRTest(test.Id)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <MudText Typo="Typo.body2" title="@test.Notes">
+                                    @(test.Notes.Length > 30 ? test.Notes.Substring(0, 30) + "..." : test.Notes)
+                                </MudText>
                             }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                @if (totalPages > 1)
-                {
-                    <nav aria-label="INR history pagination" class="mt-3">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Previous</button>
-                            </li>
-                            @for (int i = 1; i <= totalPages; i++)
+                            else
                             {
-                                var page = i;
-                                <li class="page-item @(currentPage == page ? "active" : "")">
-                                    <button class="page-link" @onclick="() => ChangePage(page)">@(page)</button>
-                                </li>
+                                <MudText Typo="Typo.body2" Color="Color.Default">No notes</MudText>
                             }
-                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Next</button>
-                            </li>
-                        </ul>
-                    </nav>
-                }
+                        </MudTd>
+                        <MudTd DataLabel="Actions" Class="@GetRowClass(test.INRValue)">
+                            <MudButtonGroup Size="Size.Small" OverrideStyles="false">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                              Color="Color.Primary"
+                                              Size="Size.Small"
+                                              OnClick="@(() => EditINRTest(test.Id))"
+                                              Title="Edit" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                              Color="Color.Error"
+                                              Size="Size.Small"
+                                              OnClick="@(() => DeleteINRTest(test.Id))"
+                                              Title="Delete" />
+                            </MudButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
+                    </PagerContent>
+                </MudTable>
             }
             else
             {
-                <div class="text-center py-4">
-                    <i class="fas fa-flask text-muted fa-3x mb-3"></i>
-                    <h4 class="text-muted">No INR Tests Recorded</h4>
-                    <p class="text-muted mb-4">Start tracking your INR levels to monitor your blood thinner effectiveness</p>
-                    <button class="btn btn-primary" @onclick="NavigateToAddINR">
-                        <i class="fas fa-plus me-1"></i>Record Your First INR Test
-                    </button>
-                </div>
+                <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="3">
+                    <MudIcon Icon="@Icons.Material.Filled.Biotech" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.h6" Color="Color.Default">No INR Tests Recorded</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Default" Align="Align.Center">
+                        Start tracking your INR levels to monitor your blood thinner effectiveness
+                    </MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NavigateToAddINR">
+                        Record Your First INR Test
+                    </MudButton>
+                </MudStack>
             }
         </div>
     </div>
@@ -342,7 +341,7 @@
         try
         {
             // Call API to get INR tests
-            var response = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=100");
+            var response = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/v1/inr/tests?take=100");
 
             if (response != null && response.Any())
             {
@@ -526,8 +525,8 @@
         {
             try
             {
-                // Call API to delete test
-                var response = await Http.DeleteAsync($"api/inr/{testId}");
+                // Call API to delete test with correct endpoint
+                var response = await Http.DeleteAsync($"api/v1/inr/tests/{testId}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -555,8 +554,43 @@
 
     private void ExportINRData()
     {
-        // TODO: Implement export functionality using MudBlazor dialog
-        // For now, user will see the button but export will be implemented with API
+        if (inrTests?.Any() != true)
+        {
+            Snackbar.Add("No INR data to export", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            // Generate CSV content
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Date,Time,INR Value,Target Min,Target Max,Status,Laboratory,Notes");
+
+            foreach (var test in inrTests.OrderByDescending(t => t.TestDate))
+            {
+                var status = GetStatusText(test.INRValue);
+                var notes = test.Notes?.Replace(",", ";").Replace("\n", " ") ?? "";
+
+                csv.AppendLine($"{test.TestDate:yyyy-MM-dd}," +
+                              $"{test.TestDate:HH:mm}," +
+                              $"{test.INRValue:F1}," +
+                              $"{test.TargetINRMin?.ToString("F1") ?? "N/A"}," +
+                              $"{test.TargetINRMax?.ToString("F1") ?? "N/A"}," +
+                              $"{status}," +
+                              $"\"{test.Laboratory ?? "Not specified"}\"," +
+                              $"\"{notes}\"");
+            }
+
+            // Create download using JavaScript interop would be needed here
+            // For now, show success message and copy to clipboard hint
+            Snackbar.Add($"CSV data prepared for {inrTests.Count} tests. Copy functionality requires JavaScript interop.",
+                        Severity.Info,
+                        config => { config.VisibleStateDuration = 5000; });
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error exporting data: {ex.Message}", Severity.Error);
+        }
     }
 
     // Helper methods for styling
@@ -592,6 +626,13 @@
         if (inrValue < 2.0m) return "bg-warning";
         if (inrValue > 3.0m) return "bg-danger";
         return "bg-success";
+    }
+
+    private Color GetStatusChipColor(decimal inrValue)
+    {
+        if (inrValue < 2.0m) return Color.Warning;
+        if (inrValue > 3.0m) return Color.Error;
+        return Color.Success;
     }
 
     private string GetStatusText(decimal inrValue)
