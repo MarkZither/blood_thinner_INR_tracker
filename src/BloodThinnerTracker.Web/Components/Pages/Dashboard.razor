@@ -153,8 +153,8 @@
                                                 <div>
                                                     @if (!med.IsTaken)
                                                     {
-                                                        <MudButton StartIcon="@Icons.Material.Filled.Check" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => MarkMedicationTaken(med.Id))">
-                                                            Taken
+                                                        <MudButton StartIcon="@Icons.Material.Filled.Check" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => NavigateToLogDose(med.Id))">
+                                                            Log Dose
                                                         </MudButton>
                                                     }
                                                     else
@@ -302,9 +302,6 @@
                         </MudCardHeader>
                         <MudCardContent>
                             <MudStack Spacing="2">
-                                <MudButton StartIcon="@Icons.Material.Filled.Medication" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" OnClick="NavigateToMedicationLog">
-                                    Log Medication
-                                </MudButton>
                                 <MudButton StartIcon="@Icons.Material.Filled.ShowChart" Color="Color.Success" Variant="Variant.Filled" FullWidth="true" OnClick="NavigateToAddINR">
                                     Record INR Test
                                 </MudButton>
@@ -482,7 +479,7 @@
     // Navigation methods
     private void NavigateToAddMedications() => Navigation.NavigateTo("/medications/add");
     private void NavigateToAddINR() => Navigation.NavigateTo("/inr/add");
-    private void NavigateToMedicationLog() => Navigation.NavigateTo("/medications/log");
+    private void NavigateToLogDose(string medicationId) => Navigation.NavigateTo($"/medications/{medicationId}/log");
     private void NavigateToMedications() => Navigation.NavigateTo("/medications");
     private void NavigateToINR() => Navigation.NavigateTo("/inr");
 
