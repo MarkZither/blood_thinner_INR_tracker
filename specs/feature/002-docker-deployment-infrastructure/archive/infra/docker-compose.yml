@@ -1,7 +1,0 @@
-// Archived: docker-compose for feature 002 (OUT-OF-SCOPE)
-// Original file kept for reference. Docker/Compose-based deployment is out-of-scope for this feature.
-version: '3.8'
-services:
-  api: {}
-  web: {}
-  db: {}
