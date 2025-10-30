@@ -50,34 +50,54 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = adOptions.ClientId;
         options.ClientSecret = adOptions.ClientSecret;
         options.SaveTokens = true;
-        
+
         // Add OpenID Connect scopes (keep defaults and add what we need)
         // Don't clear - Microsoft Account provider needs its default scopes
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
-        
+
         options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
-        
-        // Hook into the OAuth callback to redirect to our Blazor page
+
+        // Handle OAuth failures (network errors, API timeouts, etc.)
+        options.Events.OnRemoteFailure = context =>
+        {
+            context.Response.Redirect("/login?error=oauth_failed&message=" + Uri.EscapeDataString(context.Failure?.Message ?? "Authentication failed"));
+            context.HandleResponse();
+            return Task.CompletedTask;
+        };
+
+        // After successful authentication, redirect to our Blazor callback page
         options.Events.OnTicketReceived = context =>
         {
             // Get the returnUrl from authentication properties
             var returnUrl = context.Properties?.RedirectUri ?? "/dashboard";
-            
-            // Redirect to our Blazor callback page with provider and returnUrl
-            context.Response.Redirect($"/oauth-complete?provider=microsoft&returnUrl={Uri.EscapeDataString(returnUrl)}");
-            context.HandleResponse();
+
+            // Redirect to our Blazor callback page which will exchange tokens
+            // The authentication cookies have been set by this point
+            var redirectUrl = $"/oauth-complete?provider=microsoft&returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+            context.ReturnUri = redirectUrl;
+            context.Properties!.RedirectUri = redirectUrl;
+
             return Task.CompletedTask;
         };
     })
     .AddGoogle(options =>
     {
-    var googleOptions = builder.Configuration.GetSection("Authentication:Google").Get<BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions>() ?? new BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions();
+        var googleOptions = builder.Configuration.GetSection("Authentication:Google").Get<BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions>() ?? new BloodThinnerTracker.Shared.Models.Authentication.GoogleOptions();
         options.ClientId = googleOptions.ClientId;
         options.ClientSecret = googleOptions.ClientSecret;
         options.SaveTokens = true;
-    options.CallbackPath = string.IsNullOrEmpty(googleOptions.CallbackPath) ? "/signin-google" : googleOptions.CallbackPath;
+        options.CallbackPath = string.IsNullOrEmpty(googleOptions.CallbackPath) ? "/signin-google" : googleOptions.CallbackPath;
+
+        // Handle OAuth failures (network errors, API timeouts, etc.)
+        options.Events.OnRemoteFailure = context =>
+        {
+            context.Response.Redirect("/login?error=oauth_failed&message=" + Uri.EscapeDataString(context.Failure?.Message ?? "Authentication failed"));
+            context.HandleResponse();
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddCascadingAuthenticationState();

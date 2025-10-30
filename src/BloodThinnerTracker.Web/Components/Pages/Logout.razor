@@ -27,10 +27,10 @@
         {
             // Clear custom authentication state (JWT tokens in storage)
             await AuthStateProvider.MarkUserAsLoggedOutAsync();
-            
+
             // Small delay for better UX
             await Task.Delay(500);
-            
+
             // Redirect to controller to clear cookie authentication
             // The controller will then redirect back to /login
             Navigation.NavigateTo("/Auth/Logout", forceLoad: true);

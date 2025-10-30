@@ -6,7 +6,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 @inject ILogger<Profile> Logger
 
 <PageTitle>Profile - Blood Thinner Tracker</PageTitle>
@@ -36,31 +35,31 @@
                     </h5>
                 </div>
                 <div class="list-group list-group-flush">
-                    <button type="button" 
+                    <button type="button"
                             class="list-group-item list-group-item-action @(_activeTab == "profile" ? "active" : "")"
                             @onclick="SetProfileTab">
                         <i class="fas fa-user me-2"></i>
                         Personal Information
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             class="list-group-item list-group-item-action @(_activeTab == "medical" ? "active" : "")"
                             @onclick="SetMedicalTab">
                         <i class="fas fa-heartbeat me-2"></i>
                         Medical Settings
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             class="list-group-item list-group-item-action @(_activeTab == "notifications" ? "active" : "")"
                             @onclick="SetNotificationsTab">
                         <i class="fas fa-bell me-2"></i>
                         Notifications
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             class="list-group-item list-group-item-action @(_activeTab == "security" ? "active" : "")"
                             @onclick="SetSecurityTab">
                         <i class="fas fa-shield-alt me-2"></i>
                         Security
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             class="list-group-item list-group-item-action @(_activeTab == "data" ? "active" : "")"
                             @onclick="SetDataTab">
                         <i class="fas fa-database me-2"></i>
@@ -102,21 +101,21 @@
                     <div class="card-body">
                         <EditForm Model="_profileModel" OnValidSubmit="SaveProfile">
                             <DataAnnotationsValidator />
-                            
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="firstName" class="form-label">First Name</label>
-                                    <InputText @bind-Value="_profileModel.FirstName" 
-                                              class="form-control" 
+                                    <InputText @bind-Value="_profileModel.FirstName"
+                                              class="form-control"
                                               id="firstName"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _profileModel.FirstName)" class="text-danger small" />
                                 </div>
-                                
+
                                 <div class="col-md-6 mb-3">
                                     <label for="lastName" class="form-label">Last Name</label>
-                                    <InputText @bind-Value="_profileModel.LastName" 
-                                              class="form-control" 
+                                    <InputText @bind-Value="_profileModel.LastName"
+                                              class="form-control"
                                               id="lastName"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _profileModel.LastName)" class="text-danger small" />
@@ -125,8 +124,8 @@
 
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email Address</label>
-                                <InputText @bind-Value="_profileModel.Email" 
-                                          class="form-control" 
+                                <InputText @bind-Value="_profileModel.Email"
+                                          class="form-control"
                                           id="email"
                                           type="email"
                                           disabled="@_isLoading" />
@@ -135,8 +134,8 @@
 
                             <div class="mb-3">
                                 <label for="dateOfBirth" class="form-label">Date of Birth</label>
-                                <InputDate @bind-Value="_profileModel.DateOfBirth" 
-                                          class="form-control" 
+                                <InputDate @bind-Value="_profileModel.DateOfBirth"
+                                          class="form-control"
                                           id="dateOfBirth"
                                           disabled="@_isLoading" />
                                 <ValidationMessage For="@(() => _profileModel.DateOfBirth)" class="text-danger small" />
@@ -184,7 +183,7 @@
                     <div class="card-body">
                         <EditForm Model="_medicalModel" OnValidSubmit="SaveMedicalSettings">
                             <DataAnnotationsValidator />
-                            
+
                             <div class="mb-4">
                                 <h5 class="text-primary">Target INR Range</h5>
                                 <p class="text-muted small">
@@ -193,8 +192,8 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="targetINRMin" class="form-label">Minimum INR</label>
-                                        <InputNumber @bind-Value="_medicalModel.TargetINRMin" 
-                                                   class="form-control" 
+                                        <InputNumber @bind-Value="_medicalModel.TargetINRMin"
+                                                   class="form-control"
                                                    id="targetINRMin"
                                                    step="0.1"
                                                    disabled="@_isLoading" />
@@ -202,8 +201,8 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="targetINRMax" class="form-label">Maximum INR</label>
-                                        <InputNumber @bind-Value="_medicalModel.TargetINRMax" 
-                                                   class="form-control" 
+                                        <InputNumber @bind-Value="_medicalModel.TargetINRMax"
+                                                   class="form-control"
                                                    step="0.1"
                                                    disabled="@_isLoading" />
                                         <ValidationMessage For="@(() => _medicalModel.TargetINRMax)" class="text-danger small" />
@@ -227,8 +226,8 @@
                                 </div>
 
                                 <div class="form-check mb-3">
-                                    <InputCheckbox @bind-Value="_medicalModel.EnableMedicationReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_medicalModel.EnableMedicationReminders"
+                                                  class="form-check-input"
                                                   id="enableMedicationReminders" />
                                     <label class="form-check-label" for="enableMedicationReminders">
                                         Enable medication reminders
@@ -236,8 +235,8 @@
                                 </div>
 
                                 <div class="form-check mb-3">
-                                    <InputCheckbox @bind-Value="_medicalModel.EnableINRReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_medicalModel.EnableINRReminders"
+                                                  class="form-check-input"
                                                   id="enableINRReminders" />
                                     <label class="form-check-label" for="enableINRReminders">
                                         Enable INR test reminders
@@ -275,24 +274,24 @@
                             <div class="mb-4">
                                 <h5 class="text-primary">Email Notifications</h5>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.EmailMedicationReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailMedicationReminders"
+                                                  class="form-check-input"
                                                   id="emailMedicationReminders" />
                                     <label class="form-check-label" for="emailMedicationReminders">
                                         Medication reminders
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.EmailINRReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailINRReminders"
+                                                  class="form-check-input"
                                                   id="emailINRReminders" />
                                     <label class="form-check-label" for="emailINRReminders">
                                         INR test reminders
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.EmailCriticalAlerts" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.EmailCriticalAlerts"
+                                                  class="form-check-input"
                                                   id="emailCriticalAlerts" />
                                     <label class="form-check-label" for="emailCriticalAlerts">
                                         Critical alerts (out-of-range INR)
@@ -303,24 +302,24 @@
                             <div class="mb-4">
                                 <h5 class="text-primary">Push Notifications</h5>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.PushMedicationReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.PushMedicationReminders"
+                                                  class="form-check-input"
                                                   id="pushMedicationReminders" />
                                     <label class="form-check-label" for="pushMedicationReminders">
                                         Medication reminders
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.PushINRReminders" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.PushINRReminders"
+                                                  class="form-check-input"
                                                   id="pushINRReminders" />
                                     <label class="form-check-label" for="pushINRReminders">
                                         INR test reminders
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
-                                    <InputCheckbox @bind-Value="_notificationModel.PushCriticalAlerts" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_notificationModel.PushCriticalAlerts"
+                                                  class="form-check-input"
                                                   id="pushCriticalAlerts" />
                                     <label class="form-check-label" for="pushCriticalAlerts">
                                         Critical alerts
@@ -354,12 +353,12 @@
                             <h5 class="text-primary">Change Password</h5>
                             <EditForm Model="_passwordModel" OnValidSubmit="ChangePassword">
                                 <DataAnnotationsValidator />
-                                
+
                                 <div class="mb-3">
                                     <label for="currentPassword" class="form-label">Current Password</label>
-                                    <InputText @bind-Value="_passwordModel.CurrentPassword" 
+                                    <InputText @bind-Value="_passwordModel.CurrentPassword"
                                               type="password"
-                                              class="form-control" 
+                                              class="form-control"
                                               id="currentPassword"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _passwordModel.CurrentPassword)" class="text-danger small" />
@@ -367,9 +366,9 @@
 
                                 <div class="mb-3">
                                     <label for="newPassword" class="form-label">New Password</label>
-                                    <InputText @bind-Value="_passwordModel.NewPassword" 
+                                    <InputText @bind-Value="_passwordModel.NewPassword"
                                               type="password"
-                                              class="form-control" 
+                                              class="form-control"
                                               id="newPassword"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _passwordModel.NewPassword)" class="text-danger small" />
@@ -377,9 +376,9 @@
 
                                 <div class="mb-3">
                                     <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
-                                    <InputText @bind-Value="_passwordModel.ConfirmNewPassword" 
+                                    <InputText @bind-Value="_passwordModel.ConfirmNewPassword"
                                               type="password"
-                                              class="form-control" 
+                                              class="form-control"
                                               id="confirmNewPassword"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _passwordModel.ConfirmNewPassword)" class="text-danger small" />
@@ -435,7 +434,7 @@
                         <div class="mb-4">
                             <h5 class="text-danger">Danger Zone</h5>
                             <p class="text-muted">These actions cannot be undone.</p>
-                            
+
                             <div class="mb-3">
                                 <button type="button" class="btn btn-outline-warning me-2">
                                     <i class="fas fa-trash-alt me-2"></i>
@@ -601,7 +600,7 @@
             _errorMessage = string.Empty;
             StateHasChanged();
 
-            // TODO: Save notification settings to API  
+            // TODO: Save notification settings to API
             await Task.Delay(1000);
 
             _successMessage = "Notification settings updated successfully.";

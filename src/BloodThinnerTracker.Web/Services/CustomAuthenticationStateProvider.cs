@@ -41,7 +41,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     private string GetCacheKey(string key, string? userIdentifier = null)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        
+
         // If user identifier is explicitly provided, use it (for storing during OAuth)
         if (!string.IsNullOrEmpty(userIdentifier))
         {
@@ -49,28 +49,28 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             var hashedId = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes(userIdentifier))).Substring(0, 16);
             var cacheKey = $"{hashedId}:{key}";
-            _logger.LogInformation("GetCacheKey: Using EXPLICIT user identifier - hashed to {HashedId}, full key: {CacheKey}", 
+            _logger.LogInformation("GetCacheKey: Using EXPLICIT user identifier - hashed to {HashedId}, full key: {CacheKey}",
                 hashedId, cacheKey);
             return cacheKey;
         }
-        
+
         // Try to get a stable identifier across HTTP and SignalR contexts
         // Priority 1: Use user's email/sub claim from authenticated user (most stable)
         // Priority 2: Use session ID if available
         // Priority 3: Use connection ID as last resort
-        
+
         string? identifier = null;
-        
+
         // Try to get from authenticated user claims first
         var user = httpContext?.User;
         if (user?.Identity?.IsAuthenticated == true)
         {
             var email = user.FindFirst(ClaimTypes.Email)?.Value;
             var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            _logger.LogInformation("GetCacheKey: Found authenticated user - email: {Email}, sub: {Sub}", 
+
+            _logger.LogInformation("GetCacheKey: Found authenticated user - email: {Email}, sub: {Sub}",
                 email ?? "none", sub ?? "none");
-            
+
             identifier = email ?? sub;
             if (!string.IsNullOrEmpty(identifier))
             {
@@ -84,7 +84,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         {
             _logger.LogWarning("GetCacheKey: No authenticated user found in HttpContext");
         }
-        
+
         // Fallback to session ID
         if (string.IsNullOrEmpty(identifier) && httpContext?.Session != null)
         {
@@ -92,14 +92,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             identifier = httpContext.Session.Id;
             _logger.LogInformation("GetCacheKey: Using SESSION ID as fallback: {SessionId}", identifier);
         }
-        
+
         // Last resort: connection ID
         if (string.IsNullOrEmpty(identifier))
         {
             identifier = httpContext?.Connection?.Id ?? "global";
             _logger.LogWarning("GetCacheKey: Using CONNECTION ID as last resort: {Identifier}", identifier);
         }
-        
+
         var resultKey = $"{identifier}:{key}";
         _logger.LogInformation("GetCacheKey: Final cache key: {CacheKey}", resultKey);
         return resultKey;
@@ -123,7 +123,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             // Try to get stored claims first (from OAuth flow)
             var claimsJson = await GetItemAsync(ClaimsKey);
             IEnumerable<Claim> claims;
-            
+
             if (!string.IsNullOrEmpty(claimsJson))
             {
                 // Use stored claims from OAuth
@@ -137,7 +137,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 claims = ParseClaimsFromJwt(token);
                 _logger.LogInformation("Parsed {Count} claims from JWT token", claims.Count());
             }
-            
+
             if (!claims.Any())
             {
                 _logger.LogWarning("No claims available, user not authenticated");
@@ -181,7 +181,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         try
         {
             IEnumerable<Claim> claims;
-            
+
             // If a principal is provided (e.g., from OAuth), use its claims
             if (principal?.Identity?.IsAuthenticated == true)
             {
@@ -207,7 +207,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             // Store with user-specific key
             await SetItemAsync(TokenKey, token, userIdentifier);
-            
+
             if (!string.IsNullOrEmpty(refreshToken))
             {
                 await SetRefreshTokenAsync(refreshToken, userIdentifier);
@@ -230,8 +230,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             var user = new ClaimsPrincipal(identity);
 
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
-            
-            _logger.LogInformation("User authenticated successfully: {Email} (Claims count: {Count})", 
+
+            _logger.LogInformation("User authenticated successfully: {Email} (Claims count: {Count})",
                 userInfo.Email ?? "Unknown", claims.Count());
         }
         catch (Exception ex)
@@ -341,7 +341,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
     {
         var claims = new List<Claim>();
-        
+
         try
         {
             // Validate JWT format (must have 3 parts separated by dots)
@@ -369,7 +369,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             MapClaim(keyValuePairs, claims, "given_name", ClaimTypes.GivenName);
             MapClaim(keyValuePairs, claims, "family_name", ClaimTypes.Surname);
             MapClaim(keyValuePairs, claims, "role", ClaimTypes.Role);
-            
+
             // Add all other claims as-is
             foreach (var kvp in keyValuePairs)
             {
@@ -407,7 +407,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             case 2: base64 += "=="; break;
             case 3: base64 += "="; break;
         }
-        
+
         return Convert.FromBase64String(base64);
     }
 
@@ -425,7 +425,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             var cacheKey = GetCacheKey(key, userIdentifier);
             var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
             var value = _cache.Get<string>(cacheKey);
-            _logger.LogInformation("Retrieving {Key} from cache with session ID {SessionId}, full key: {CacheKey}, found: {Found}", 
+            _logger.LogInformation("Retrieving {Key} from cache with session ID {SessionId}, full key: {CacheKey}, found: {Found}",
                 key, sessionId, cacheKey, value != null);
             return Task.FromResult(value);
         }
@@ -442,13 +442,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         {
             var cacheKey = GetCacheKey(key, userIdentifier);
             var sessionId = _httpContextAccessor.HttpContext?.Session?.Id ?? "no-session";
-            _logger.LogInformation("Storing {Key} in memory cache with session ID {SessionId}, user: {UserIdentifier} (length: {Length})", 
+            _logger.LogInformation("Storing {Key} in memory cache with session ID {SessionId}, user: {UserIdentifier} (length: {Length})",
                 key, sessionId, userIdentifier ?? "auto", value?.Length ?? 0);
-            
+
             // Store with sliding expiration (30 days of inactivity)
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromDays(30));
-            
+
             _cache.Set(cacheKey, value ?? string.Empty, cacheOptions);
             _logger.LogInformation("Successfully stored {Key} in memory cache with full key: {CacheKey}", key, cacheKey);
             return Task.CompletedTask;

@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using MudBlazor
 @inject NavigationManager NavigationManager
@@ -19,18 +18,18 @@
             Blood Thinner Tracker
         </MudText>
         <MudSpacer />
-        
+
         <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" OnClick="@ToggleNotifications">
             <MudBadge Content="@_notificationCount" Color="Color.Error" Overlap="true" Visible="@(_notificationCount > 0)">
             </MudBadge>
         </MudIconButton>
-        
+
         @if (!_isMobile)
         {
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
-                           Color="Color.Inherit" 
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
                            OnClick="@ToggleDarkMode" />
-            
+
             <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                 <ActivatorContent>
                     <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.AccountCircle" Style="color: white; border-color: white;">
@@ -50,9 +49,9 @@
             </MudMenu>
         }
     </MudAppBar>
-    
-    <MudDrawer @bind-Open="@_drawerOpen" 
-               Elevation="2" 
+
+    <MudDrawer @bind-Open="@_drawerOpen"
+               Elevation="2"
                Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Responsive)"
                ClipMode="@(_isMobile ? DrawerClipMode.Never : DrawerClipMode.Always)">
         <MudDrawerHeader>
@@ -65,14 +64,14 @@
             <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
             <MudNavLink Href="/inr" Icon="@Icons.Material.Filled.ShowChart">INR Tracking</MudNavLink>
             <MudNavLink Href="/medications" Icon="@Icons.Material.Filled.Medication">Medications</MudNavLink>
-            
+
             <MudNavGroup Title="Reports" Icon="@Icons.Material.Filled.Assessment" Expanded="false">
                 <MudNavLink Href="/reports/inr-trends" Icon="@Icons.Material.Filled.TrendingUp">INR Trends</MudNavLink>
                 <MudNavLink Href="/reports/medication-adherence" Icon="@Icons.Material.Filled.CheckCircle">Medication Adherence</MudNavLink>
                 <MudDivider Class="my-2" />
                 <MudNavLink Href="/reports/export" Icon="@Icons.Material.Filled.Download">Export Data</MudNavLink>
             </MudNavGroup>
-            
+
             @if (_isMobile)
             {
                 <MudDivider Class="my-3" />
@@ -86,9 +85,9 @@
                 </MudNavLink>
             }
         </MudNavMenu>
-        
+
         <MudSpacer />
-        
+
         <div class="pa-4">
             <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
                 <MudText Typo="Typo.caption">
@@ -100,7 +99,7 @@
             </MudText>
         </div>
     </MudDrawer>
-    
+
     <MudDrawer @bind-Open="@_notificationsOpen" Anchor="Anchor.Right" Elevation="2" Variant="@DrawerVariant.Temporary">
         <MudDrawerHeader Class="mud-theme-primary">
             <MudText Typo="Typo.h6">
@@ -109,7 +108,7 @@
             </MudText>
         </MudDrawerHeader>
         <MudDivider />
-        
+
         @if (_notifications.Any())
         {
             <MudList T="string">
@@ -137,20 +136,20 @@
             </div>
         }
     </MudDrawer>
-    
+
     <MudMainContent Style="@(_isMobile ? "padding-top: 64px; padding-bottom: 80px;" : "")">
         <div Class="@(_isMobile ? "pa-4" : "pa-6")">
             <AuthorizeView>
                 <Authorized>
                     <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
                         <MudText Typo="Typo.body2">
-                            <strong>Medical Disclaimer:</strong> This application is for informational purposes only. 
+                            <strong>Medical Disclaimer:</strong> This application is for informational purposes only.
                             Always consult your healthcare provider for medical decisions.
                         </MudText>
                     </MudAlert>
                 </Authorized>
             </AuthorizeView>
-            
+
             @Body
         </div>
     </MudMainContent>
@@ -160,20 +159,20 @@
 {
     <MudPaper Elevation="3" Style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1300; padding-bottom: env(safe-area-inset-bottom);">
         <MudContainer Class="d-flex justify-space-around pa-2" MaxWidth="MaxWidth.False">
-            <MudIconButton Href="/dashboard" 
-                           Icon="@Icons.Material.Filled.Dashboard" 
+            <MudIconButton Href="/dashboard"
+                           Icon="@Icons.Material.Filled.Dashboard"
                            Color="@(IsActive("/dashboard") ? Color.Primary : Color.Default)"
                            Size="Size.Large" />
-            <MudIconButton Href="/medications" 
-                           Icon="@Icons.Material.Filled.Medication" 
+            <MudIconButton Href="/medications"
+                           Icon="@Icons.Material.Filled.Medication"
                            Color="@(IsActive("/medications") ? Color.Primary : Color.Default)"
                            Size="Size.Large" />
-            <MudIconButton Href="/inr" 
-                           Icon="@Icons.Material.Filled.ShowChart" 
+            <MudIconButton Href="/inr"
+                           Icon="@Icons.Material.Filled.ShowChart"
                            Color="@(IsActive("/inr") ? Color.Primary : Color.Default)"
                            Size="Size.Large" />
-            <MudIconButton OnClick="@ToggleDrawer" 
-                           Icon="@Icons.Material.Filled.Menu" 
+            <MudIconButton OnClick="@ToggleDrawer"
+                           Icon="@Icons.Material.Filled.Menu"
                            Color="Color.Default"
                            Size="Size.Large" />
         </MudContainer>
@@ -188,59 +187,56 @@
     private string _userName = "User";
     private int _notificationCount = 3;
     private List<NotificationItem> _notifications = new();
-    
+
     protected override async Task OnInitializedAsync()
     {
         await LoadUserProfile();
         LoadNotifications();
-        
-        // Close drawer on navigation for mobile
-        NavigationManager.LocationChanged += OnLocationChanged;
     }
-    
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+
+    private void ToggleNotifications()
+    {
+        _notificationsOpen = !_notificationsOpen;
+    }
+
     private void OnBreakpointChanged(Breakpoint breakpoint)
     {
         // MudBlazor breakpoints: Xs (0-600px), Sm (600-960px), Md (960-1280px), Lg (1280-1920px), Xl (1920px+)
         var wasMobile = _isMobile;
         _isMobile = breakpoint == Breakpoint.Xs || breakpoint == Breakpoint.Sm;
-        
+
         // Close drawer when switching to mobile mode
         if (_isMobile && !wasMobile)
         {
             _drawerOpen = false;
         }
-        
+
         InvokeAsync(StateHasChanged);
     }
-    
-    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        // Close drawer after navigation on mobile
-        if (_isMobile && _drawerOpen)
-        {
-            _drawerOpen = false;
-            InvokeAsync(StateHasChanged);
-        }
-    }
-    
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
-    
+
     private async Task LoadUserProfile()
     {
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            
+
             if (user.Identity?.IsAuthenticated == true)
             {
-                var nameClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Name) 
+                var nameClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Name)
                              ?? user.FindFirst("name")
                              ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email);
-                
+
                 _userName = nameClaim?.Value ?? "User";
             }
         }
@@ -249,7 +245,7 @@
             _userName = "User";
         }
     }
-    
+
     private void LoadNotifications()
     {
         _notifications = new List<NotificationItem>
@@ -281,17 +277,13 @@
         };
         _notificationCount = _notifications.Count;
     }
-    
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
-    private void ToggleNotifications() => _notificationsOpen = !_notificationsOpen;
-    private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;
-    
+
     private bool IsActive(string href)
     {
         var currentPath = new Uri(NavigationManager.Uri).AbsolutePath;
         return currentPath.StartsWith(href, StringComparison.OrdinalIgnoreCase);
     }
-    
+
     private class NotificationItem
     {
         public string Icon { get; set; } = string.Empty;

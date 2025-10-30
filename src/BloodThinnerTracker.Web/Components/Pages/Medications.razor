@@ -3,7 +3,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
-@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -14,266 +13,251 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="medications-container">
-    <!-- Medical Disclaimer -->
-    <div class="alert alert-info medical-disclaimer mb-4" role="alert">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-info-circle me-2"></i>
-            <div>
-                <strong>Important:</strong> Always consult your healthcare provider before making changes to your medication regimen. 
-                This tool is for tracking purposes only and should not replace professional medical advice.
-            </div>
-        </div>
-    </div>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+            <!-- Medical Disclaimer -->
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+                <MudText Typo="Typo.body1">
+                    <strong>Important:</strong> Always consult your healthcare provider before making changes to your medication regimen.
+                    This tool is for tracking purposes only and should not replace professional medical advice.
+                </MudText>
+            </MudAlert>
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1">
-                <i class="fas fa-pills text-primary me-2"></i>
-                My Medications
-            </h1>
-            <p class="text-muted mb-0">Manage your blood thinner medications and schedules</p>
-        </div>
-        <div>
-            <button class="btn btn-primary" @onclick="NavigateToAddMedications">
-                <i class="fas fa-plus me-1"></i>Add Medication
-            </button>
-        </div>
-    </div>
+            <!-- Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.Medication" Class="mr-2" />
+                        My Medications
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Manage your blood thinner medications and schedules
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="NavigateToAddMedications">
+                    Add Medication
+                </MudButton>
+            </MudStack>
 
-    <!-- Filter and Search -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="row align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">Search Medications</label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fas fa-search"></i>
-                        </span>
-                        <input type="text" class="form-control" placeholder="Search by name or type..." 
-                               @bind="searchTerm" @oninput="OnSearchChanged" />
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Filter by Status</label>
-                    <select class="form-select" value="@statusFilter" @onchange="OnFilterChanged">
-                        <option value="all">All Medications</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
-                        <option value="blood-thinners">Blood Thinners Only</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Sort by</label>
-                    <select class="form-select" value="@sortBy" @onchange="OnSortChanged">
-                        <option value="name">Name</option>
-                        <option value="date">Date Added</option>
-                        <option value="frequency">Frequency</option>
-                        <option value="type">Type</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
-                        <i class="fas fa-times me-1"></i>Clear
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- Filter and Search -->
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="searchTerm"
+                                      Label="Search Medications"
+                                      Placeholder="Search by name or type..."
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true"
+                                      DebounceInterval="300"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect @bind-Value="statusFilter"
+                                   Label="Filter by Status"
+                                   Variant="Variant.Outlined"
+                                   T="string">
+                            <MudSelectItem Value="@("all")">All Medications</MudSelectItem>
+                            <MudSelectItem Value="@("active")">Active Only</MudSelectItem>
+                            <MudSelectItem Value="@("inactive")">Inactive Only</MudSelectItem>
+                            <MudSelectItem Value="@("blood-thinners")">Blood Thinners Only</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect @bind-Value="sortBy"
+                                   Label="Sort by"
+                                   Variant="Variant.Outlined"
+                                   T="string">
+                            <MudSelectItem Value="@("name")">Name</MudSelectItem>
+                            <MudSelectItem Value="@("date")">Date Added</MudSelectItem>
+                            <MudSelectItem Value="@("frequency")">Frequency</MudSelectItem>
+                            <MudSelectItem Value="@("type")">Type</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="ClearFilters"
+                                   Style="height: 56px;">
+                            Clear
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
 
-    <!-- Medications List -->
-    @if (filteredMedications?.Any() == true)
-    {
-        <div class="row">
-            @foreach (var medication in filteredMedications)
+            <!-- Medications List -->
+            @if (filteredMedications?.Any() == true)
             {
-                <div class="col-lg-6 col-xl-4 mb-4">
-                    <div class="card medication-card h-100 @GetMedicationCardClass(medication)">
-                        <div class="card-header bg-white border-bottom-0">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h5 class="card-title mb-1">@medication.Name</h5>
-                                    @if (!string.IsNullOrEmpty(medication.BrandName))
-                                    {
-                                        <small class="text-muted">@medication.BrandName</small>
-                                    }
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" @onclick="() => EditMedication(medication.Id)">
-                                            <i class="fas fa-edit me-2"></i>Edit
-                                        </a></li>
-                                        <li><a class="dropdown-item" @onclick="() => ViewHistory(medication.Id)">
-                                            <i class="fas fa-history me-2"></i>View History
-                                        </a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-danger" @onclick="() => DeactivateMedication(medication.Id)">
-                                            <i class="fas fa-pause me-2"></i>Deactivate
-                                        </a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <!-- Medication Details -->
-                            <div class="medication-details mb-3">
-                                <div class="row text-center">
-                                    <div class="col-4">
-                                        <div class="detail-item">
-                                            <div class="detail-value">@medication.Dosage</div>
-                                            <div class="detail-label">@medication.DosageUnit</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="detail-item">
-                                            <div class="detail-value">@GetFrequencyDisplay(medication.Frequency)</div>
-                                            <div class="detail-label">Frequency</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="detail-item">
-                                            <div class="detail-value">
-                                                <span class="badge @GetTypeClass(medication.Type)">
-                                                    @medication.Type.ToString()
-                                                </span>
-                                            </div>
-                                            <div class="detail-label">Type</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Schedule -->
-                            @if (!string.IsNullOrEmpty(medication.ScheduledTimes))
-                            {
-                                <div class="medication-schedule mb-3">
-                                    <h6 class="text-muted mb-2">
-                                        <i class="fas fa-clock me-1"></i>Schedule
-                                    </h6>
-                                    <div class="schedule-times">
-                                        @foreach (var time in GetScheduledTimes(medication.ScheduledTimes))
-                                        {
-                                            <span class="badge bg-light text-dark me-1">@time</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-
-                            <!-- Special Warnings for Blood Thinners -->
-                            @if (medication.Type == MedicationType.Warfarin)
-                            {
-                                <div class="alert alert-warning py-2 mb-3">
-                                    <small>
-                                        <i class="fas fa-exclamation-triangle me-1"></i>
-                                        <strong>Warfarin:</strong> Requires regular INR monitoring
-                                    </small>
-                                </div>
-                            }
-
-                            <!-- Instructions -->
-                            @if (!string.IsNullOrEmpty(medication.Instructions))
-                            {
-                                <div class="medication-instructions mb-3">
-                                    <h6 class="text-muted mb-2">
-                                        <i class="fas fa-info-circle me-1"></i>Instructions
-                                    </h6>
-                                    <p class="small text-muted mb-0">@medication.Instructions</p>
-                                </div>
-                            }
-
-                            <!-- Status and Actions -->
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge @GetStatusBadgeClass(medication.IsActive)">
-                                        @(medication.IsActive ? "Active" : "Inactive")
-                                    </span>
-                                    @if (medication.RemindersEnabled)
-                                    {
-                                        <span class="badge bg-info ms-1">
-                                            <i class="fas fa-bell me-1"></i>Reminders On
-                                        </span>
-                                    }
-                                </div>
-                                <div>
-                                    <button class="btn btn-sm btn-primary" @onclick="() => LogDose(medication.Id)">
-                                        <i class="fas fa-plus me-1"></i>Log Dose
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-light">
-                            <div class="d-flex justify-content-between text-muted small">
-                                <span>
-                                    <i class="fas fa-calendar me-1"></i>
-                                    Started: @medication.StartDate.ToString("MMM dd, yyyy")
-                                </span>
-                                @if (medication.EndDate.HasValue)
-                                {
-                                    <span>
-                                        <i class="fas fa-calendar-times me-1"></i>
-                                        Ends: @medication.EndDate.Value.ToString("MMM dd, yyyy")
-                                    </span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-
-        <!-- Pagination -->
-        @if (totalPages > 1)
-        {
-            <nav aria-label="Medications pagination">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                        <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Previous</button>
-                    </li>
-                    @for (int i = 1; i <= totalPages; i++)
+                <MudGrid Spacing="3">
+                    @foreach (var medication in filteredMedications)
                     {
-                        var page = i;
-                        <li class="page-item @(currentPage == page ? "active" : "")">
-                            <button class="page-link" @onclick="() => ChangePage(page)">@(page)</button>
-                        </li>
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudCard Elevation="2" Class="@($"h-100 {(medication.IsActive ? "border-success" : "border-secondary")}")">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6">@medication.Name</MudText>
+                                        @if (!string.IsNullOrEmpty(medication.BrandName))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@medication.BrandName</MudText>
+                                        }
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                                            <MudMenuItem OnClick="() => EditMedication(medication.Id)" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                                            <MudMenuItem OnClick="() => ViewHistory(medication.Id)" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem OnClick="() => DeactivateMedication(medication.Id)" Icon="@Icons.Material.Filled.Pause" IconColor="Color.Error">
+                                                <MudText Color="Color.Error">Deactivate</MudText>
+                                            </MudMenuItem>
+                                        </MudMenu>
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <!-- Medication Details -->
+                                    <MudGrid Spacing="2" Class="mb-4">
+                                        <MudItem xs="4" Class="text-center">
+                                            <MudText Typo="Typo.body1"><strong>@medication.Dosage</strong></MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@medication.DosageUnit</MudText>
+                                        </MudItem>
+                                        <MudItem xs="4" Class="text-center">
+                                            <MudText Typo="Typo.body1"><strong>@GetFrequencyDisplay(medication.Frequency)</strong></MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Frequency</MudText>
+                                        </MudItem>
+                                        <MudItem xs="4" Class="text-center">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetMedicationTypeColor(medication.Type)">@medication.Type.ToString()</MudChip>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Type</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+
+                                    <!-- Schedule -->
+                                    @if (!string.IsNullOrEmpty(medication.ScheduledTimes))
+                                    {
+                                        <MudStack Spacing="1" Class="mb-3">
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" /> Schedule
+                                            </MudText>
+                                            <MudStack Row="true" Spacing="1">
+                                                @foreach (var time in GetScheduledTimes(medication.ScheduledTimes))
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@time</MudChip>
+                                                }
+                                            </MudStack>
+                                        </MudStack>
+                                    }
+
+                                    <!-- Special Warnings for Blood Thinners -->
+                                    @if (medication.Type == MedicationType.Warfarin)
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                                            <MudText Typo="Typo.caption">
+                                                <strong>Warfarin:</strong> Requires regular INR monitoring
+                                            </MudText>
+                                        </MudAlert>
+                                    }
+
+                                    <!-- Instructions -->
+                                    @if (!string.IsNullOrEmpty(medication.Instructions))
+                                    {
+                                        <MudStack Spacing="1" Class="mb-3">
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Instructions
+                                            </MudText>
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary">@medication.Instructions</MudText>
+                                        </MudStack>
+                                    }
+
+                                    <!-- Status and Actions -->
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudChip T="string" Size="Size.Small" Color="@(medication.IsActive ? Color.Success : Color.Default)">
+                                                @(medication.IsActive ? "Active" : "Inactive")
+                                            </MudChip>
+                                            @if (medication.RemindersEnabled)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.NotificationsActive">
+                                                    Reminders
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   StartIcon="@Icons.Material.Filled.Add"
+                                                   OnClick="() => LogDose(medication.Id)">
+                                            Log Dose
+                                        </MudButton>
+                                    </MudStack>
+                                </MudCardContent>
+                                <MudCardActions Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width: 100%;">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                                            Started: @medication.StartDate.ToString("MMM dd, yyyy")
+                                        </MudText>
+                                        @if (medication.EndDate.HasValue)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" />
+                                                Ends: @medication.EndDate.Value.ToString("MMM dd, yyyy")
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
                     }
-                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                        <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Next</button>
-                    </li>
-                </ul>
-            </nav>
-        }
-    }
-    else
-    {
-        <!-- Empty State -->
-        <div class="card shadow-sm">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-pills text-muted fa-4x mb-3"></i>
-                <h4 class="text-muted">No Medications Found</h4>
-                @if (string.IsNullOrEmpty(searchTerm) && statusFilter == "all")
+                </MudGrid>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
                 {
-                    <p class="text-muted mb-4">Get started by adding your first medication</p>
-                    <button class="btn btn-primary" @onclick="NavigateToAddMedications">
-                        <i class="fas fa-plus me-1"></i>Add Your First Medication
-                    </button>
+                    <MudPagination Class="mt-4"
+                                   Count="@totalPages"
+                                   Selected="@currentPage"
+                                   SelectedChanged="@((int page) => ChangePage(page))"
+                                   BoundaryCount="1"
+                                   MiddleCount="3"
+                                   ShowFirstButton="true"
+                                   ShowLastButton="true" />
                 }
-                else
-                {
-                    <p class="text-muted mb-4">Try adjusting your search or filter criteria</p>
-                    <button class="btn btn-outline-primary" @onclick="ClearFilters">
-                        <i class="fas fa-times me-1"></i>Clear Filters
-                    </button>
-                }
-            </div>
-        </div>
-    }
-</div>
+            }
+            else
+            {
+                <!-- Empty State -->
+                <MudPaper Elevation="2" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Medication" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" Class="mb-4" />
+                    <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mb-2">No Medications Found</MudText>
+                    @if (string.IsNullOrEmpty(searchTerm) && statusFilter == "all")
+                    {
+                        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                            Get started by adding your first medication
+                        </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="NavigateToAddMedications">
+                            Add Your First Medication
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                            Try adjusting your search or filter criteria
+                        </MudText>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="ClearFilters">
+                            Clear Filters
+                        </MudButton>
+                    }
+                </MudPaper>
+            }
+        </MudContainer>
     </Authorized>
     <Authorizing>
         <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
@@ -289,10 +273,51 @@
 </AuthorizeView>
 
 @code {
-    // Filter and search properties
-    private string searchTerm = string.Empty;
-    private string statusFilter = "all";
-    private string sortBy = "name";
+    // Filter and search properties with reactive setters
+    private string _searchTerm = string.Empty;
+    private string searchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            if (_searchTerm != value)
+            {
+                _searchTerm = value;
+                currentPage = 1;
+                ApplyFilters();
+            }
+        }
+    }
+
+    private string _statusFilter = "all";
+    private string statusFilter
+    {
+        get => _statusFilter;
+        set
+        {
+            if (_statusFilter != value)
+            {
+                _statusFilter = value;
+                currentPage = 1;
+                ApplyFilters();
+            }
+        }
+    }
+
+    private string _sortBy = "name";
+    private string sortBy
+    {
+        get => _sortBy;
+        set
+        {
+            if (_sortBy != value)
+            {
+                _sortBy = value;
+                ApplyFilters();
+            }
+        }
+    }
+
     private int currentPage = 1;
     private int pageSize = 12;
     private int totalPages = 1;
@@ -313,7 +338,7 @@
         {
             // Load all medications from API (including inactive for filtering)
             var medications = await Http.GetFromJsonAsync<List<Medication>>("api/medications?includeInactive=true");
-            
+
             if (medications != null)
             {
                 allMedications = medications;
@@ -350,7 +375,7 @@
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            query = query.Where(m => 
+            query = query.Where(m =>
                 m.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 (m.BrandName != null && m.BrandName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                 m.Type.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
@@ -376,34 +401,11 @@
 
         var allFiltered = query.ToList();
         totalPages = (int)Math.Ceiling((double)allFiltered.Count / pageSize);
-        
+
         filteredMedications = allFiltered
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
-    }
-
-    private async Task OnSearchChanged(ChangeEventArgs e)
-    {
-        searchTerm = e.Value?.ToString() ?? string.Empty;
-        currentPage = 1;
-        ApplyFilters();
-        StateHasChanged();
-    }
-
-    private async Task OnFilterChanged(ChangeEventArgs e)
-    {
-        statusFilter = e.Value?.ToString() ?? "all";
-        currentPage = 1;
-        ApplyFilters();
-        StateHasChanged();
-    }
-
-    private async Task OnSortChanged(ChangeEventArgs e)
-    {
-        sortBy = e.Value?.ToString() ?? "name";
-        ApplyFilters();
-        StateHasChanged();
     }
 
     private void ClearFilters()
@@ -412,7 +414,7 @@
         statusFilter = "all";
         sortBy = "name";
         currentPage = 1;
-        ApplyFilters();
+        // ApplyFilters() will be called by the setters
         StateHasChanged();
     }
 
@@ -446,38 +448,38 @@
 
     private async Task DeactivateMedication(string medicationId)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to deactivate this medication?");
-        if (confirmed)
+        var parameters = new DialogParameters
+        {
+            { "Content", "Are you sure you want to deactivate this medication?" },
+            { "SubmitButtonText", "Deactivate" },
+            { "CancelButtonText", "Cancel" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var dialog = await DialogService.ShowMessageBox("Confirm Deactivation", "Are you sure you want to deactivate this medication?", "Deactivate", "Cancel");
+
+        if (dialog == true)
         {
             // TODO: Call API to deactivate medication
             await LoadMedications();
             ApplyFilters();
             StateHasChanged();
+            Snackbar.Add("Medication deactivated successfully", Severity.Success);
         }
     }
 
     // Helper methods
-    private string GetMedicationCardClass(Medication medication)
-    {
-        return medication.IsActive ? "border-success" : "border-secondary";
-    }
-
-    private string GetTypeClass(MedicationType type)
+    private Color GetMedicationTypeColor(MedicationType type)
     {
         return type switch
         {
-            MedicationType.Warfarin => "bg-danger",
-            MedicationType.DOAC => "bg-warning",
-            MedicationType.Heparin => "bg-info",
-            MedicationType.LMWH => "bg-info",
-            MedicationType.Antiplatelet => "bg-secondary",
-            _ => "bg-dark"
+            MedicationType.Warfarin => Color.Error,
+            MedicationType.DOAC => Color.Warning,
+            MedicationType.Heparin => Color.Info,
+            MedicationType.LMWH => Color.Info,
+            MedicationType.Antiplatelet => Color.Secondary,
+            _ => Color.Default
         };
-    }
-
-    private string GetStatusBadgeClass(bool isActive)
-    {
-        return isActive ? "bg-success" : "bg-secondary";
     }
 
     private string GetFrequencyDisplay(MedicationFrequency frequency)

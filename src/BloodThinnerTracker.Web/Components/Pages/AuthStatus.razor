@@ -22,9 +22,9 @@
                 </MudText>
             </CardHeaderContent>
             <CardHeaderActions>
-                <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
-                               Color="Color.Primary" 
-                               OnClick="RefreshStatus" 
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Color="Color.Primary"
+                               OnClick="RefreshStatus"
                                aria-label="Refresh Status" />
             </CardHeaderActions>
         </MudCardHeader>
@@ -46,8 +46,8 @@
                     <MudGrid>
                         <MudItem xs="12" md="6">
                             <MudText Typo="Typo.body2" Color="Color.Secondary">Status</MudText>
-                            <MudChip T="string" 
-                                     Color="@(isAuthenticated ? Color.Success : Color.Error)" 
+                            <MudChip T="string"
+                                     Color="@(isAuthenticated ? Color.Success : Color.Error)"
                                      Icon="@(isAuthenticated ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)">
                                 @(isAuthenticated ? "Authenticated" : "Not Authenticated")
                             </MudChip>
@@ -76,8 +76,8 @@
                     <MudGrid>
                         <MudItem xs="12" md="6">
                             <MudText Typo="Typo.body2" Color="Color.Secondary">Token Present</MudText>
-                            <MudChip T="string" 
-                                     Color="@(hasToken ? Color.Success : Color.Warning)" 
+                            <MudChip T="string"
+                                     Color="@(hasToken ? Color.Success : Color.Warning)"
                                      Icon="@(hasToken ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)">
                                 @(hasToken ? "Yes" : "No")
                             </MudChip>
@@ -150,22 +150,22 @@
                         Quick Actions
                     </MudText>
                     <MudStack Row="true" Spacing="2">
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Refresh"
                                    OnClick="RefreshStatus">
                             Refresh Status
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" 
-                                   Color="Color.Info" 
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Info"
                                    StartIcon="@Icons.Material.Filled.Dashboard"
                                    Href="/dashboard">
                             Go to Dashboard
                         </MudButton>
                         @if (isAuthenticated)
                         {
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Error" 
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
                                        StartIcon="@Icons.Material.Filled.Logout"
                                        Href="/logout">
                                 Logout
@@ -173,8 +173,8 @@
                         }
                         else
                         {
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Success" 
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
                                        StartIcon="@Icons.Material.Filled.Login"
                                        Href="/login">
                                 Login
@@ -185,7 +185,7 @@
 
                 <!-- Medical Disclaimer -->
                 <MudAlert Severity="Severity.Info" Class="mt-4">
-                    <strong>Development Tool:</strong> This page is for debugging authentication issues. 
+                    <strong>Development Tool:</strong> This page is for debugging authentication issues.
                     It should not be accessible in production environments.
                 </MudAlert>
             }

@@ -42,10 +42,10 @@
     private string? _accessToken;
     private string? _refreshToken;
     private System.Security.Claims.ClaimsPrincipal? _authenticatedPrincipal;
-    
+
     [SupplyParameterFromQuery(Name = "provider")]
     public string? Provider { get; set; }
-    
+
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
 
@@ -53,7 +53,7 @@
     {
         try
         {
-            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}, returnUrl {ReturnUrl}", 
+            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}, returnUrl {ReturnUrl}",
                 Provider ?? "unknown", ReturnUrl ?? "not provided");
 
             // Get HttpContext
@@ -68,7 +68,7 @@
 
             // Get the authentication result from the cookie
             var authResult = await httpContext.AuthenticateAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
-            
+
             if (!authResult.Succeeded)
             {
                 Logger.LogWarning("OAuth complete: Cookie authentication not found");
@@ -92,7 +92,7 @@
             // Log all available tokens for debugging
             foreach (var token in tokens)
             {
-                Logger.LogInformation("OAuth complete: Token available - Name: {Name}, Length: {Length}", 
+                Logger.LogInformation("OAuth complete: Token available - Name: {Name}, Length: {Length}",
                     token.Name, token.Value?.Length ?? 0);
             }
 
@@ -100,7 +100,7 @@
             _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
             _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
-            Logger.LogInformation("OAuth complete: id_token present: {HasIdToken}, access_token present: {HasAccessToken}", 
+            Logger.LogInformation("OAuth complete: id_token present: {HasIdToken}, access_token present: {HasAccessToken}",
                 !string.IsNullOrEmpty(idToken), !string.IsNullOrEmpty(_accessToken));
 
             // For authentication in our app, use id_token (it's a proper JWT with claims)
@@ -108,7 +108,7 @@
             if (!string.IsNullOrEmpty(idToken))
             {
                 _accessToken = idToken; // Use id_token as our auth token
-                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication, length: {Length}, starts with: {Prefix}", 
+                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication, length: {Length}, starts with: {Prefix}",
                     idToken.Length, idToken.Substring(0, Math.Min(50, idToken.Length)));
             }
             else if (string.IsNullOrEmpty(_accessToken))
@@ -120,7 +120,7 @@
             }
             else
             {
-                Logger.LogWarning("OAuth complete: No id_token found, using access_token (might be opaque). Length: {Length}, starts with: {Prefix}", 
+                Logger.LogWarning("OAuth complete: No id_token found, using access_token (might be opaque). Length: {Length}, starts with: {Prefix}",
                     _accessToken.Length, _accessToken.Substring(0, Math.Min(50, _accessToken.Length)));
             }
 
@@ -131,10 +131,10 @@
                 var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
                 var sub = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                
-                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}, Sub: {Sub}", 
+
+                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}, Sub: {Sub}",
                     email ?? "N/A", name ?? "N/A", sub ?? "N/A");
-                
+
                 // Store the principal's claims for later use
                 _authenticatedPrincipal = principal;
             }
@@ -158,7 +158,7 @@
             try
             {
                 Logger.LogInformation("OAuth complete: Exchanging OAuth ID token for API JWT...");
-                
+
                 // Extract user info from claims
                 var email = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
@@ -175,7 +175,7 @@
 
                 // Try token exchange with ID token first (preferred method)
                 Logger.LogInformation("OAuth complete: Attempting token exchange with ID token...");
-                
+
                 var exchangeRequest = new ExternalLoginRequest
                 {
                     Provider = Provider == "microsoft" ? "AzureAD" : "Google",
@@ -184,16 +184,16 @@
                     DevicePlatform = "Web"
                 };
 
-                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}", 
+                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}",
                     email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
-                
+
                 var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
 
                 // If ID token validation fails, try claims-based exchange
                 if (!response.IsSuccessStatusCode)
                 {
                     Logger.LogWarning("ID token exchange failed: {Status}, trying claims-based exchange", response.StatusCode);
-                    
+
                     var claimsRequest = new ClaimsLoginRequest
                     {
                         Provider = Provider == "microsoft" ? "AzureAD" : "Google",
@@ -210,15 +210,15 @@
                 if (response.IsSuccessStatusCode)
                 {
                     var authResponse = await response.Content.ReadFromJsonAsync<AuthenticationResponse>();
-                    
+
                     if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
                     {
                         Logger.LogInformation("Token exchange successful! Got our JWT for user: {Email}", authResponse.User?.Email);
-                        
+
                         // Store OUR JWT (not Microsoft's token)
                         await AuthStateProvider.MarkUserAsAuthenticatedAsync(
-                            authResponse.AccessToken, 
-                            authResponse.RefreshToken, 
+                            authResponse.AccessToken,
+                            authResponse.RefreshToken,
                             _authenticatedPrincipal);
 
                         // Determine redirect target

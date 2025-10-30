@@ -46,12 +46,12 @@ public class AuthorizationMessageHandler : DelegatingHandler
             if (hasToken)
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                _logger.LogDebug("Token retrieved: {HasToken}, added Bearer token to request: {Method} {Uri}", 
+                _logger.LogDebug("Token retrieved: {HasToken}, added Bearer token to request: {Method} {Uri}",
                     hasToken, request.Method, request.RequestUri);
             }
             else
             {
-                _logger.LogDebug("Token retrieved: {HasToken}, no token available for request: {Method} {Uri}", 
+                _logger.LogDebug("Token retrieved: {HasToken}, no token available for request: {Method} {Uri}",
                     hasToken, request.Method, request.RequestUri);
             }
         }
@@ -61,14 +61,14 @@ public class AuthorizationMessageHandler : DelegatingHandler
         // Handle 401 Unauthorized - token might be expired
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            _logger.LogWarning("Received 401 Unauthorized response from {Uri}. This is expected until token exchange is implemented.", 
+            _logger.LogWarning("Received 401 Unauthorized response from {Uri}. This is expected until token exchange is implemented.",
                 request.RequestUri);
-            
+
             // TODO: Implement automatic token refresh using refresh token
             // TODO: Implement token exchange with API to get proper JWT
             // For now, DON'T log the user out - they're authenticated with OAuth
             // The 401 is expected because API doesn't accept Microsoft tokens yet
-            
+
             // Commenting out automatic logout until token exchange is implemented
             // if (_authStateProvider is CustomAuthenticationStateProvider provider)
             // {

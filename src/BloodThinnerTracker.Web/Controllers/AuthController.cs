@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BloodThinnerTracker.Web.Services;
 
 namespace BloodThinnerTracker.Web.Controllers;
 
@@ -14,10 +15,14 @@ namespace BloodThinnerTracker.Web.Controllers;
 public class AuthController : Controller
 {
     private readonly ILogger<AuthController> _logger;
+    private readonly CustomAuthenticationStateProvider _authStateProvider;
 
-    public AuthController(ILogger<AuthController> logger)
+    public AuthController(
+        ILogger<AuthController> logger,
+        CustomAuthenticationStateProvider authStateProvider)
     {
         _logger = logger;
+        _authStateProvider = authStateProvider;
     }
 
     /// <summary>
@@ -71,10 +76,19 @@ public class AuthController : Controller
     {
         _logger.LogInformation("User logging out");
 
-        // Sign out from cookie authentication
+        // STEP 1: Clear Blazor authentication state and cached tokens
+        await _authStateProvider.MarkUserAsLoggedOutAsync();
+
+        // STEP 2: Sign out from local cookie authentication
+        // NOTE: We DON'T sign out from OAuth schemes (Microsoft/Google) here because:
+        // - Those are just for authentication challenges, not session storage
+        // - Signing out from them prevents the next login from working
+        // - The user's OAuth provider session (Microsoft/Google) stays active, which is expected
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        // Redirect to login page
+        _logger.LogInformation("User logged out successfully - local session cleared");
+
+        // Redirect to login page with forceLoad to clear Blazor circuit
         return Redirect("/login");
     }
 }

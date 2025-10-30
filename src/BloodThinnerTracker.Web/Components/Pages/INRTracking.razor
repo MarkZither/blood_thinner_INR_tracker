@@ -19,7 +19,7 @@
         <div class="d-flex align-items-center">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <div>
-                <strong>Critical Medical Information:</strong> INR (International Normalized Ratio) values are crucial for blood thinner management. 
+                <strong>Critical Medical Information:</strong> INR (International Normalized Ratio) values are crucial for blood thinner management.
                 Values outside your target range require immediate medical attention. Always consult your healthcare provider for INR interpretation and medication adjustments.
             </div>
         </div>
@@ -58,7 +58,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
@@ -71,7 +71,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
@@ -84,7 +84,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
@@ -110,27 +110,27 @@
                 INR Trend Analysis
             </MudText>
             <MudButtonGroup OverrideStyles="false">
-                <MudButton Variant="@(chartPeriod == "3m" ? Variant.Filled : Variant.Outlined)" 
+                <MudButton Variant="@(chartPeriod == "3m" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod3M">3M</MudButton>
-                <MudButton Variant="@(chartPeriod == "6m" ? Variant.Filled : Variant.Outlined)" 
+                <MudButton Variant="@(chartPeriod == "6m" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod6M">6M</MudButton>
-                <MudButton Variant="@(chartPeriod == "1y" ? Variant.Filled : Variant.Outlined)" 
+                <MudButton Variant="@(chartPeriod == "1y" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriod1Y">1Y</MudButton>
-                <MudButton Variant="@(chartPeriod == "all" ? Variant.Filled : Variant.Outlined)" 
+                <MudButton Variant="@(chartPeriod == "all" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary" Size="Size.Small" OnClick="ChangeChartPeriodAll">All</MudButton>
             </MudButtonGroup>
         </div>
-        
+
         @if (inrTests?.Any() == true)
         {
-            <MudChart ChartType="ChartType.Line" 
-                      ChartSeries="@chartSeries" 
-                      XAxisLabels="@chartLabels" 
-                      Width="100%" 
+            <MudChart ChartType="ChartType.Line"
+                      ChartSeries="@chartSeries"
+                      XAxisLabels="@chartLabels"
+                      Width="100%"
                       Height="400px"
                       ChartOptions="@chartOptions">
             </MudChart>
-            
+
             <!-- Chart Legend -->
             <div class="mt-4">
                 <MudGrid Justify="Justify.Center">
@@ -167,7 +167,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Default" Class="mb-3" />
                 <MudText Typo="Typo.h6" Color="Color.Default">No INR Data Available</MudText>
                 <MudText Typo="Typo.body1" Color="Color.Default" Class="mb-4">Start tracking your INR levels to see trends and analysis</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add" OnClick="NavigateToAddINR">
                     Add Your First INR Result
                 </MudButton>
@@ -317,12 +317,12 @@
 
     // Chart and filtering
     private string chartPeriod = "3m";
-    
+
     // MudBlazor Chart data
     private List<ChartSeries> chartSeries = new();
     private string[] chartLabels = Array.Empty<string>();
     private ChartOptions chartOptions = new ChartOptions();
-    
+
     // Pagination
     private int currentPage = 1;
     private int pageSize = 10;
@@ -343,7 +343,7 @@
         {
             // Call API to get INR tests
             var response = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=100");
-            
+
             if (response != null && response.Any())
             {
                 // Map response to INRTest entities
@@ -386,12 +386,12 @@
                 {
                     currentINR = latestTest.INRValue;
                     currentINRDate = latestTest.TestDate;
-                    
+
                     if (latestTest.TargetINRMin.HasValue && latestTest.TargetINRMax.HasValue)
                     {
                         targetRange = $"{latestTest.TargetINRMin:F1}-{latestTest.TargetINRMax:F1}";
                     }
-                    
+
                     nextTestDate = latestTest.NextTestDate;
                     if (nextTestDate.HasValue)
                     {
@@ -447,7 +447,7 @@
 
         // INR Values series
         var inrValues = orderedTests.Select(t => (double)t.INRValue).ToArray();
-        
+
         // Target range series (min and max)
         var targetMin = Enumerable.Repeat(2.0, orderedTests.Count).ToArray();
         var targetMax = Enumerable.Repeat(3.0, orderedTests.Count).ToArray();
@@ -519,16 +519,16 @@
         var result = await DialogService.ShowMessageBox(
             "Delete INR Test",
             "Are you sure you want to delete this test result? This action cannot be undone.",
-            yesText: "Delete", 
+            yesText: "Delete",
             cancelText: "Cancel");
-        
+
         if (result == true)
         {
             try
             {
                 // Call API to delete test
                 var response = await Http.DeleteAsync($"api/inr/{testId}");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     Snackbar.Add("INR test deleted successfully", Severity.Success);
@@ -563,13 +563,13 @@
     private string GetCurrentINRStatusClass()
     {
         if (currentINR == null) return "bg-secondary";
-        return (currentINR >= 2.0m && currentINR <= 3.0m) ? "bg-success" : 
+        return (currentINR >= 2.0m && currentINR <= 3.0m) ? "bg-success" :
                (currentINR < 2.0m) ? "bg-warning" : "bg-danger";
     }
 
     private string GetNextTestStatusClass()
     {
-        return daysUntilNextTest <= 3 ? "bg-warning" : 
+        return daysUntilNextTest <= 3 ? "bg-warning" :
                daysUntilNextTest <= 7 ? "bg-info" : "bg-primary";
     }
 
