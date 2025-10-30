@@ -492,12 +492,14 @@ public sealed class MedicationLogsController : ControllerBase
         }
 
         // Check minimum time between doses for blood thinners
-        if (medication.IsBloodThinner)
+        if (medication.IsBloodThinner && medication.MinHoursBetweenDoses > 0)
         {
             var lastDose = await _context.MedicationLogs
                 .Where(ml => ml.MedicationId == request.MedicationId && 
                             ml.UserId == userId && 
                             ml.Status == MedicationLogStatus.Taken &&
+                            ml.ActualTime.HasValue &&
+                            ml.ActualTime.Value < actualTime && // Only check doses that are actually before this one
                             !ml.IsDeleted)
                 .OrderByDescending(ml => ml.ActualTime)
                 .FirstOrDefaultAsync();
@@ -505,10 +507,21 @@ public sealed class MedicationLogsController : ControllerBase
             if (lastDose != null && lastDose.ActualTime.HasValue)
             {
                 var hoursSinceLastDose = (actualTime - lastDose.ActualTime.Value).TotalHours;
-                if (hoursSinceLastDose < medication.MinHoursBetweenDoses)
+                
+                // Add 2-hour grace period for flexibility (e.g., 12 hours becomes 10 hours minimum)
+                var minimumHoursWithGrace = Math.Max(medication.MinHoursBetweenDoses - 2, medication.MinHoursBetweenDoses * 0.8);
+                
+                if (hoursSinceLastDose < minimumHoursWithGrace)
                 {
-                    errors.Add($"Minimum {medication.MinHoursBetweenDoses} hours required between doses for this blood thinner. " +
-                              $"Last dose was {hoursSinceLastDose:F1} hours ago.");
+                    // This is a hard error - too soon
+                    errors.Add($"Too soon for next dose. Minimum {medication.MinHoursBetweenDoses} hours required between doses for this blood thinner. " +
+                              $"Last dose was {hoursSinceLastDose:F1} hours ago. Please wait at least {(minimumHoursWithGrace - hoursSinceLastDose):F1} more hours.");
+                }
+                else if (hoursSinceLastDose < medication.MinHoursBetweenDoses)
+                {
+                    // This is a warning but allowed (within grace period)
+                    _logger.LogWarning("Dose logged within grace period: {Hours} hours since last dose (minimum: {Min})", 
+                        hoursSinceLastDose, medication.MinHoursBetweenDoses);
                 }
             }
         }

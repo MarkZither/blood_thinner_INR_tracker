@@ -207,22 +207,36 @@ public sealed class MedicationLogService : IMedicationLogService
                 // Try to parse error messages
                 try
                 {
-                    var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(errorContent);
+                    var options = new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    };
+                    var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(errorContent, options);
                     if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
                     {
+                        _logger.LogInformation("Displaying {Count} validation errors to user", errorResponse.Errors.Count);
                         foreach (var error in errorResponse.Errors)
                         {
-                            _snackbar.Add(error, Severity.Error);
+                            _snackbar.Add(error, Severity.Error, config =>
+                            {
+                                config.VisibleStateDuration = 10000; // 10 seconds for error messages
+                            });
                         }
                         return null;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // If parsing fails, show generic error
+                    _logger.LogError(ex, "Failed to parse error response: {Content}", errorContent);
+                    // If parsing fails, try to show the raw error content if it's reasonable
+                    if (!string.IsNullOrWhiteSpace(errorContent) && errorContent.Length < 200)
+                    {
+                        _snackbar.Add(errorContent, Severity.Error);
+                        return null;
+                    }
                 }
 
-                _snackbar.Add("Invalid medication log data", Severity.Error);
+                _snackbar.Add("Invalid medication log data. Please check the form and try again.", Severity.Error);
                 return null;
             }
 
