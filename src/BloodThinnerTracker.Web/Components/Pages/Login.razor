@@ -1,114 +1,131 @@
 @page "/login"
 @using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Authentication.Google
-@using Microsoft.AspNetCore.Authentication.OpenIdConnect
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Authorization
+@using BloodThinnerTracker.Web.Services
+@using MudBlazor
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 @inject ILogger<Login> Logger
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CustomAuthenticationStateProvider CustomAuthStateProvider
 
 <PageTitle>Login - Blood Thinner Tracker</PageTitle>
 
-<div class="min-vh-100 d-flex align-items-center bg-gradient">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow-lg border-0">
-                    <div class="card-header bg-primary text-white text-center py-4">
-                        <div class="mb-3">
-                            <i class="fas fa-heartbeat fa-3x text-light"></i>
-                        </div>
-                        <h3 class="mb-0">Blood Thinner Tracker</h3>
-                        <p class="mb-0 opacity-75">Secure Medical Login</p>
-                    </div>
-
-                    <div class="card-body p-4">
-                        @if (!string.IsNullOrEmpty(_errorMessage))
-                        {
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                @_errorMessage
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        }
-
-                        <div class="mb-4">
-                            <h5 class="text-center mb-3">Sign in to your account</h5>
-                            <p class="text-muted text-center small">
-                                Choose your preferred login method
-                            </p>
-                        </div>
-
-                        <!-- Social Login Options -->
-                        <div class="d-grid gap-2 mb-4">
-                            <a class="btn btn-outline-primary btn-lg d-block mb-2" href="/signin-microsoft">
-                                <i class="fab fa-microsoft me-2"></i> Sign in with Microsoft
-                            </a>
-                            <a class="btn btn-outline-danger btn-lg d-block" href="/signin-google">
-                                <i class="fab fa-google me-2"></i> Sign in with Google
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="card-footer text-center py-3 bg-light">
-                        <p class="mb-2">
-                            <a href="/forgot-password" class="text-decoration-none">
-                                <i class="fas fa-question-circle me-1"></i>
-                                Forgot your password?
-                            </a>
-                        </p>
-                        <p class="mb-0">
-                            Don't have an account?
-                            <a href="/register" class="text-decoration-none fw-bold">
-                                <i class="fas fa-user-plus me-1"></i>
-                                Sign up here
-                            </a>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Medical Disclaimer -->
-                <div class="card mt-3 border-warning">
-                    <div class="card-body text-center py-2">
-                        <small class="text-muted">
-                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-                            <strong>Medical Disclaimer:</strong> This application is for tracking purposes only.
-                            Always consult your healthcare provider for medical decisions.
-                        </small>
-                    </div>
-                </div>
-            </div>
+<MudContainer MaxWidth="MaxWidth.Small" Style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <MudPaper Elevation="8" Class="pa-6" Style="border-radius: 16px; max-width: 450px; width: 100%;">
+        <div class="d-flex flex-column align-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-2" />
+            <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary">Blood Thinner Tracker</MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">Secure Medical Login</MudText>
         </div>
-    </div>
-</div>
 
-<style>
-    .bg-gradient {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => _errorMessage = string.Empty)">
+                @_errorMessage
+            </MudAlert>
+        }
 
-    .card {
-        border-radius: 15px;
-        overflow: hidden;
-    }
+        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2">Sign in to your account</MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary" Class="mb-6">
+            Choose your preferred login method
+        </MudText>
 
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-        font-size: 1.1rem;
-    }
+        <MudStack Spacing="3">
+            <MudButton Href="@GetLoginUrl("/Auth/LoginMicrosoft")"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Login">
+                Sign in with Microsoft
+            </MudButton>
 
-    .form-control-lg {
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
-    }
+            <MudButton Href="@GetLoginUrl("/Auth/LoginGoogle")"
+                       Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Login">
+                Sign in with Google
+            </MudButton>
+        </MudStack>
 
-    .card-header {
-        border-bottom: none;
-    }
-</style>
+        <MudDivider Class="my-6" />
+
+        <MudStack Row="true" Justify="Justify.SpaceBetween">
+            <MudLink Href="/forgot-password" Color="Color.Primary">Forgot password?</MudLink>
+            <MudLink Href="/register" Color="Color.Primary">Sign up here</MudLink>
+        </MudStack>
+
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-6">
+            <MudText Typo="Typo.caption">
+                <strong>Medical Disclaimer:</strong> This application is for tracking purposes only.
+                Always consult your healthcare provider for medical decisions.
+            </MudText>
+        </MudAlert>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private string _errorMessage = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorCode { get; set; }
+
+    [SupplyParameterFromQuery(Name = "message")]
+    public string? ErrorMessage { get; set; }
+
+    private string GetLoginUrl(string authEndpoint)
+    {
+        if (string.IsNullOrEmpty(ReturnUrl))
+        {
+            return authEndpoint;
+        }
+
+        // Encode the returnUrl to safely pass it as a query parameter
+        var encodedReturnUrl = Uri.EscapeDataString(ReturnUrl);
+        return $"{authEndpoint}?returnUrl={encodedReturnUrl}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Display OAuth error if present
+            if (!string.IsNullOrEmpty(ErrorCode))
+            {
+                _errorMessage = ErrorCode switch
+                {
+                    "oauth_failed" => $"Sign-in failed: {ErrorMessage ?? "Unable to complete authentication. Please try again."}",
+                    "access_denied" => "You cancelled the sign-in process.",
+                    _ => "An error occurred during sign-in. Please try again."
+                };
+
+                Logger.LogWarning("Login page showing error: {ErrorCode} - {Message}", ErrorCode, ErrorMessage);
+            }
+
+            // Check if user is already authenticated
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                Logger.LogInformation("Login: User already authenticated, redirecting to target");
+                // Already logged in, redirect to returnUrl or dashboard
+                var targetUrl = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
+                Navigation.NavigateTo(targetUrl, forceLoad: true);
+                return;
+            }
+
+            // Don't clear cache here - it interferes with OAuth flow
+            // Let the OAuth callback handle authentication state properly
+            Logger.LogInformation("Login: Showing login options");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Login: Error during initialization");
+            _errorMessage = "An error occurred. Please try again.";
+        }
+    }
 }

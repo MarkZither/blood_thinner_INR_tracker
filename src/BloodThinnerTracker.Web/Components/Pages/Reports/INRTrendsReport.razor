@@ -63,11 +63,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">INR Trend Chart</h5>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-primary @(selectedRange == 7 ? "active" : "")" 
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 7 ? "active" : "")"
                                 @onclick="() => LoadData(7)">7 Days</button>
-                        <button type="button" class="btn btn-outline-primary @(selectedRange == 30 ? "active" : "")" 
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 30 ? "active" : "")"
                                 @onclick="() => LoadData(30)">30 Days</button>
-                        <button type="button" class="btn btn-outline-primary @(selectedRange == 90 ? "active" : "")" 
+                        <button type="button" class="btn btn-outline-primary @(selectedRange == 90 ? "active" : "")"
                                 @onclick="() => LoadData(90)">90 Days</button>
                     </div>
                 </div>
@@ -180,9 +180,9 @@
 
         try
         {
-            // TODO: Connect to API endpoint GET /api/inr?days={days}
+            // TODO: Connect to API endpoint GET /api/v1/inr/tests?days={days}
             var fromDate = DateTime.UtcNow.AddDays(-days);
-            tests = await Http.GetFromJsonAsync<List<INRTest>>($"/api/inr?from={fromDate:yyyy-MM-dd}");
+            tests = await Http.GetFromJsonAsync<List<INRTest>>($"/api/v1/inr/tests?from={fromDate:yyyy-MM-dd}");
 
             if (tests != null && tests.Any())
             {

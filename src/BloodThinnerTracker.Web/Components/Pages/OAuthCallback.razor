@@ -1,0 +1,269 @@
+@page "/oauth-complete"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Components.Authorization
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Shared.Models.Authentication
+@using System.Net.Http.Json
+@inject IHttpContextAccessor HttpContextAccessor
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<OAuthCallback> Logger
+@inject HttpClient Http
+
+<PageTitle>Signing in...</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="2" Class="pa-6">
+        @if (_isProcessing)
+        {
+            <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6">Completing sign-in...</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Please wait while we authenticate you.</MudText>
+            </MudStack>
+        }
+        else if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                <MudText Typo="Typo.h6">Sign-in Failed</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">@_error</MudText>
+                <MudButton Href="/login" Variant="Variant.Text" Color="Color.Default" Class="mt-4">
+                    Try Again
+                </MudButton>
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isProcessing = true;
+    private string? _error;
+    private string? _accessToken;
+    private string? _refreshToken;
+    private System.Security.Claims.ClaimsPrincipal? _authenticatedPrincipal;
+
+    [SupplyParameterFromQuery(Name = "provider")]
+    public string? Provider { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation("OAuth complete page: Starting with provider {Provider}, returnUrl {ReturnUrl}",
+                Provider ?? "unknown", ReturnUrl ?? "not provided");
+
+            // Get HttpContext
+            var httpContext = HttpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                Logger.LogError("OAuth complete: HttpContext is null");
+                _error = "Authentication service unavailable. Please try again.";
+                _isProcessing = false;
+                return;
+            }
+
+            // Get the authentication result from the cookie
+            var authResult = await httpContext.AuthenticateAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if (!authResult.Succeeded)
+            {
+                Logger.LogWarning("OAuth complete: Cookie authentication not found");
+                _error = "Sign-in failed. Please try again.";
+                _isProcessing = false;
+                return;
+            }
+
+            Logger.LogInformation("OAuth complete: Authentication succeeded, extracting tokens and claims...");
+
+            // Extract tokens from authentication properties
+            var tokens = authResult.Properties?.GetTokens();
+            if (tokens == null || !tokens.Any())
+            {
+                Logger.LogError("OAuth complete: No tokens found in authentication properties");
+                _error = "Authorization incomplete. Please sign in again.";
+                _isProcessing = false;
+                return;
+            }
+
+            // Log all available tokens for debugging
+            foreach (var token in tokens)
+            {
+                Logger.LogInformation("OAuth complete: Token available - Name: {Name}, Length: {Length}",
+                    token.Name, token.Value?.Length ?? 0);
+            }
+
+            var idToken = tokens.FirstOrDefault(t => t.Name == "id_token")?.Value;
+            _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
+            _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
+
+            Logger.LogInformation("OAuth complete: id_token present: {HasIdToken}, access_token present: {HasAccessToken}",
+                !string.IsNullOrEmpty(idToken), !string.IsNullOrEmpty(_accessToken));
+
+            // For authentication in our app, use id_token (it's a proper JWT with claims)
+            // The access_token is for calling Microsoft APIs, not for our backend
+            if (!string.IsNullOrEmpty(idToken))
+            {
+                _accessToken = idToken; // Use id_token as our auth token
+                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication, length: {Length}, starts with: {Prefix}",
+                    idToken.Length, idToken.Substring(0, Math.Min(50, idToken.Length)));
+            }
+            else if (string.IsNullOrEmpty(_accessToken))
+            {
+                Logger.LogError("OAuth complete: No id_token or access_token available");
+                _error = "Authorization incomplete. Please sign in again.";
+                _isProcessing = false;
+                return;
+            }
+            else
+            {
+                Logger.LogWarning("OAuth complete: No id_token found, using access_token (might be opaque). Length: {Length}, starts with: {Prefix}",
+                    _accessToken.Length, _accessToken.Substring(0, Math.Min(50, _accessToken.Length)));
+            }
+
+            // Extract claims from the authenticated principal (don't try to parse opaque access_token)
+            var principal = authResult.Principal;
+            if (principal?.Identity?.IsAuthenticated == true)
+            {
+                var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var name = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                var sub = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}, Sub: {Sub}",
+                    email ?? "N/A", name ?? "N/A", sub ?? "N/A");
+
+                // Store the principal's claims for later use
+                _authenticatedPrincipal = principal;
+            }
+            else
+            {
+                Logger.LogWarning("OAuth complete: Principal is not authenticated");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "OAuth complete: Unexpected error during authentication");
+            _error = "An unexpected error occurred during sign-in. Please try again.";
+            _isProcessing = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(_accessToken) && _authenticatedPrincipal != null)
+        {
+            try
+            {
+                Logger.LogInformation("OAuth complete: Exchanging OAuth ID token for API JWT...");
+
+                // Extract user info from claims
+                var email = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var name = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                var sub = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    Logger.LogError("OAuth complete: No email claim found in principal");
+                    _error = "Authentication failed: No email address found.";
+                    _isProcessing = false;
+                    StateHasChanged();
+                    return;
+                }
+
+                // Try token exchange with ID token first (preferred method)
+                Logger.LogInformation("OAuth complete: Attempting token exchange with ID token...");
+
+                var exchangeRequest = new ExternalLoginRequest
+                {
+                    Provider = Provider == "microsoft" ? "AzureAD" : "Google",
+                    IdToken = _accessToken, // This is the id_token we stored
+                    DeviceId = "web-app",
+                    DevicePlatform = "Web"
+                };
+
+                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}",
+                    email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
+
+                var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
+
+                // If ID token validation fails, try claims-based exchange
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.LogWarning("ID token exchange failed: {Status}, trying claims-based exchange", response.StatusCode);
+
+                    var claimsRequest = new ClaimsLoginRequest
+                    {
+                        Provider = Provider == "microsoft" ? "AzureAD" : "Google",
+                        Email = email,
+                        Name = name,
+                        ExternalUserId = sub,
+                        DeviceId = "web-app",
+                        DevicePlatform = "Web"
+                    };
+
+                    response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/exchange", claimsRequest);
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var authResponse = await response.Content.ReadFromJsonAsync<AuthenticationResponse>();
+
+                    if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
+                    {
+                        Logger.LogInformation("Token exchange successful! Got our JWT for user: {Email}", authResponse.User?.Email);
+
+                        // Store OUR JWT (not Microsoft's token)
+                        await AuthStateProvider.MarkUserAsAuthenticatedAsync(
+                            authResponse.AccessToken,
+                            authResponse.RefreshToken,
+                            _authenticatedPrincipal);
+
+                        // Determine redirect target
+                        var redirectTarget = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/dashboard";
+                        Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target}...", redirectTarget);
+
+                        // CRITICAL: Wait a moment for auth state to propagate to Blazor circuit
+                        // Without this, the target page may still see user as unauthenticated
+                        await Task.Delay(100);
+
+                        // Use forceLoad=true to ensure the entire page reloads with auth state
+                        // This prevents the redirect loop where Dashboard thinks user is not logged in
+                        Navigation.NavigateTo(redirectTarget, forceLoad: true);
+                    }
+                    else
+                    {
+                        Logger.LogError("Token exchange returned empty response");
+                        _error = "Authentication failed: Invalid response from server.";
+                        _isProcessing = false;
+                        StateHasChanged();
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Logger.LogError("Token exchange failed: {Status} - {Error}", response.StatusCode, errorContent);
+                    _error = $"Authentication failed: {response.StatusCode}";
+                    _isProcessing = false;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "OAuth complete: Error completing authentication");
+                _error = "An error occurred completing sign-in. Please try again.";
+                _isProcessing = false;
+                StateHasChanged();
+            }
+        }
+        else if (firstRender && string.IsNullOrEmpty(_accessToken))
+        {
+            Logger.LogError("OAuth complete: No access token available after first render");
+            _error = "Authentication incomplete. Please try again.";
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+}

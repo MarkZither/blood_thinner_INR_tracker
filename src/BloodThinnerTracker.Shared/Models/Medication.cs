@@ -9,7 +9,7 @@ namespace BloodThinnerTracker.Shared.Models
     /// <summary>
     /// Medication entity for blood thinner medication tracking.
     /// Represents a specific blood thinner medication prescribed to a user.
-    /// 
+    ///
     /// MEDICAL DISCLAIMER: This entity stores prescription medication information.
     /// Always verify medication details with healthcare providers.
     /// </summary>
@@ -57,20 +57,6 @@ public class Medication : MedicalEntityBase
         [StringLength(20)]
         [Column(TypeName = "varchar(20)")]
         public string DosageUnit { get; set; } = "mg";
-
-        /// <summary>
-        /// Gets or sets the medication strength as a numeric value.
-        /// </summary>
-        [Range(0.01, 1000, ErrorMessage = "Strength must be between 0.01 and 1000")]
-        [Column(TypeName = "decimal(10,3)")]
-        public decimal? Strength { get; set; }
-
-        /// <summary>
-        /// Gets or sets the medication unit for strength.
-        /// </summary>
-        [StringLength(20)]
-        [Column(TypeName = "varchar(20)")]
-        public string? Unit { get; set; }
 
         /// <summary>
         /// Gets or sets the medication form (tablet, capsule, liquid, injection).
@@ -281,8 +267,8 @@ public class Medication : MedicalEntityBase
         public bool IsCurrentlyValid()
         {
             var now = DateTime.UtcNow.Date;
-            return IsActive && 
-                   StartDate.Date <= now && 
+            return IsActive &&
+                   StartDate.Date <= now &&
                    (!EndDate.HasValue || EndDate.Value.Date >= now);
         }
 
@@ -358,7 +344,7 @@ public class Medication : MedicalEntityBase
             if (EndDate.HasValue && EndDate.Value < StartDate)
                 errors.Add("End date cannot be before start date");
 
-            if (Type == MedicationType.Warfarin && Dosage > 20)
+            if (Type == MedicationType.VitKAntagonist && Dosage > 20)
                 errors.Add("Warfarin dosage above 20mg requires special attention");
 
             if (ReminderMinutes < 0 || ReminderMinutes > 1440)
@@ -383,9 +369,9 @@ public class Medication : MedicalEntityBase
     public enum MedicationType
     {
         /// <summary>
-        /// Warfarin (Coumadin) - requires INR monitoring.
+        /// Acenocoumarol (Sintrom)/Warfarin (Coumadin) - requires INR monitoring.
         /// </summary>
-        Warfarin = 0,
+        VitKAntagonist = 0,
 
         /// <summary>
         /// Direct Oral Anticoagulants (DOACs).

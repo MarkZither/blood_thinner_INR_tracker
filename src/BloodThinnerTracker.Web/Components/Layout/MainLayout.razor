@@ -1,271 +1,295 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
-<MudThemeProvider />
+<MudThemeProvider Theme="CustomTheme.Theme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<MudBreakpointProvider OnBreakpointChanged="OnBreakpointChanged" />
 
-<!-- Navigation Header -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="/">
-            <i class="fas fa-heartbeat me-2"></i>
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="@_isMobile">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="ml-3">
+            <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" Class="mr-1" />
             Blood Thinner Tracker
-        </a>
-        
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
-                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">
-                        <i class="fas fa-tachometer-alt me-1"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/inr">
-                        <i class="fas fa-chart-line me-1"></i>
-                        INR Tracking
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/medications">
-                        <i class="fas fa-pills me-1"></i>
-                        Medication Log
-                    </a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" 
-                       data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-chart-bar me-1"></i>
-                        Reports
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/reports/inr-trends">
-                            <i class="fas fa-line-chart me-2"></i>INR Trends
-                        </a></li>
-                        <li><a class="dropdown-item" href="/reports/medication-adherence">
-                            <i class="fas fa-check-circle me-2"></i>Medication Adherence
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/reports/export">
-                            <i class="fas fa-download me-2"></i>Export Data
-                        </a></li>
-                    </ul>
-                </li>
-            </ul>
-            
-            <div class="d-flex">
-                <!-- Notifications -->
-                <button class="btn btn-outline-light me-2" type="button" 
-                        data-bs-toggle="offcanvas" data-bs-target="#notificationsOffcanvas">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge bg-danger ms-1">3</span>
-                </button>
-                
-                <!-- User Menu -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle" type="button" 
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-1"></i>
-                        @(userName ?? "User")
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/profile">
-                            <i class="fas fa-user me-2"></i>Profile
-                        </a></li>
-                        <li><a class="dropdown-item" href="/profile">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/help">
-                            <i class="fas fa-question-circle me-2"></i>Help & Support
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="/logout">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</nav>
+        </MudText>
+        <MudSpacer />
 
-<!-- Notifications Offcanvas -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="notificationsOffcanvas">
-    <div class="offcanvas-header bg-primary text-white">
-        <h5 class="offcanvas-title">
-            <i class="fas fa-bell me-2"></i>
-            Notifications
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-        <div class="list-group list-group-flush">
-            <div class="list-group-item d-flex align-items-start">
-                <div class="me-3 text-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">INR Result Out of Range</h6>
-                    <p class="mb-1 text-muted small">Your latest INR of 3.5 is above target range.</p>
-                    <small class="text-muted">2 hours ago</small>
-                </div>
-            </div>
-            <div class="list-group-item d-flex align-items-start">
-                <div class="me-3 text-info">
-                    <i class="fas fa-pills"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">Medication Reminder</h6>
-                    <p class="mb-1 text-muted small">Time to take your evening Warfarin dose.</p>
-                    <small class="text-muted">1 hour ago</small>
-                </div>
-            </div>
-            <div class="list-group-item d-flex align-items-start">
-                <div class="me-3 text-success">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">INR Test Scheduled</h6>
-                    <p class="mb-1 text-muted small">Your next INR test is scheduled for tomorrow at 9:00 AM.</p>
-                    <small class="text-muted">3 hours ago</small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="text-center p-3 border-top">
-            <a href="/notifications" class="btn btn-outline-primary btn-sm">
-                View All Notifications
-            </a>
-        </div>
-    </div>
-</div>
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" OnClick="@ToggleNotifications">
+            <MudBadge Content="@_notificationCount" Color="Color.Error" Overlap="true" Visible="@(_notificationCount > 0)">
+            </MudBadge>
+        </MudIconButton>
 
-<!-- Main Content -->
-<main class="main-content">
-    @Body
-</main>
+        @if (!_isMobile)
+        {
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="@ToggleDarkMode" />
 
-<!-- Footer -->
-<footer class="footer bg-light border-top mt-5">
-    <div class="container py-4">
-        <div class="row">
-            <div class="col-md-6">
-                <h6 class="fw-bold text-primary">
-                    <i class="fas fa-heartbeat me-2"></i>
-                    Blood Thinner Tracker
-                </h6>
-                <p class="text-muted small mb-0">
-                    Your personal medication and INR tracking companion.
-                </p>
-            </div>
-            <div class="col-md-6 text-md-end">
-                <div class="mb-2">
-                    <a href="/privacy" class="text-decoration-none me-3">Privacy Policy</a>
-                    <a href="/terms" class="text-decoration-none me-3">Terms of Service</a>
-                    <a href="/help" class="text-decoration-none">Support</a>
-                </div>
-                <p class="text-muted small mb-0">
-                    <i class="fas fa-shield-alt me-1"></i>
-                    Your medical data is secure and private.
-                </p>
-            </div>
-        </div>
-        
-        <hr class="my-3">
-        
-        <div class="text-center">
-            <div class="alert alert-warning alert-sm mb-0" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Medical Disclaimer:</strong> This application is for tracking purposes only. 
-                Always consult your healthcare provider for medical decisions and treatment adjustments.
-            </div>
-        </div>
-    </div>
-</footer>
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.AccountCircle" Style="color: white; border-color: white;">
+                        @_userName
+                    </MudButton>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
+                    <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Settings">Settings</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Href="/help" Icon="@Icons.Material.Filled.Help">Help & Support</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Href="/logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">
+                        <MudText Color="Color.Error">Logout</MudText>
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        }
+    </MudAppBar>
 
-<!-- Error UI -->
-<div id="blazor-error-ui" data-nosnippet>
-    <div class="alert alert-danger m-3" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        An unhandled error has occurred.
-        <a href="." class="btn btn-outline-danger btn-sm ms-2">Reload Page</a>
-        <button class="btn-close float-end" onclick="document.getElementById('blazor-error-ui').style.display='none'"></button>
-    </div>
-</div>
+    <MudDrawer @bind-Open="@_drawerOpen"
+               Elevation="2"
+               Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Responsive)"
+               ClipMode="@(_isMobile ? DrawerClipMode.Never : DrawerClipMode.Always)">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6" Color="Color.Primary">
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" Class="mr-2" />
+                Navigation
+            </MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+            <MudNavLink Href="/inr" Icon="@Icons.Material.Filled.ShowChart">INR Tracking</MudNavLink>
+            <MudNavLink Href="/medications" Icon="@Icons.Material.Filled.Medication">Medications</MudNavLink>
+
+            <MudNavGroup Title="Reports" Icon="@Icons.Material.Filled.Assessment" Expanded="false">
+                <MudNavLink Href="/reports/inr-trends" Icon="@Icons.Material.Filled.TrendingUp">INR Trends</MudNavLink>
+                <MudNavLink Href="/reports/medication-adherence" Icon="@Icons.Material.Filled.CheckCircle">Medication Adherence</MudNavLink>
+                <MudDivider Class="my-2" />
+                <MudNavLink Href="/reports/export" Icon="@Icons.Material.Filled.Download">Export Data</MudNavLink>
+            </MudNavGroup>
+
+            @if (_isMobile)
+            {
+                <MudDivider Class="my-3" />
+                <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+                <MudNavLink Href="/help" Icon="@Icons.Material.Filled.Help">Help</MudNavLink>
+                <MudNavLink OnClick="@ToggleDarkMode" Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)">
+                    @(_isDarkMode ? "Light Mode" : "Dark Mode")
+                </MudNavLink>
+                <MudNavLink Href="/logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">
+                    <MudText Color="Color.Error">Logout</MudText>
+                </MudNavLink>
+            }
+        </MudNavMenu>
+
+        <MudSpacer />
+
+        <div class="pa-4">
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                <MudText Typo="Typo.caption">
+                    <strong>Medical Disclaimer:</strong> For tracking purposes only.
+                </MudText>
+            </MudAlert>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                © 2025 Blood Thinner Tracker
+            </MudText>
+        </div>
+    </MudDrawer>
+
+    <MudDrawer @bind-Open="@_notificationsOpen" Anchor="Anchor.Right" Elevation="2" Variant="@DrawerVariant.Temporary">
+        <MudDrawerHeader Class="mud-theme-primary">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Notifications" Class="mr-2" />
+                Notifications
+            </MudText>
+        </MudDrawerHeader>
+        <MudDivider />
+
+        @if (_notifications.Any())
+        {
+            <MudList T="string">
+                @foreach (var notification in _notifications)
+                {
+                    <MudListItem>
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@notification.Icon" Color="@notification.Severity" Class="mr-3" />
+                            <div class="flex-grow-1">
+                                <MudText Typo="Typo.subtitle2" Class="mb-1">@notification.Title</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@notification.Message</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@notification.TimeAgo</MudText>
+                            </div>
+                        </div>
+                    </MudListItem>
+                    <MudDivider />
+                }
+            </MudList>
+        }
+        else
+        {
+            <div class="d-flex flex-column align-center justify-center pa-8">
+                <MudIcon Icon="@Icons.Material.Filled.NotificationsNone" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary">No notifications</MudText>
+            </div>
+        }
+    </MudDrawer>
+
+    <MudMainContent Style="@(_isMobile ? "padding-top: 64px; padding-bottom: 80px;" : "")">
+        <div Class="@(_isMobile ? "pa-4" : "pa-6")">
+            <AuthorizeView>
+                <Authorized>
+                    <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+                        <MudText Typo="Typo.body2">
+                            <strong>Medical Disclaimer:</strong> This application is for informational purposes only.
+                            Always consult your healthcare provider for medical decisions.
+                        </MudText>
+                    </MudAlert>
+                </Authorized>
+            </AuthorizeView>
+
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@if (_isMobile)
+{
+    <MudPaper Elevation="3" Style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1300; padding-bottom: env(safe-area-inset-bottom);">
+        <MudContainer Class="d-flex justify-space-around pa-2" MaxWidth="MaxWidth.False">
+            <MudIconButton Href="/dashboard"
+                           Icon="@Icons.Material.Filled.Dashboard"
+                           Color="@(IsActive("/dashboard") ? Color.Primary : Color.Default)"
+                           Size="Size.Large" />
+            <MudIconButton Href="/medications"
+                           Icon="@Icons.Material.Filled.Medication"
+                           Color="@(IsActive("/medications") ? Color.Primary : Color.Default)"
+                           Size="Size.Large" />
+            <MudIconButton Href="/inr"
+                           Icon="@Icons.Material.Filled.ShowChart"
+                           Color="@(IsActive("/inr") ? Color.Primary : Color.Default)"
+                           Size="Size.Large" />
+            <MudIconButton OnClick="@ToggleDrawer"
+                           Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Default"
+                           Size="Size.Large" />
+        </MudContainer>
+    </MudPaper>
+}
 
 @code {
-    private string? userName = "User";
-    
-    [Inject]
-    private HttpClient? Http { get; set; }
-    
-    [Inject]
-    private AuthenticationStateProvider? AuthStateProvider { get; set; }
-    
+    private bool _drawerOpen = true;
+    private bool _notificationsOpen = false;
+    private bool _isDarkMode = false;
+    private bool _isMobile = false;
+    private string _userName = "User";
+    private int _notificationCount = 3;
+    private List<NotificationItem> _notifications = new();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadUserProfile();
+        LoadNotifications();
     }
-    
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+
+    private void ToggleNotifications()
+    {
+        _notificationsOpen = !_notificationsOpen;
+    }
+
+    private void OnBreakpointChanged(Breakpoint breakpoint)
+    {
+        // MudBlazor breakpoints: Xs (0-600px), Sm (600-960px), Md (960-1280px), Lg (1280-1920px), Xl (1920px+)
+        var wasMobile = _isMobile;
+        _isMobile = breakpoint == Breakpoint.Xs || breakpoint == Breakpoint.Sm;
+
+        // Close drawer when switching to mobile mode
+        if (_isMobile && !wasMobile)
+        {
+            _drawerOpen = false;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
     private async Task LoadUserProfile()
     {
         try
         {
-            if (Http != null && AuthStateProvider != null)
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
             {
-                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-                
-                if (user.Identity?.IsAuthenticated == true)
-                {
-                    // Try to get name from claims first
-                    var nameClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Name) 
-                                 ?? user.FindFirst("name")
-                                 ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email);
-                    
-                    if (nameClaim != null)
-                    {
-                        userName = nameClaim.Value;
-                    }
-                    else
-                    {
-                        // If no claim, try to load from API
-                        try
-                        {
-                            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/users/profile");
-                            if (profile != null)
-                            {
-                                userName = !string.IsNullOrEmpty(profile.FullName) 
-                                    ? profile.FullName 
-                                    : profile.Email;
-                            }
-                        }
-                        catch
-                        {
-                            // API call failed, keep default "User"
-                        }
-                    }
-                }
+                var nameClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Name)
+                             ?? user.FindFirst("name")
+                             ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email);
+
+                _userName = nameClaim?.Value ?? "User";
             }
         }
         catch
         {
-            // Error loading profile, keep default
-            userName = "User";
+            _userName = "User";
         }
     }
-    
-    // Temporary model until we create the actual one
-    private class UserProfileResponse
+
+    private void LoadNotifications()
     {
-        public string? FullName { get; set; }
-        public string? Email { get; set; }
+        _notifications = new List<NotificationItem>
+        {
+            new()
+            {
+                Icon = Icons.Material.Filled.Warning,
+                Severity = Color.Warning,
+                Title = "INR Result Out of Range",
+                Message = "Your latest INR of 3.5 is above target range.",
+                TimeAgo = "2 hours ago"
+            },
+            new()
+            {
+                Icon = Icons.Material.Filled.Medication,
+                Severity = Color.Info,
+                Title = "Medication Reminder",
+                Message = "Time to take your evening Warfarin dose.",
+                TimeAgo = "1 hour ago"
+            },
+            new()
+            {
+                Icon = Icons.Material.Filled.CheckCircle,
+                Severity = Color.Success,
+                Title = "INR Test Scheduled",
+                Message = "Your next INR test is scheduled for tomorrow.",
+                TimeAgo = "3 hours ago"
+            }
+        };
+        _notificationCount = _notifications.Count;
+    }
+
+    private bool IsActive(string href)
+    {
+        var currentPath = new Uri(NavigationManager.Uri).AbsolutePath;
+        return currentPath.StartsWith(href, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private class NotificationItem
+    {
+        public string Icon { get; set; } = string.Empty;
+        public Color Severity { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string TimeAgo { get; set; } = string.Empty;
     }
 }

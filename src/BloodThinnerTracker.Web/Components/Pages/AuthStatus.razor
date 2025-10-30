@@ -1,0 +1,270 @@
+@page "/auth/status"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using BloodThinnerTracker.Web.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CustomAuthenticationStateProvider CustomAuthProvider
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Authentication Status - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Class="me-2" />
+                    Authentication Status
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Debugging information for authentication state
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Color="Color.Primary"
+                               OnClick="RefreshStatus"
+                               aria-label="Refresh Status" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (isLoading)
+            {
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else
+            {
+                <!-- Authentication State -->
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="me-2" />
+                        Authentication State
+                    </MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Status</MudText>
+                            <MudChip T="string"
+                                     Color="@(isAuthenticated ? Color.Success : Color.Error)"
+                                     Icon="@(isAuthenticated ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)">
+                                @(isAuthenticated ? "Authenticated" : "Not Authenticated")
+                            </MudChip>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Identity Type</MudText>
+                            <MudText Typo="Typo.body1">@(authenticationType ?? "None")</MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">User Name</MudText>
+                            <MudText Typo="Typo.body1">@(userName ?? "N/A")</MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Last Updated</MudText>
+                            <MudText Typo="Typo.body1">@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Token Information -->
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Key" Class="me-2" />
+                        Token Information
+                    </MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Token Present</MudText>
+                            <MudChip T="string"
+                                     Color="@(hasToken ? Color.Success : Color.Warning)"
+                                     Icon="@(hasToken ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)">
+                                @(hasToken ? "Yes" : "No")
+                            </MudChip>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Token Expiry</MudText>
+                            <MudText Typo="Typo.body1">@(tokenExpiry?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Token Status</MudText>
+                            @if (tokenExpiry.HasValue)
+                            {
+                                var timeUntilExpiry = tokenExpiry.Value - DateTime.UtcNow;
+                                if (timeUntilExpiry.TotalMinutes > 30)
+                                {
+                                    <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                        Valid (@timeUntilExpiry.TotalMinutes.ToString("F0") minutes remaining)
+                                    </MudChip>
+                                }
+                                else if (timeUntilExpiry.TotalMinutes > 0)
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Icon="@Icons.Material.Filled.Warning">
+                                        Expiring Soon (@timeUntilExpiry.TotalMinutes.ToString("F0") minutes remaining)
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Error" Icon="@Icons.Material.Filled.Error">
+                                        Expired (@Math.Abs(timeUntilExpiry.TotalMinutes).ToString("F0") minutes ago)
+                                    </MudChip>
+                                }
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default">No Expiry Information</MudChip>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Claims -->
+                @if (claims != null && claims.Any())
+                {
+                    <MudPaper Class="pa-4 mb-4" Elevation="2">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Badge" Class="me-2" />
+                            User Claims (@claims.Count)
+                        </MudText>
+                        <MudTable Items="@claims" Dense="true" Hover="true" Striped="true">
+                            <HeaderContent>
+                                <MudTh>Type</MudTh>
+                                <MudTh>Value</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Type">
+                                    <MudText Typo="Typo.body2" Style="font-family: monospace;">@context.Type</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Value">
+                                    <MudText Typo="Typo.body2" Style="font-family: monospace;">@context.Value</MudText>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+                }
+
+                <!-- Quick Actions -->
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="me-2" />
+                        Quick Actions
+                    </MudText>
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   OnClick="RefreshStatus">
+                            Refresh Status
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Dashboard"
+                                   Href="/dashboard">
+                            Go to Dashboard
+                        </MudButton>
+                        @if (isAuthenticated)
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Logout"
+                                       Href="/logout">
+                                Logout
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Login"
+                                       Href="/login">
+                                Login
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Medical Disclaimer -->
+                <MudAlert Severity="Severity.Info" Class="mt-4">
+                    <strong>Development Tool:</strong> This page is for debugging authentication issues.
+                    It should not be accessible in production environments.
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+    private bool hasToken = false;
+    private string? userName = null;
+    private string? authenticationType = null;
+    private DateTime? tokenExpiry = null;
+    private List<Claim>? claims = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthenticationStatus();
+    }
+
+    private async Task RefreshStatus()
+    {
+        isLoading = true;
+        StateHasChanged();
+        await Task.Delay(500); // Small delay for UX
+        await LoadAuthenticationStatus();
+    }
+
+    private async Task LoadAuthenticationStatus()
+    {
+        try
+        {
+            // Get authentication state
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+            authenticationType = user.Identity?.AuthenticationType;
+            userName = user.Identity?.Name;
+
+            // Get claims
+            if (isAuthenticated)
+            {
+                claims = user.Claims.ToList();
+
+                // Try to get token expiry from claims
+                var expClaim = user.FindFirst("exp");
+                if (expClaim != null && long.TryParse(expClaim.Value, out long expUnix))
+                {
+                    tokenExpiry = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+                }
+            }
+            else
+            {
+                claims = null;
+                tokenExpiry = null;
+            }
+
+            // Check if token exists in storage
+            try
+            {
+                var token = await CustomAuthProvider.GetTokenAsync();
+                hasToken = !string.IsNullOrEmpty(token);
+            }
+            catch
+            {
+                hasToken = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash the page
+            Console.WriteLine($"Error loading auth status: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

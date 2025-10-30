@@ -1,0 +1,422 @@
+@page "/medications/{id}/log"
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.ViewModels
+@using BloodThinnerTracker.Shared.Models
+@inject IMedicationService MedicationService
+@inject IMedicationLogService MedicationLogService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Log Medication - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudText Typo="Typo.body1" Class="mt-2">Loading medication...</MudText>
+    }
+    else if (_medication == null)
+    {
+        <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.MedicationLiquid" Class="mr-2" />
+                Log Medication Dose
+            </MudText>
+
+            <EditForm Model="@_viewModel" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                @* Medication Info *@
+                <MudCard Class="mb-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">@_medication.Name</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Prescribed: @_medication.Dosage @_medication.DosageUnit
+                        </MudText>
+                        @if (_medication.IsBloodThinner)
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Class="mr-1" />
+                                Blood Thinner - Min @_medication.MinHoursBetweenDoses hours between doses
+                            </MudChip>
+                        }
+                    </MudCardContent>
+                </MudCard>
+
+                @* Safety Warnings *@
+                @if (_safetyWarnings.Any())
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Safety Warnings:</MudText>
+                        @foreach (var warning in _safetyWarnings)
+                        {
+                            <MudText Typo="Typo.body2">• @warning</MudText>
+                        }
+                    </MudAlert>
+                }
+
+                @* Time Information *@
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Label="Scheduled Date"
+                                       @bind-Date="_scheduledDate"
+                                       @bind-Date:after="OnTimeChanged"
+                                       Required="true"
+                                       MaxDate="DateTime.Today.AddDays(1)" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTimePicker Label="Scheduled Time"
+                                       @bind-Time="_scheduledTime"
+                                       @bind-Time:after="OnTimeChanged"
+                                       Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Label="Actual Date"
+                                       @bind-Date="_actualDate"
+                                       @bind-Date:after="OnTimeChanged"
+                                       Required="true"
+                                       MaxDate="DateTime.Today.AddDays(1)"
+                                       Error="@_actualDateError"
+                                       ErrorText="@_actualDateErrorText" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTimePicker Label="Actual Time Taken"
+                                       @bind-Time="_actualTime"
+                                       @bind-Time:after="OnTimeChanged"
+                                       Required="true"
+                                       Error="@_actualTimeError"
+                                       ErrorText="@_actualTimeErrorText" />
+                    </MudItem>
+                </MudGrid>
+
+                @* Time Variance Display *@
+                @if (_showTimeVariance && !_isFutureTime)
+                {
+                    <MudAlert Severity="@GetTimeVarianceSeverity()" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            <strong>@_viewModel.GetTimingMessage()</strong>
+                        </MudText>
+                    </MudAlert>
+                }
+
+                @* Future Time Error *@
+                @if (_isFutureTime)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            <strong>Cannot log medication doses in the future.</strong> Please adjust the actual date/time.
+                        </MudText>
+                    </MudAlert>
+                }
+
+                @* Dosage Information *@
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_viewModel.ActualDosage"
+                                        Label="Actual Dosage Taken"
+                                        Min="0.5m"
+                                        Max="1000m"
+                                        Step="0.5m"
+                                        Required="true"
+                                        HelperText="@($"Prescribed: {_medication.Dosage} {_medication.DosageUnit}")" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_viewModel.ActualDosageUnit"
+                                     Label="Dosage Unit"
+                                     Required="true"
+                                     MaxLength="20" />
+                    </MudItem>
+                </MudGrid>
+
+                @* Food Information (Important for Warfarin) *@
+                <MudExpansionPanels Class="mb-4">
+                    <MudExpansionPanel Text="Food & Side Effects (Optional)">
+                        <MudSwitch @bind-Value="_viewModel.TakenWithFood"
+                                  Label="Taken with food"
+                                  Color="Color.Primary"
+                                  Class="mb-3" />
+
+                        @if (_viewModel.TakenWithFood == true)
+                        {
+                            <MudTextField @bind-Value="_viewModel.FoodDetails"
+                                         Label="Food Details"
+                                         Lines="2"
+                                         MaxLength="200"
+                                         HelperText="Important for Warfarin interactions"
+                                         Class="mb-3" />
+                        }
+
+                        <MudTextField @bind-Value="_viewModel.SideEffects"
+                                     Label="Side Effects"
+                                     Lines="2"
+                                     MaxLength="500"
+                                     HelperText="Any side effects experienced"
+                                     Class="mb-3" />
+
+                        <MudTextField @bind-Value="_viewModel.Notes"
+                                     Label="Additional Notes"
+                                     Lines="3"
+                                     MaxLength="1000" />
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
+                @* Validation Summary *@
+                <ValidationSummary />
+
+                @* Action Buttons *@
+                <MudGrid Class="mt-4">
+                    <MudItem xs="12" sm="6">
+                        <MudButton ButtonType="ButtonType.Submit"
+                                  Variant="Variant.Filled"
+                                  Color="Color.Primary"
+                                  StartIcon="@Icons.Material.Filled.Save"
+                                  FullWidth="true"
+                                  Disabled="@_saving">
+                            @if (_saving)
+                            {
+                                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <span>Log Medication</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudButton Variant="Variant.Outlined"
+                                  Color="Color.Default"
+                                  StartIcon="@Icons.Material.Filled.Cancel"
+                                  FullWidth="true"
+                                  OnClick="@Cancel"
+                                  Disabled="@_saving">
+                            Cancel
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        </MudPaper>
+
+        @* Recent Doses *@
+        @if (_recentLogs.Any())
+        {
+            <MudPaper Class="pa-4 mt-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Recent Doses</MudText>
+                <MudList T="string" Dense="true">
+                    @foreach (var log in _recentLogs.Take(5))
+                    {
+                        <MudListItem T="string">
+                            <MudText Typo="Typo.body2">
+                                @log.ActualTime?.ToString("MMM dd, h:mm tt") -
+                                @log.ActualDosage @log.ActualDosageUnit
+                                @if (log.Status == MedicationLogStatus.Taken)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Taken</MudChip>
+                                }
+                            </MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Primary"
+                          OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/history"))"
+                          Class="mt-2">
+                    View Full History
+                </MudButton>
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private Medication? _medication;
+    private MedicationLogViewModel _viewModel = new();
+    private List<MedicationLogDto> _recentLogs = new();
+    private List<string> _safetyWarnings = new();
+
+    private bool _loading = true;
+    private bool _saving = false;
+    private bool _showTimeVariance = false;
+    private bool _isFutureTime = false;
+    
+    private bool _actualDateError = false;
+    private string _actualDateErrorText = string.Empty;
+    private bool _actualTimeError = false;
+    private string _actualTimeErrorText = string.Empty;
+
+    private DateTime? _scheduledDate = DateTime.Today;
+    private TimeSpan? _scheduledTime = DateTime.Now.TimeOfDay;
+    private DateTime? _actualDate = DateTime.Today;
+    private TimeSpan? _actualTime = DateTime.Now.TimeOfDay;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedication();
+        await LoadRecentLogs();
+        _loading = false;
+    }
+
+    private async Task LoadMedication()
+    {
+        _medication = await MedicationService.GetMedicationByIdAsync(Id);
+        if (_medication != null)
+        {
+            _viewModel.Reset(_medication);
+            await CheckSafetyWarnings();
+        }
+    }
+
+    private async Task LoadRecentLogs()
+    {
+        var fromDate = DateTime.Today.AddDays(-7);
+        var logs = await MedicationLogService.GetMedicationLogsAsync(Id, fromDate);
+        _recentLogs = logs ?? new List<MedicationLogDto>();
+    }
+
+    private async Task CheckSafetyWarnings()
+    {
+        if (_medication == null) return;
+
+        _safetyWarnings.Clear();
+
+        // Check last dose time for blood thinners
+        if (_medication.IsBloodThinner && _recentLogs.Any())
+        {
+            var lastDose = _recentLogs
+                .Where(l => l.Status == MedicationLogStatus.Taken && l.ActualTime.HasValue)
+                .OrderByDescending(l => l.ActualTime)
+                .FirstOrDefault();
+
+            if (lastDose != null && lastDose.ActualTime.HasValue)
+            {
+                var hoursSinceLastDose = (DateTime.Now - lastDose.ActualTime.Value).TotalHours;
+                if (hoursSinceLastDose < _medication.MinHoursBetweenDoses)
+                {
+                    _safetyWarnings.Add($"Last dose was {hoursSinceLastDose:F1} hours ago. Minimum {_medication.MinHoursBetweenDoses} hours required.");
+                }
+            }
+        }
+
+        // Check daily dose
+        var today = _recentLogs.Where(l =>
+            l.ActualTime.HasValue &&
+            l.ActualTime.Value.Date == DateTime.Today &&
+            l.Status == MedicationLogStatus.Taken);
+
+        var totalToday = today.Sum(l => l.ActualDosage ?? 0);
+        if (totalToday + _medication.Dosage > _medication.MaxDailyDose)
+        {
+            _safetyWarnings.Add($"Adding this dose would exceed max daily dose ({_medication.MaxDailyDose}{_medication.DosageUnit}). Already taken: {totalToday}{_medication.DosageUnit} today.");
+        }
+    }
+
+    private void UpdateViewModelTimes()
+    {
+        if (_scheduledDate.HasValue && _scheduledTime.HasValue)
+        {
+            _viewModel.ScheduledTime = _scheduledDate.Value.Date + _scheduledTime.Value;
+        }
+
+        if (_actualDate.HasValue && _actualTime.HasValue)
+        {
+            _viewModel.ActualTime = _actualDate.Value.Date + _actualTime.Value;
+        }
+
+        _showTimeVariance = true;
+        ValidateActualTime();
+    }
+
+    private void OnTimeChanged()
+    {
+        UpdateViewModelTimes();
+    }
+
+    private void ValidateActualTime()
+    {
+        _actualDateError = false;
+        _actualTimeError = false;
+        _isFutureTime = false;
+        _actualDateErrorText = string.Empty;
+        _actualTimeErrorText = string.Empty;
+
+        if (_actualDate.HasValue && _actualTime.HasValue)
+        {
+            var actualDateTime = _actualDate.Value.Date + _actualTime.Value;
+            
+            if (actualDateTime > DateTime.Now)
+            {
+                _isFutureTime = true;
+                _actualDateError = true;
+                _actualTimeError = true;
+                _actualDateErrorText = "Cannot be in the future";
+                _actualTimeErrorText = "Cannot be in the future";
+            }
+        }
+    }
+
+    private Severity GetTimeVarianceSeverity()
+    {
+        var variance = Math.Abs(_viewModel.CalculateTimeVariance());
+        if (variance <= 15) return Severity.Success;
+        if (variance <= 60) return Severity.Info;
+        if (variance <= 120) return Severity.Warning;
+        return Severity.Error;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_medication == null) return;
+
+        UpdateViewModelTimes();
+
+        // Check for future time
+        if (_isFutureTime)
+        {
+            Snackbar.Add("Cannot log medication doses in the future. Please adjust the actual date/time.", Severity.Error);
+            return;
+        }
+
+        // Final safety check
+        if (_safetyWarnings.Any())
+        {
+            // Note: Simple warning display - in production use MudDialog for confirmation
+            Snackbar.Add("Warning: There are safety concerns. Please review carefully.", Severity.Warning);
+        }
+
+        _saving = true;
+        try
+        {
+            var dto = _viewModel.ToDto();
+            var result = await MedicationLogService.LogMedicationAsync(dto);
+
+            if (result != null)
+            {
+                Snackbar.Add("Medication dose logged successfully", Severity.Success);
+                Navigation.NavigateTo($"/medications/{Id}/history");
+            }
+            // If result is null, the service already showed error snackbar
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/medications");
+    }
+}

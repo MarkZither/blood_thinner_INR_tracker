@@ -2,8 +2,8 @@
 @using BloodThinnerTracker.Shared.Models
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
-@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -11,295 +11,325 @@
 
 <PageTitle>Medical Dashboard - Blood Thinner Tracker</PageTitle>
 
-<div class="dashboard-container">
-    <!-- Medical Disclaimer Banner -->
-    <div class="alert alert-warning medical-disclaimer mb-4" role="alert">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <div>
-                <strong>Medical Disclaimer:</strong> This application is for informational purposes only and should not replace professional medical advice. 
-                Always consult your healthcare provider for medical decisions regarding blood thinner medications.
-            </div>
-        </div>
-    </div>
+<AuthorizeView>
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+            <!-- Medical Disclaimer Banner -->
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+                <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Medium" />
+                    <div>
+                        <strong>Medical Disclaimer:</strong> This application is for informational purposes only and should not replace professional medical advice.
+                        Always consult your healthcare provider for medical decisions regarding blood thinner medications.
+                    </div>
+                </MudStack>
+            </MudAlert>
 
-    <!-- Header Section -->
-    <div class="dashboard-header mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="h2 mb-1">
-                    <i class="fas fa-tachometer-alt text-primary me-2"></i>
-                    Medical Dashboard
-                </h1>
-                <p class="text-muted mb-0">Monitor your blood thinner medications and INR levels</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <div class="dashboard-sync-status">
-                    <span class="badge @GetSyncStatusClass() me-2">
-                        <i class="fas @GetSyncStatusIcon() me-1"></i>
+            <!-- Header Section -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h4">Medical Dashboard</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Monitor your blood thinner medications and INR levels</MudText>
+                </MudStack>
+                <MudStack Spacing="1" AlignItems="AlignItems.End">
+                    <MudChip T="string" Icon="@Icons.Material.Filled.CloudDone" Color="@GetSyncStatusColor()">
                         @GetSyncStatusText()
-                    </span>
-                    <small class="text-muted">Last sync: @lastSyncTime.ToString("MMM dd, HH:mm")</small>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </MudChip>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Last sync: @lastSyncTime.ToString("MMM dd, HH:mm")</MudText>
+                </MudStack>
+            </MudStack>
 
-    <!-- Quick Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stat-icon bg-primary text-white me-3">
-                        <i class="fas fa-pills"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-1">@activeMedicationsCount</h5>
-                        <p class="card-text text-muted small mb-0">Active Medications</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stat-icon bg-success text-white me-3">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-1">@todayAdherencePercentage%</h5>
-                        <p class="card-text text-muted small mb-0">Today's Adherence</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stat-icon @GetINRStatusClass() text-white me-3">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-1">@(lastINRValue?.ToString("F1") ?? "N/A")</h5>
-                        <p class="card-text text-muted small mb-0">Latest INR</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stat-icon bg-warning text-white me-3">
-                        <i class="fas fa-calendar-clock"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-1">@upcomingRemindersCount</h5>
-                        <p class="card-text text-muted small mb-0">Upcoming Reminders</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- Quick Stats Cards -->
+            <MudGrid Class="mb-4">
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Primary" Size="Size.Large">
+                                    <MudIcon Icon="@Icons.Material.Filled.Medication" Size="Size.Medium" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h5">@activeMedicationsCount</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Active Medications</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
 
-    <!-- Main Content Grid -->
-    <div class="row">
-        <!-- Left Column - Medications & Reminders -->
-        <div class="col-lg-8 mb-4">
-            <!-- Today's Medications -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-calendar-day text-primary me-2"></i>
-                            Today's Medications
-                        </h5>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" @onclick="RefreshMedications">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <button class="btn btn-primary" @onclick="NavigateToAddMedications">
-                                <i class="fas fa-plus me-1"></i>Add
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    @if (todayMedications?.Any() == true)
-                    {
-                        <div class="medication-timeline">
-                            @foreach (var med in todayMedications.OrderBy(m => m.NextDoseTime))
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Success" Size="Size.Large">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Medium" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h5">@todayAdherencePercentage%</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Today's Adherence</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="@GetINRStatusColor()" Size="Size.Large">
+                                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Medium" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h5">@(lastINRValue?.ToString("F1") ?? "N/A")</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Latest INR</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Warning" Size="Size.Large">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Medium" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h5">@upcomingRemindersCount</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Upcoming Reminders</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Main Content Grid -->
+            <MudGrid>
+                <!-- Left Column - Medications & Reminders -->
+                <MudItem xs="12" lg="8">
+                    <!-- Today's Medications -->
+                    <MudCard Elevation="2" Class="mb-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6">Today's Medications</MudText>
+                                </MudStack>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Small" OnClick="RefreshMedications" />
+                                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="NavigateToAddMedications">
+                                    Add
+                                </MudButton>
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (todayMedications?.Any() == true)
                             {
-                                <div class="medication-item @GetMedicationStatusClass(med) mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="medication-status-indicator me-3">
-                                            <i class="fas @GetMedicationStatusIcon(med)"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex justify-content-between align-items-start">
+                                <MudStack Spacing="3">
+                                    @foreach (var med in todayMedications.OrderBy(m => m.NextDoseTime))
+                                    {
+                                        <MudPaper Elevation="1" Class="pa-3">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                                    <MudIcon Icon="@GetMedicationStatusIcon(med)" Color="@GetMedicationStatusIconColor(med)" Size="Size.Medium" />
+                                                    <MudStack Spacing="1">
+                                                        <MudText Typo="Typo.subtitle1">@med.Name</MudText>
+                                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@med.Dosage @med.DosageUnit</MudText>
+                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Secondary" />
+                                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                                @med.NextDoseTime?.ToString("HH:mm")
+                                                            </MudText>
+                                                        </MudStack>
+                                                    </MudStack>
+                                                </MudStack>
                                                 <div>
-                                                    <h6 class="mb-1">@med.Name</h6>
-                                                    <p class="text-muted small mb-1">@med.Dosage @med.DosageUnit</p>
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        @med.NextDoseTime?.ToString("HH:mm")
-                                                    </small>
-                                                </div>
-                                                <div class="medication-actions">
                                                     @if (!med.IsTaken)
                                                     {
-                                                        <button class="btn btn-sm btn-success" @onclick="() => MarkMedicationTaken(med.Id)">
-                                                            <i class="fas fa-check me-1"></i>Taken
-                                                        </button>
+                                                        <MudButton StartIcon="@Icons.Material.Filled.Check" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => NavigateToLogDose(med.Id))">
+                                                            Log Dose
+                                                        </MudButton>
                                                     }
                                                     else
                                                     {
-                                                        <span class="badge bg-success">
-                                                            <i class="fas fa-check me-1"></i>Completed
-                                                        </span>
+                                                        <MudChip T="string" Icon="@Icons.Material.Filled.Check" Color="Color.Success">Completed</MudChip>
                                                     }
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                            </MudStack>
+                                        </MudPaper>
+                                    }
+                                </MudStack>
                             }
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-center py-4">
-                            <i class="fas fa-pills text-muted fa-3x mb-3"></i>
-                            <p class="text-muted mb-0">No medications scheduled for today</p>
-                            <button class="btn btn-primary mt-2" @onclick="NavigateToAddMedications">
-                                <i class="fas fa-plus me-1"></i>Add Your First Medication
-                            </button>
-                        </div>
-                    }
-                </div>
-            </div>
+                            else
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="py-6">
+                                    <MudIcon Icon="@Icons.Material.Filled.Medication" Size="Size.Large" Color="Color.Secondary" />
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary">No medications scheduled for today</MudText>
+                                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="NavigateToAddMedications">
+                                        Add Your First Medication
+                                    </MudButton>
+                                </MudStack>
+                            }
+                        </MudCardContent>
+                    </MudCard>
 
-            <!-- INR Trend Chart -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-chart-line text-primary me-2"></i>
-                            INR Trend (Last 30 Days)
-                        </h5>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" @onclick="NavigateToAddINR">
-                                <i class="fas fa-plus me-1"></i>Add Result
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="inrChart" style="height: 300px;"></div>
-                    @if (recentINRTests?.Any() != true)
+                    <!-- INR Trend Chart -->
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6">INR Trend (Last 30 Days)</MudText>
+                                </MudStack>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small" OnClick="NavigateToAddINR">
+                                    Add Result
+                                </MudButton>
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (recentINRTests?.Any() == true)
+                            {
+                                <MudChart ChartType="ChartType.Line"
+                                          ChartSeries="@inrChartSeries"
+                                          XAxisLabels="@inrChartLabels"
+                                          Width="100%"
+                                          Height="300px"
+                                          ChartOptions="@inrChartOptions">
+                                </MudChart>
+                            }
+                            else
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="py-6">
+                                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Secondary" />
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary">No INR test results recorded</MudText>
+                                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="NavigateToAddINR">
+                                        Add Your First INR Result
+                                    </MudButton>
+                                </MudStack>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Right Column - Alerts & Upcoming -->
+                <MudItem xs="12" lg="4">
+                    <!-- Critical Alerts -->
+                    @if (criticalAlerts?.Any() == true)
                     {
-                        <div class="text-center py-4">
-                            <i class="fas fa-chart-line text-muted fa-3x mb-3"></i>
-                            <p class="text-muted mb-0">No INR test results recorded</p>
-                            <button class="btn btn-primary mt-2" @onclick="NavigateToAddINR">
-                                <i class="fas fa-plus me-1"></i>Add Your First INR Result
-                            </button>
-                        </div>
+                        <MudCard Elevation="2" Class="mb-4">
+                            <MudCardHeader Style="background-color: var(--mud-palette-error); color: white;">
+                                <CardHeaderContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Inherit" />
+                                        <MudText Typo="Typo.h6" Color="Color.Inherit">Critical Alerts</MudText>
+                                    </MudStack>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    @foreach (var alert in criticalAlerts)
+                                    {
+                                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.subtitle2">@alert.Type:</MudText>
+                                                <MudText Typo="Typo.body2">@alert.Message</MudText>
+                                                <MudText Typo="Typo.caption">@alert.CreatedAt.ToString("MMM dd, HH:mm")</MudText>
+                                            </MudStack>
+                                        </MudAlert>
+                                    }
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
                     }
-                </div>
-            </div>
+
+                    <!-- Upcoming Reminders -->
+                    <MudCard Elevation="2" Class="mb-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Notifications" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6">Upcoming Reminders</MudText>
+                                </MudStack>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (upcomingReminders?.Any() == true)
+                            {
+                                <MudStack Spacing="3">
+                                    @foreach (var reminder in upcomingReminders.Take(5))
+                                    {
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                            <MudPaper Elevation="0" Class="pa-2 text-center" Style="min-width: 70px;">
+                                                <MudText Typo="Typo.h6">@reminder.ScheduledTime.ToString("HH:mm")</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@reminder.ScheduledTime.ToString("MMM dd")</MudText>
+                                            </MudPaper>
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.subtitle1">@reminder.Title</MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">@reminder.Description</MudText>
+                                            </MudStack>
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-4">
+                                    <MudIcon Icon="@Icons.Material.Filled.Notifications" Size="Size.Large" Color="Color.Secondary" />
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary">No upcoming reminders</MudText>
+                                </MudStack>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+
+                    <!-- Quick Actions -->
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6">Quick Actions</MudText>
+                                </MudStack>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudButton StartIcon="@Icons.Material.Filled.ShowChart" Color="Color.Success" Variant="Variant.Filled" FullWidth="true" OnClick="NavigateToAddINR">
+                                    Record INR Test
+                                </MudButton>
+                                <MudButton StartIcon="@Icons.Material.Filled.List" Color="Color.Info" Variant="Variant.Filled" FullWidth="true" OnClick="NavigateToMedications">
+                                    View All Medications
+                                </MudButton>
+                                <MudButton StartIcon="@Icons.Material.Filled.History" Color="Color.Warning" Variant="Variant.Filled" FullWidth="true" OnClick="NavigateToINR">
+                                    INR History
+                                </MudButton>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorized>
+    <Authorizing>
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
         </div>
-
-        <!-- Right Column - Alerts & Upcoming -->
-        <div class="col-lg-4">
-            <!-- Critical Alerts -->
-            @if (criticalAlerts?.Any() == true)
-            {
-                <div class="card shadow-sm mb-4 border-danger">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Critical Alerts
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        @foreach (var alert in criticalAlerts)
-                        {
-                            <div class="alert alert-danger mb-2">
-                                <strong>@alert.Type:</strong>
-                                <p class="mb-1">@alert.Message</p>
-                                <small class="text-muted">@alert.CreatedAt.ToString("MMM dd, HH:mm")</small>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            <!-- Upcoming Reminders -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-bell text-primary me-2"></i>
-                        Upcoming Reminders
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if (upcomingReminders?.Any() == true)
-                    {
-                        @foreach (var reminder in upcomingReminders.Take(5))
-                        {
-                            <div class="reminder-item d-flex align-items-center mb-3">
-                                <div class="reminder-time text-center me-3">
-                                    <div class="time-display">@reminder.ScheduledTime.ToString("HH:mm")</div>
-                                    <small class="text-muted">@reminder.ScheduledTime.ToString("MMM dd")</small>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">@reminder.Title</h6>
-                                    <p class="text-muted small mb-0">@reminder.Description</p>
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="text-center py-3">
-                            <i class="fas fa-bell text-muted fa-2x mb-2"></i>
-                            <p class="text-muted mb-0">No upcoming reminders</p>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-bolt text-primary me-2"></i>
-                        Quick Actions
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-primary" @onclick="NavigateToMedicationLog">
-                            <i class="fas fa-pills me-2"></i>Log Medication
-                        </button>
-                        <button class="btn btn-success" @onclick="NavigateToAddINR">
-                            <i class="fas fa-chart-line me-2"></i>Record INR Test
-                        </button>
-                        <button class="btn btn-info" @onclick="NavigateToMedications">
-                            <i class="fas fa-list me-2"></i>View All Medications
-                        </button>
-                        <button class="btn btn-warning" @onclick="NavigateToINR">
-                            <i class="fas fa-history me-2"></i>INR History
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    </Authorizing>
+    <NotAuthorized>
+        @{
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     // Data properties
@@ -314,10 +344,15 @@
     private List<AlertViewModel>? criticalAlerts;
     private List<ReminderViewModel>? upcomingReminders;
 
+    // Chart properties
+    private List<ChartSeries> inrChartSeries = new();
+    private string[] inrChartLabels = Array.Empty<string>();
+    private ChartOptions inrChartOptions = new ChartOptions();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardData();
-        await LoadINRChart();
+        PrepareINRChartData();
     }
 
     private async Task LoadDashboardData()
@@ -329,7 +364,7 @@
             if (medications != null)
             {
                 activeMedicationsCount = medications.Count;
-                
+
                 // Map to today's medications view model
                 todayMedications = medications.Select(m => new TodayMedicationViewModel
                 {
@@ -343,7 +378,7 @@
             }
 
             // Load recent INR tests from API
-            var inrTests = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/inr?take=5");
+            var inrTests = await Http.GetFromJsonAsync<List<INRTestResponse>>("api/v1/inr/tests?take=5");
             if (inrTests != null && inrTests.Any())
             {
                 recentINRTests = inrTests.Select(r => new INRTest
@@ -354,7 +389,7 @@
                     Status = r.Status,
                     Laboratory = r.Laboratory
                 }).ToList();
-                
+
                 lastINRValue = inrTests.First().INRValue;
             }
 
@@ -392,20 +427,35 @@
         }
     }
 
-    private async Task LoadINRChart()
+    private void PrepareINRChartData()
     {
-        // Mock INR data for chart
-        var chartData = new[]
+        if (recentINRTests?.Any() != true)
         {
-            new { date = DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd"), value = 2.1 },
-            new { date = DateTime.Today.AddDays(-25).ToString("yyyy-MM-dd"), value = 2.4 },
-            new { date = DateTime.Today.AddDays(-20).ToString("yyyy-MM-dd"), value = 2.0 },
-            new { date = DateTime.Today.AddDays(-15).ToString("yyyy-MM-dd"), value = 2.6 },
-            new { date = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd"), value = 2.2 },
-            new { date = DateTime.Today.AddDays(-5).ToString("yyyy-MM-dd"), value = 2.3 }
+            inrChartSeries = new List<ChartSeries>();
+            inrChartLabels = Array.Empty<string>();
+            return;
+        }
+
+        var orderedTests = recentINRTests.OrderBy(t => t.TestDate).ToList();
+        inrChartLabels = orderedTests.Select(t => t.TestDate.ToString("MMM dd")).ToArray();
+
+        var inrValues = orderedTests.Select(t => (double)t.INRValue).ToArray();
+        var targetMin = Enumerable.Repeat(2.0, orderedTests.Count).ToArray();
+        var targetMax = Enumerable.Repeat(3.0, orderedTests.Count).ToArray();
+
+        inrChartSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = "INR Value", Data = inrValues },
+            new ChartSeries { Name = "Target Min (2.0)", Data = targetMin },
+            new ChartSeries { Name = "Target Max (3.0)", Data = targetMax }
         };
 
-        await JSRuntime.InvokeVoidAsync("renderINRChart", "inrChart", chartData);
+        inrChartOptions = new ChartOptions
+        {
+            YAxisTicks = 1,
+            YAxisLines = true,
+            MaxNumYAxisTicks = 6
+        };
     }
 
     private async Task RefreshMedications()
@@ -429,29 +479,28 @@
     // Navigation methods
     private void NavigateToAddMedications() => Navigation.NavigateTo("/medications/add");
     private void NavigateToAddINR() => Navigation.NavigateTo("/inr/add");
-    private void NavigateToMedicationLog() => Navigation.NavigateTo("/medications/log");
+    private void NavigateToLogDose(string medicationId) => Navigation.NavigateTo($"/medications/{medicationId}/log");
     private void NavigateToMedications() => Navigation.NavigateTo("/medications");
     private void NavigateToINR() => Navigation.NavigateTo("/inr");
 
     // Helper methods for styling
-    private string GetSyncStatusClass() => "bg-success";
-    private string GetSyncStatusIcon() => "fa-sync";
+    private Color GetSyncStatusColor() => Color.Success;
     private string GetSyncStatusText() => "Synced";
 
-    private string GetINRStatusClass()
+    private Color GetINRStatusColor()
     {
-        if (lastINRValue == null) return "bg-secondary";
-        return lastINRValue >= 2.0m && lastINRValue <= 3.0m ? "bg-success" : "bg-warning";
-    }
-
-    private string GetMedicationStatusClass(TodayMedicationViewModel med)
-    {
-        return med.IsTaken ? "medication-taken" : "medication-pending";
+        if (lastINRValue == null) return Color.Secondary;
+        return lastINRValue >= 2.0m && lastINRValue <= 3.0m ? Color.Success : Color.Warning;
     }
 
     private string GetMedicationStatusIcon(TodayMedicationViewModel med)
     {
-        return med.IsTaken ? "fa-check-circle text-success" : "fa-clock text-warning";
+        return med.IsTaken ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule;
+    }
+
+    private Color GetMedicationStatusIconColor(TodayMedicationViewModel med)
+    {
+        return med.IsTaken ? Color.Success : Color.Warning;
     }
 
     // View models

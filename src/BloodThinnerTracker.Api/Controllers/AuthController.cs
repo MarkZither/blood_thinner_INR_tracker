@@ -16,7 +16,7 @@ namespace BloodThinnerTracker.Api.Controllers;
 /// <summary>
 /// Authentication controller for medical application security
 /// Provides secure login, token management, and medical data access control
-/// 
+///
 /// MEDICAL DISCLAIMER: This system is for medication tracking purposes only.
 /// Always consult healthcare professionals for medical decisions.
 /// </summary>
@@ -80,13 +80,13 @@ public class AuthController : ControllerBase
 
             // Generate CSRF state parameter
             var csrfToken = GenerateState();
-            
+
             // Build state parameter: csrfToken|finalRedirectUri
             // This allows us to redirect user after OAuth completes
-            var state = string.IsNullOrEmpty(redirectUri) 
-                ? csrfToken 
+            var state = string.IsNullOrEmpty(redirectUri)
+                ? csrfToken
                 : $"{csrfToken}|{redirectUri}";
-            
+
             // Store state in distributed cache with 5-minute expiration
             var cacheKey = $"oauth_state:{csrfToken}";
             var cacheOptions = new DistributedCacheEntryOptions
@@ -97,9 +97,9 @@ public class AuthController : ControllerBase
 
             // Build authorization URL (always uses /api/auth/callback/{provider})
             var authUrl = BuildAuthorizationUrl(provider, state);
-            
+
             _logger.LogInformation("Initiating OAuth2 flow for provider {Provider} with state {State}", provider, state);
-            
+
             return Redirect(authUrl);
         }
         catch (Exception ex)
@@ -141,7 +141,7 @@ public class AuthController : ControllerBase
             if (!string.IsNullOrEmpty(error))
             {
                 _logger.LogWarning("OAuth provider returned error: {Error}", error);
-                
+
                 // Check if this is a test page callback
                 if (!string.IsNullOrEmpty(state))
                 {
@@ -151,7 +151,7 @@ public class AuthController : ControllerBase
                         return Redirect($"{errorStateParts[1]}?error={Uri.EscapeDataString(error)}");
                     }
                 }
-                
+
                 return Unauthorized(new ProblemDetails
                 {
                     Title = "OAuth Error",
@@ -182,7 +182,7 @@ public class AuthController : ControllerBase
             var cachedState = await _cache.GetStringAsync(cacheKey);
             if (cachedState != state)
             {
-                _logger.LogWarning("OAuth state parameter mismatch - possible CSRF attack. Expected: {Expected}, Got: {Got}", 
+                _logger.LogWarning("OAuth state parameter mismatch - possible CSRF attack. Expected: {Expected}, Got: {Got}",
                     cachedState, state);
                 return BadRequest(new ProblemDetails
                 {
@@ -232,7 +232,7 @@ public class AuthController : ControllerBase
 
             // Authenticate using validated claims
             var deviceId = $"web-{Guid.NewGuid()}";
-            
+
             // Ensure we have a valid external user ID
             if (string.IsNullOrEmpty(validationResult.ExternalUserId))
             {
@@ -244,13 +244,13 @@ public class AuthController : ControllerBase
                     Status = StatusCodes.Status401Unauthorized
                 });
             }
-            
+
             _logger.LogDebug("Calling AuthenticateExternalAsync with Provider={Provider}, ExternalUserId={ExternalUserId}, Email={Email}, Name={Name}",
                 validationResult.Provider,
                 validationResult.ExternalUserId,
                 validationResult.Email ?? "(null)",
                 validationResult.Name ?? "(null)");
-            
+
             var response = await _authenticationService.AuthenticateExternalAsync(
                 validationResult.Provider!,
                 validationResult.ExternalUserId!,
@@ -269,9 +269,9 @@ public class AuthController : ControllerBase
                 });
             }
 
-            _logger.LogInformation("OAuth authentication successful for user {UserId} via {Provider}", 
+            _logger.LogInformation("OAuth authentication successful for user {UserId} via {Provider}",
                 response.User.Id, provider);
-            
+
             // Check if there's a final redirect URI (e.g., /oauth-test.html)
             if (!string.IsNullOrEmpty(finalRedirectUri))
             {
@@ -281,12 +281,12 @@ public class AuthController : ControllerBase
                     var testPageUrl = $"{finalRedirectUri}?token={response.AccessToken}";
                     return Redirect(testPageUrl);
                 }
-                
+
                 // For other redirect URIs, append token as query parameter
                 var separator = finalRedirectUri.Contains('?') ? '&' : '?';
                 return Redirect($"{finalRedirectUri}{separator}token={response.AccessToken}");
             }
-            
+
             // Normal OAuth flow - return JSON response
             return Ok(response);
         }
@@ -375,9 +375,9 @@ public class AuthController : ControllerBase
                 });
             }
 
-            _logger.LogInformation("Mobile OAuth authentication successful for user {UserId} via {Provider}", 
+            _logger.LogInformation("Mobile OAuth authentication successful for user {UserId} via {Provider}",
                 response.User.Id, request.Provider);
-            
+
             return Ok(response);
         }
         catch (Exception ex)
@@ -387,6 +387,61 @@ public class AuthController : ControllerBase
             {
                 Title = "Internal Server Error",
                 Detail = "An unexpected error occurred during authentication",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        }
+    }
+
+    /// <summary>
+    /// Simplified token exchange for Web SSO scenarios where Web app handles OAuth
+    /// </summary>
+    /// <param name="request">Claims-based authentication request</param>
+    /// <returns>Authentication response with JWT tokens</returns>
+    [HttpPost("exchange")]
+    [ProducesResponseType(typeof(AuthenticationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AuthenticationResponse>> ExchangeWebToken([FromBody] ClaimsLoginRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.Email))
+            {
+                _logger.LogWarning("Invalid claims login request");
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Processing token exchange for email: {Email}, provider: {Provider}",
+                request.Email, request.Provider);
+
+            // Authenticate using provided claims (Web app already validated OAuth)
+            var response = await _authenticationService.AuthenticateExternalAsync(
+                request.Provider ?? "AzureAD",
+                request.ExternalUserId ?? request.Email,
+                request.Email,
+                request.Name ?? request.Email,
+                request.DeviceId ?? "web-app");
+
+            if (response == null)
+            {
+                _logger.LogWarning("External authentication failed for {Email}", request.Email);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Authentication Failed",
+                    Detail = "Unable to authenticate user",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            _logger.LogInformation("Token exchange successful for user: {UserId}", response.User?.Id);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during web token exchange for {Email}", request.Email);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Internal Server Error",
+                Detail = "An unexpected error occurred during token exchange",
                 Status = StatusCodes.Status500InternalServerError
             });
         }
@@ -417,7 +472,7 @@ public class AuthController : ControllerBase
         if (provider == "google")
         {
             var clientId = _configuration["Authentication:Google:ClientId"];
-            var scopes = string.Join(" ", _configuration.GetSection("Authentication:Google:Scopes").Get<string[]>() 
+            var scopes = string.Join(" ", _configuration.GetSection("Authentication:Google:Scopes").Get<string[]>()
                 ?? new[] { "openid", "profile", "email" });
 
             var queryParams = HttpUtility.ParseQueryString(string.Empty);
@@ -435,7 +490,7 @@ public class AuthController : ControllerBase
         {
             var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
             var clientId = _configuration["Authentication:AzureAd:ClientId"];
-            var scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() 
+            var scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>()
                 ?? new[] { "openid", "profile", "email" });
 
             var queryParams = HttpUtility.ParseQueryString(string.Empty);
@@ -481,7 +536,7 @@ public class AuthController : ControllerBase
             if (!tokenResponse.IsSuccessStatusCode)
             {
                 var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-                _logger.LogWarning("Google token exchange failed: {Status} - {Error}", 
+                _logger.LogWarning("Google token exchange failed: {Status} - {Error}",
                     tokenResponse.StatusCode, errorContent);
                 return null;
             }
@@ -513,7 +568,7 @@ public class AuthController : ControllerBase
             if (!tokenResponse.IsSuccessStatusCode)
             {
                 var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-                _logger.LogWarning("Azure AD token exchange failed: {Status} - {Error}", 
+                _logger.LogWarning("Azure AD token exchange failed: {Status} - {Error}",
                     tokenResponse.StatusCode, errorContent);
                 return null;
             }

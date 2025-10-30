@@ -82,5 +82,6 @@ public class UpdateINRTestRequest
     public string? MedicationsTaken { get; set; }
     public string? FoodsConsumed { get; set; }
     public string? HealthConditions { get; set; }
+    public string? DosageChanges { get; set; }
     public string? Notes { get; set; }
 }

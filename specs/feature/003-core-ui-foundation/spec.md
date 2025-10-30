@@ -1,19 +1,25 @@
 # Feature 003: Core UI Foundation
 
-**Status**: Planned  
+**Status**: In Progress  
 **Priority**: P1  
 **Branch**: `feature/003-core-ui-foundation`  
 **Dependencies**: None (Feature 002 must be merged first)  
-**Estimated Effort**: 2 weeks  
+**Estimated Effort**: 3-4 weeks (21 days including critical authentication fix)  
 **Target Release**: v1.1
+
+**Note**: Original estimate was 2 weeks for read-only UI foundation. Actual scope expanded to include:
+- Critical authentication system fix (2 days - P0 security issue)
+- Complete MudBlazor migration removing Bootstrap/Font Awesome (5 days)
+- Service layer refactoring (2 days)
+- Comprehensive testing including page components (4 days)
 
 ---
 
 ## Overview
 
-Establish the foundational UI structure for the Blood Thinner Tracker application using Blazor Server and MudBlazor components. This feature provides authentication-protected pages for viewing existing medication and INR data (read-only initially) with mobile-responsive design.
+Establish the foundational UI structure for the Blood Thinner Tracker application using Blazor Server and MudBlazor components. This feature validates and polishes the existing authentication-protected pages for medication and INR data with mobile-responsive design. **Note**: The current implementation already includes full CRUD functionality; this feature focuses on architecture cleanup (authentication fix, MudBlazor migration, service layer, testing).
 
-**Why This Feature**: Creates the baseline UI framework that all subsequent features will build upon. Users can authenticate and view their data before we add complex data entry functionality.
+**Why This Feature**: Creates a production-ready UI framework with proper authentication, consistent UI components (MudBlazor-only), service layer abstraction, and comprehensive testing that all subsequent features will build upon.
 
 ---
 
@@ -24,7 +30,7 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 2. Integrate MudBlazor component library for consistent UI
 3. Create read-only medication list page
 4. Create read-only INR reading history page
-5. Implement mobile-responsive navigation
+5. Implement mobile-responsive design (navigation layout AND data presentation)
 
 ### Secondary Goals
 1. Set up page routing and layouts
@@ -83,6 +89,357 @@ Establish the foundational UI structure for the Blood Thinner Tracker applicatio
 - Navigation works on mobile and desktop
 - Navigation collapses on mobile (hamburger menu)
 - Logout button is accessible from navigation
+
+---
+
+### US-003-04: Consistent UI Framework (MudBlazor Only)
+**As a** developer  
+**I want** the entire application to use only MudBlazor components  
+**So that** we have a consistent, maintainable UI codebase
+
+**Acceptance Criteria**:
+- All Bootstrap components replaced with MudBlazor equivalents
+- All Font Awesome icons replaced with MudBlazor icons
+- No Bootstrap CSS or JavaScript dependencies remain
+- No Font Awesome CSS dependencies remain
+- All pages use MudBlazor layout components (MudLayout, MudAppBar, MudDrawer)
+- All forms use MudBlazor form components (MudTextField, MudButton, etc.)
+- All tables use MudDataGrid or MudTable (no Bootstrap tables)
+- All data grids use MudBlazor components (no third-party grid libraries)
+
+---
+
+### US-003-05: Fix Authentication & Authorization (CRITICAL)
+**As a** patient  
+**I want** the application to properly authenticate me and protect my medical data  
+**So that** I can securely access my health information with a working authentication system
+
+**Priority**: P0 (Critical Security Issue)
+
+**Current Problems**:
+1. **CustomAuthenticationStateProvider not registered** - Service is defined but never added to DI container in `Program.cs`
+2. **No bearer token in API requests** - AuthorizationMessageHandler cannot retrieve tokens because CustomAuthenticationStateProvider is not injected
+3. **OAuth flow incomplete** - User can click "Sign in with Microsoft/Google" but there's no callback handler that calls `MarkUserAsAuthenticatedAsync`
+4. **Pages load despite 401 errors** - Authorization failures show toast messages but pages render anyway, exposing UI without data
+5. **No visible logout functionality** - Logout link exists in dropdown but requires Bootstrap JavaScript to show the dropdown menu
+6. **Silent failures** - Users see "No medications yet" when the real issue is authentication failure (401 Unauthorized)
+
+**Acceptance Criteria**:
+- ✅ CustomAuthenticationStateProvider is properly registered in DI container (`Program.cs`)
+- ✅ OAuth callback endpoints `/signin-microsoft` and `/signin-google` implemented with proper token exchange
+- ✅ JWT tokens stored in browser storage (via JSInterop) after successful OAuth login
+- ✅ AuthorizationMessageHandler successfully retrieves and adds Bearer token to all API requests
+- ✅ Pages with `[Authorize]` attribute redirect to `/login` when user is not authenticated
+- ✅ 401 responses trigger automatic logout and redirect to login page
+- ✅ Logout button is visible and functional (MudBlazor menu, not Bootstrap dropdown)
+- ✅ Authentication state persists across browser refreshes
+- ✅ Token expiry is detected and handled (auto-logout on expired token)
+- ✅ User sees proper error messages: "Please log in" instead of "No data found"
+
+**Technical Requirements**:
+- Register `CustomAuthenticationStateProvider` as scoped service implementing `AuthenticationStateProvider`
+- Implement OAuth callback handlers that exchange authorization code for JWT tokens
+- Call `MarkUserAsAuthenticatedAsync(token, refreshToken)` after successful OAuth exchange
+- Add proper error handling for token refresh failures
+- **Implement route guards using two approaches**:
+  - Declarative: Use `<AuthorizeView>` component wrapper in pages for conditional rendering
+  - Programmatic: Use `NavigationManager.NavigateTo("/login?returnUrl=...")` in `OnInitializedAsync()` lifecycle method
+  - Validate authentication state before rendering medical data
+  - Redirect unauthenticated users to login page with return URL
+- Replace Bootstrap-dependent logout dropdown with MudBlazor MudMenu component
+- Add authentication state logging for debugging
+
+**Authentication State Persistence**:
+- On application startup, check localStorage for existing JWT token
+- If token found, validate expiry before marking user as authenticated
+- If token expired, clear storage and redirect to login
+- If token valid, restore authentication state and continue to requested page
+- Persistence works across browser refreshes and tab reopening
+- Token validation occurs before any API call to prevent using stale tokens
+
+**Refresh Token Flow**:
+- **Trigger**: Automatic on 401 Unauthorized response from API
+- **Process**: 
+  1. Extract refresh token from localStorage
+  2. Call API `/auth/refresh` endpoint with refresh token
+  3. If success: Store new access token, retry original API call
+  4. If failure: Clear all tokens, redirect to login with message "Your session expired. Please sign in again."
+- **Concurrency Protection**: Use lock/flag to prevent multiple simultaneous refresh attempts
+- **User Experience**: Completely transparent - user sees brief loading state, no interruption
+- **Security**: Refresh token rotates on each refresh (API responsibility)
+
+**Authentication Logging**:
+- **Information**: "User {UserId} authenticated successfully via {Provider}" (on login success)
+- **Warning**: "Authentication attempt failed for {Provider}: {Reason}" (on OAuth failure)
+- **Error**: "Token validation failed: {Reason}" (on expired/invalid token)
+- **Debug**: "Auth state: IsAuthenticated={bool}, HasToken={bool}, TokenExpiry={datetime}" (on page load)
+- **All logs must exclude sensitive data** (no tokens, passwords, or PII)
+
+**Error Messages** (User-Facing):
+- HttpContext null: "Authentication service unavailable. Please try again." (with retry button)
+- Authentication failed: "Sign-in failed. Please check your credentials and try again."
+- No access token: "Authorization incomplete. Please sign in again."
+- Token storage failed: "Unable to complete sign-in. Check browser settings allow localStorage."
+- Network error: "Connection lost. Please check your internet connection."
+- Token expired: "Your session expired. Please sign in again."
+- Token invalid: "Your session is invalid. Please sign in again."
+- Refresh failed: "Your session expired. Please sign in again."
+
+**Security Considerations**:
+- Tokens must be stored in browser's localStorage/sessionStorage (not cookies for SPA)
+- Token validation must check expiry before every API call
+- Refresh token flow should be automatic and transparent to user
+- Failed authentication attempts must be logged
+- No medical data should be visible in browser cache when logged out
+
+**Token Storage Security**:
+- Storage location: localStorage for "remember me", sessionStorage for session-only login
+- Encryption: Not required (browser storage is origin-isolated by browser security model)
+- XSS protection: Use Content Security Policy (CSP) headers to prevent script injection
+- Clear on logout: Both localStorage AND sessionStorage must be cleared completely
+- Validate origin: Tokens only accessible from same origin (browser enforces)
+- No cookies: Avoid cookie-based storage to prevent CSRF attacks
+
+**Partial Authentication State Handling**:
+- If token present in storage but fails validation:
+  - Clear all auth tokens from storage
+  - Set authentication state to unauthenticated
+  - Redirect to login with message "Your session is invalid. Please sign in again."
+- If token present but API returns 403 Forbidden (not 401):
+  - Keep user authenticated but show "Access denied" message
+  - Do not clear tokens (user may have access to other resources)
+- All tables use MudDataGrid or MudTable
+- All cards use MudCard
+- All alerts/notifications use MudAlert or MudSnackbar
+- Custom CSS only for medical-specific styling (not framework replacement)
+- Project builds without Bootstrap or Font Awesome references
+
+**Technical Debt Being Addressed**:
+- Mixed UI frameworks (Bootstrap + MudBlazor + Font Awesome)
+- Inconsistent component behavior across pages
+- Larger bundle size due to multiple frameworks
+- Harder maintenance due to multiple styling approaches
+
+---
+
+### Authentication Threat Model
+
+**Threats Addressed by This Feature**:
+
+1. **Unauthorized Access to Medical Data**
+   - **Threat**: Unauthenticated users accessing protected health information
+   - **Mitigation**: OAuth 2.0 authentication + JWT bearer tokens on all API requests
+   - **Verification**: Route guards redirect unauthenticated users to login
+
+2. **Token Theft via XSS (Cross-Site Scripting)**
+   - **Threat**: Malicious script injecting code to steal tokens from localStorage
+   - **Mitigation**: Content Security Policy (CSP) headers prevent script injection
+   - **API Responsibility**: CSP configured at API/hosting level
+   - **Blazor Protection**: Razor syntax auto-escapes user input
+
+3. **Token Theft via Network Interception**
+   - **Threat**: Man-in-the-middle attack capturing tokens in transit
+   - **Mitigation**: HTTPS enforced for all connections (API requirement)
+   - **Verification**: API must reject HTTP requests, accept only HTTPS
+
+4. **Session Fixation Attacks**
+   - **Threat**: Attacker forces user to authenticate with attacker-controlled session
+   - **Mitigation**: Server-generated JWT tokens (not client-generated)
+   - **API Responsibility**: OAuth provider generates tokens
+
+5. **CSRF (Cross-Site Request Forgery)**
+   - **Threat**: Malicious site making requests on behalf of authenticated user
+   - **Mitigation**: Token-based authentication (no cookies vulnerable to CSRF)
+   - **Additional**: CORS policy restricts API access to authorized origins
+
+6. **Token Replay After Logout**
+   - **Threat**: Stolen token used after user logs out
+   - **Mitigation**: Tokens cleared from localStorage on logout
+   - **Future Enhancement**: Token revocation list on API (Feature 008)
+
+7. **Expired Token Exploitation**
+   - **Threat**: Using expired token to access resources
+   - **Mitigation**: Token expiry validation before every API call
+   - **API Responsibility**: API validates token expiry and signature
+
+**Threats NOT Addressed** (Deferred to Future Features):
+
+- **Multi-Factor Authentication (MFA/2FA)**: Deferred to Feature 008
+- **Biometric Authentication**: Deferred to Feature 009  
+- **Device Fingerprinting**: Deferred to Feature 010
+- **Rate Limiting/Brute Force Protection**: API responsibility
+- **Token Revocation**: API responsibility (future enhancement)
+- **Password Security**: OAuth providers' responsibility
+
+**Security Assumptions**:
+
+1. OAuth providers (Microsoft, Google) are trusted and secure
+2. API properly validates JWT signatures and expiry
+3. HTTPS is enforced for all connections (API/hosting configuration)
+4. Browser localStorage is secure (origin-isolated by browser)
+5. Content Security Policy (CSP) headers configured (API/hosting)
+6. Users are not installing malicious browser extensions
+7. User devices are not compromised by malware
+
+**Security Testing Requirements** (T003-001):
+
+- [X] Verify unauthenticated users cannot access protected pages
+- [X] Verify expired tokens trigger automatic logout
+- [X] Verify 401 responses clear tokens and redirect to login
+- [X] Verify tokens cleared from storage on logout
+- [X] Verify OAuth callback validates provider responses
+- [X] Verify bearer tokens included in all API requests
+- [ ] Manual test: Attempt to access API directly without token (should fail)
+- [ ] Manual test: Modify token in localStorage (should be rejected by API)
+
+**Status**: ✅ COMPLETE (October 29, 2025)
+
+---
+
+### US-003-06: Dashboard with Real Data
+**As a** patient  
+**I want to** see a comprehensive dashboard when I log in  
+**So that** I can quickly understand my medication and INR status at a glance
+
+**Acceptance Criteria**:
+- Welcome card displays user's name and greeting
+- Next medication widget shows upcoming dose with countdown
+- Next INR test widget shows when next test is due
+- INR trend chart displays last 10 tests with target range bands
+- Recent medications list shows last 5 doses taken
+- Recent INR tests list shows last 5 test results
+- Quick action buttons for "Log Medication" and "Add INR Test"
+- All widgets load real data from API
+- Loading states show skeleton/shimmer for each widget
+- Empty states show appropriate CTAs ("Add your first medication")
+- Responsive layout: 4 columns desktop, 2 columns tablet, 1 column mobile
+
+**Priority**: P1 (High - primary landing page after login)  
+**Estimate**: 4-6 hours  
+**Reference**: `checklists/T003-002-dashboard-wireframe.md`
+
+---
+
+### US-003-07: Profile Page with Real User Data
+**As a** logged-in user  
+**I want to** see and update my actual profile information  
+**So that** my personal details and medical information are accurate
+
+**Acceptance Criteria**:
+- Display authenticated user's email (from JWT claims)
+- Display user's name (from JWT claims)
+- Show OAuth provider (Microsoft/Google)
+- Show last login date
+- Remove ALL hardcoded "John Doe" placeholder data
+- Personal information section: Display Name, Email (read-only), Phone, Date of Birth
+- Medical information section: Target INR Range, Physician details, Clinic name
+- Notification preferences: Email toggles, reminder lead time
+- Privacy settings: Data sharing consent, Export data, Delete account
+- Remove password change form (OAuth users don't have passwords)
+- Add info card explaining OAuth password management
+- Form validation with clear error messages
+- Save/Cancel buttons with loading states
+
+**Priority**: P1 (High - user identified hardcoded data issue)  
+**Estimate**: 3-4 hours  
+**Reference**: `checklists/T003-003-profile-page-real-data.md`
+
+---
+
+### US-003-08: INR Test Recording and Management
+**As a** patient taking blood thinners  
+**I want to** record and manage my INR test results  
+**So that** I can track my blood coagulation levels over time
+
+**Acceptance Criteria**:
+- Add INR test form with: Date/Time, INR Value, Dosage Adjustment, Location, Notes
+- INR value validation: 0.5 - 8.0 range (medical safety constraint)
+- Test date validation: Cannot be in future, cannot be > 1 year old
+- Critical value alert: Warning if INR < 1.5 or > 4.0
+- Trend indicator: Show icon if ±0.5 change from last test
+- Target range display: Show user's target with visual indicator
+- Edit page: Load existing data, pre-populate fields, same validation
+- Delete functionality with confirmation dialog
+- Show audit info: Created date, Last modified
+- List integration: "Add INR Test" FAB, Edit buttons on list items
+- Success toast notification after save
+- Automatic redirect to list on success
+
+**Priority**: P1 (High - core CRUD functionality)  
+**Estimate**: 3-4 hours  
+**Reference**: `checklists/T003-004-inr-add-edit-pages.md`
+
+---
+
+### US-003-09: Medication Management
+**As a** patient taking blood thinners  
+**I want to** record and manage my medication schedule  
+**So that** I can track my dosages and maintain proper adherence
+
+**Acceptance Criteria**:
+- Add medication form sections: Basic info, Schedule, Prescriber, Safety, Inventory
+- Medication name autocomplete for common blood thinners
+- Schedule configuration: Frequency, Time of day, Specific times
+- Dosage strength validation (number + unit format)
+- Start date validation: Cannot be > 1 year old
+- End date validation: Must be after start date if provided
+- Duplicate detection: Alert if similar medication exists
+- Deactivate button (not delete - preserve history)
+- Show medication log history on edit page
+- Refill alert: Badge if quantity below threshold
+- List integration: Active/Inactive filter, Quick actions (Edit, Log Dose, Deactivate)
+- Search by medication name
+- Common blood thinners database for autocomplete suggestions
+
+**Priority**: P1 (High - core CRUD functionality)  
+**Estimate**: 4-5 hours  
+**Reference**: `checklists/T003-005-medication-add-edit-pages.md`
+
+---
+
+### US-003-10: Reports and Data Analysis
+**As a** patient tracking my blood thinner medication  
+**I want to** view analytical reports of my INR trends and medication adherence  
+**So that** I can understand my treatment effectiveness and share insights with my physician
+
+**Acceptance Criteria**:
+- Fix reports dropdown in navigation menu (currently non-functional)
+- INR Trends Report: Line chart, time range selector, statistics (average, standard deviation, TTR)
+- Medication Adherence Report: Per-medication adherence %, calendar heatmap, missed doses list
+- INR History Report: Printable format with patient info, professional layout
+- Medication History Report: Printable with current meds, changes log, adherence summary
+- Export All Data: CSV/JSON/PDF formats with optional encryption
+- Time range filters: Quick (30/90/180/365 days) and custom date range
+- Chart interactions: Clickable data points, target range bands, critical thresholds
+- Print CSS: Hide navigation, page breaks, headers/footers
+- Export generates in background with progress indicator
+
+**Priority**: P2 (Medium - data analysis feature)  
+**Estimate**: 4-5 hours  
+**Reference**: `checklists/T003-006-reports-functionality.md`
+
+---
+
+### US-003-11: Layout Redesign with MudBlazor Wireframes
+**As a** user of the blood thinner tracker application  
+**I want** a modern, consistent, and intuitive interface across all pages  
+**So that** I can efficiently manage my medication and health data
+
+**Acceptance Criteria**:
+- Global navigation: Persistent drawer on desktop, collapsible on tablet, bottom nav on mobile
+- Custom theme: Medical blue primary, safety green secondary, dark mode support
+- Consistent spacing: 4px base unit, standardized padding/gaps
+- Dashboard: MudGrid responsive layout (4 cols desktop, 2 tablet, 1 mobile)
+- List pages: Standard pattern with filters, search, sort, pagination
+- Form pages: Centered container (max 800px), sections with dividers, sticky header on mobile
+- Detail pages: MudExpansionPanels for sections, consistent icon + title + edit pattern
+- Component standardization: All buttons, inputs, feedback components use MudBlazor
+- Accessibility: WCAG AA compliance, keyboard navigation, screen reader support
+- Performance: Lazy loading, virtualization for long lists, responsive images
+
+**Priority**: P2 (Medium - overall UX improvement)  
+**Estimate**: 5-6 hours  
+**Reference**: `checklists/T003-007-layout-mudblazor-wireframes.md`
 
 ---
 
@@ -168,22 +525,87 @@ User → Page Component → Service → HttpClient → API → Database
 
 ---
 
-### Phase 2: Navigation & Layout
-**Duration**: 2 days
+### Phase 2: MudBlazor Migration & Standardization
+**Duration**: 5 days
 
-1. **Create NavMenu.razor with MudBlazor components**
-   - MudNavMenu with authentication state
-   - Links to: Dashboard, Medications, INR History, Logout
+**CRITICAL**: Remove all Bootstrap and Font Awesome dependencies. Use MudBlazor exclusively.
 
-2. **Create MainLayout.razor**
-   - MudLayout with AppBar and Drawer
-   - Authentication state display (username, avatar)
-   - Responsive breakpoints for mobile
+1. **Remove Bootstrap Dependencies**
+   - Remove Bootstrap CSS from `wwwroot/css`
+   - Remove Bootstrap JavaScript references
+   - Remove `bootstrap.bundle.min.js` script tags
+   - Update `_Imports.razor` to remove Bootstrap references
+   - Remove Bootstrap NuGet packages (if any)
 
-3. **Create Index.razor (Dashboard)**
-   - Welcome message with user's name
-   - Quick stats (total medications, latest INR)
-   - Links to main pages
+2. **Remove Font Awesome Dependencies**
+   - Remove Font Awesome CSS from `wwwroot/css` or CDN
+   - Remove all `<i class="fas fa-*">` icon references
+   - Replace with MudBlazor `<MudIcon>` components
+
+3. **Migrate MainLayout.razor to MudBlazor**
+   - Replace `<nav class="navbar navbar-expand-lg">` with `<MudAppBar>`
+   - Replace collapsible menu with `<MudDrawer>`
+   - Use `<MudLayout>` as root container
+   - Add `<MudThemeProvider Theme="@_theme" />`
+   - Configure responsive breakpoints (Breakpoint.Sm, Md, Lg)
+   - Add user avatar with `<MudAvatar>` in AppBar
+   - Add logout button with `<MudIconButton>`
+
+4. **Create NavMenu.razor with MudBlazor**
+   - Use `<MudNavMenu>` for navigation
+   - Use `<MudNavLink>` for each menu item
+   - Replace Font Awesome icons with `<MudIcon Icon="@Icons.Material.*">`
+   - Add active page highlighting with `Match="NavLinkMatch.All"`
+   - Add authentication state display
+   - Links: Dashboard, Medications, INR History, Profile, Logout
+
+5. **Migrate Dashboard.razor**
+   - Replace `<div class="card">` with `<MudCard>`
+   - Replace `<div class="alert">` with `<MudAlert>`
+   - Replace stats cards with `<MudPaper>` and `<MudText>`
+   - Replace Font Awesome icons with `<MudIcon>`
+   - Use `<MudGrid>` instead of Bootstrap grid
+   - Use MudBlazor spacing (Class="mt-4 mb-2" → Class="mt-4")
+
+6. **Migrate Medications.razor**
+   - Replace Bootstrap table with `<MudDataGrid>` or `<MudTable>`
+   - Replace `<input class="form-control">` with `<MudTextField>`
+   - Replace `<select class="form-select">` with `<MudSelect>`
+   - Replace `<button class="btn">` with `<MudButton>`
+   - Replace cards with `<MudCard>` and `<MudCardContent>`
+   - Replace dropdowns with `<MudMenu>`
+   - Use `<MudIcon>` for all icons
+
+7. **Migrate INRTracking.razor**
+   - Same pattern as Medications.razor
+   - Replace all Bootstrap components with MudBlazor equivalents
+   - Use `<MudChip>` for status indicators
+   - Use `<MudProgressLinear>` for time-in-range indicator
+
+8. **Migrate Profile.razor**
+   - Replace form controls with MudBlazor form components
+   - Use `<MudTextField>` with validation
+   - Use `<MudDatePicker>` for date fields
+   - Use `<MudSwitch>` for toggle settings
+   - Use `<MudButton Variant="Filled">` for primary actions
+
+9. **Migrate Remaining Pages**
+   - Login.razor → MudBlazor forms
+   - Register.razor → MudBlazor forms
+   - Help.razor → MudBlazor content
+   - Error pages → MudBlazor alerts
+
+10. **Update Shared CSS**
+    - Remove Bootstrap utilities
+    - Add MudBlazor theme customization in `wwwroot/css/app.css`
+    - Keep only medical-specific custom styles
+    - Use MudBlazor CSS variables for theming
+
+11. **Verify Migration**
+    - Check all pages render correctly
+    - Test responsive behavior at all breakpoints
+    - Ensure no console warnings about missing CSS
+    - Verify bundle size reduction
 
 ---
 

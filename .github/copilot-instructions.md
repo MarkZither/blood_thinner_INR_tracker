@@ -96,6 +96,24 @@ dotnet run -f net10.0-android
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
+### Git Commit Guidelines
+
+**CRITICAL: Keep commit messages concise to avoid terminal crashes**
+
+- **Summary line**: Max 72 characters, imperative mood
+- **Body**: Max 10-15 lines total, use bullet points
+- **Format**: `feat/fix/docs/refactor: <summary>`
+- **Example**:
+  ```
+  feat(ui): Migrate Dashboard and Medications to MudBlazor
+  
+  - Convert Bootstrap/FontAwesome to Material Design components
+  - Implement reactive property pattern for filtering
+  - Remove all legacy CSS framework dependencies
+  ```
+- **Never**: Include full file contents, detailed method signatures, or exhaustive change lists
+- **Focus**: High-level summary of what changed and why
+
 ### Common Patterns
 
 1. **Dependency Injection**: Use built-in DI container

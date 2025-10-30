@@ -1,15 +1,15 @@
 /*
  * BloodThinnerTracker.Api - INR Tests Controller
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * REST API controller for INR test management in the blood thinner tracking system.
  * Provides endpoints for logging INR tests, retrieving history, and tracking trends.
- * 
+ *
  * ⚠️ MEDICAL DATA CONTROLLER:
  * This controller handles protected health information (PHI). All operations
  * must comply with healthcare data protection regulations and include proper
  * authentication, authorization, and audit logging.
- * 
+ *
  * IMPORTANT MEDICAL DISCLAIMER:
  * This software is for informational purposes only and should not replace
  * professional medical advice. Users should consult healthcare providers
@@ -31,7 +31,7 @@ namespace BloodThinnerTracker.Api.Controllers;
 /// Handles INR test logging, history retrieval, and trend analysis.
 /// </summary>
 [ApiController]
-[Route("api/inr")]
+[Route("api/v1/inr/tests")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Produces("application/json")]
 public sealed class INRController : ControllerBase
@@ -271,10 +271,10 @@ public sealed class INRController : ControllerBase
             };
 
             // Set status based on therapeutic range
-            test.Status = test.IsInTargetRange() 
-                ? INRResultStatus.InRange 
-                : (test.INRValue < (test.TargetINRMin ?? 0) 
-                    ? INRResultStatus.BelowRange 
+            test.Status = test.IsInTargetRange()
+                ? INRResultStatus.InRange
+                : (test.INRValue < (test.TargetINRMin ?? 0)
+                    ? INRResultStatus.BelowRange
                     : INRResultStatus.AboveRange);
 
             _context.INRTests.Add(test);
@@ -320,6 +320,135 @@ public sealed class INRController : ControllerBase
         {
             _logger.LogError(ex, "Error creating INR test");
             return StatusCode(500, "An error occurred while creating the INR test");
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing INR test.
+    /// </summary>
+    /// <param name="id">The test ID to update.</param>
+    /// <param name="request">Updated INR test data.</param>
+    /// <returns>The updated INR test.</returns>
+    /// <response code="200">INR test updated successfully.</response>
+    /// <response code="400">Invalid request data.</response>
+    /// <response code="401">User is not authenticated.</response>
+    /// <response code="404">INR test not found.</response>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(INRTestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<INRTestResponse>> UpdateINRTest(string id, [FromBody] UpdateINRTestRequest request)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Invalid user authentication");
+            }
+
+            // Validate INR value range
+            if (request.INRValue.HasValue && (request.INRValue < 0.5m || request.INRValue > 8.0m))
+            {
+                return BadRequest("INR value must be between 0.5 and 8.0");
+            }
+
+            var test = await _context.INRTests
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId && !t.IsDeleted);
+
+            if (test == null)
+            {
+                return NotFound($"INR test with ID {id} not found");
+            }
+
+            // Update the test properties (only if provided)
+            if (request.TestDate.HasValue)
+                test.TestDate = request.TestDate.Value;
+            if (request.INRValue.HasValue)
+                test.INRValue = request.INRValue.Value;
+            if (request.TargetINRMin.HasValue)
+                test.TargetINRMin = request.TargetINRMin;
+            if (request.TargetINRMax.HasValue)
+                test.TargetINRMax = request.TargetINRMax;
+            if (request.ProthrombinTime.HasValue)
+                test.ProthrombinTime = request.ProthrombinTime;
+            if (request.PartialThromboplastinTime.HasValue)
+                test.PartialThromboplastinTime = request.PartialThromboplastinTime;
+            if (request.Laboratory != null)
+                test.Laboratory = request.Laboratory;
+            if (request.OrderedBy != null)
+                test.OrderedBy = request.OrderedBy;
+            if (request.TestMethod != null)
+                test.TestMethod = request.TestMethod;
+            if (request.IsPointOfCare.HasValue)
+                test.IsPointOfCare = request.IsPointOfCare.Value;
+            if (request.WasFasting.HasValue)
+                test.WasFasting = request.WasFasting;
+            if (request.LastMedicationTime.HasValue)
+                test.LastMedicationTime = request.LastMedicationTime;
+            if (request.MedicationsTaken != null)
+                test.MedicationsTaken = request.MedicationsTaken;
+            if (request.FoodsConsumed != null)
+                test.FoodsConsumed = request.FoodsConsumed;
+            if (request.HealthConditions != null)
+                test.HealthConditions = request.HealthConditions;
+            if (request.DosageChanges != null)
+                test.DosageChanges = request.DosageChanges;
+            if (request.Notes != null)
+                test.Notes = request.Notes;
+
+            test.UpdatedAt = DateTime.UtcNow;
+
+            // Update status based on therapeutic range
+            test.Status = test.IsInTargetRange()
+                ? INRResultStatus.InRange
+                : (test.INRValue < (test.TargetINRMin ?? 0)
+                    ? INRResultStatus.BelowRange
+                    : INRResultStatus.AboveRange);
+
+            await _context.SaveChangesAsync();
+
+            var response = new INRTestResponse
+            {
+                Id = test.Id,
+                UserId = test.UserId,
+                TestDate = test.TestDate,
+                INRValue = test.INRValue,
+                TargetINRMin = test.TargetINRMin,
+                TargetINRMax = test.TargetINRMax,
+                ProthrombinTime = test.ProthrombinTime,
+                PartialThromboplastinTime = test.PartialThromboplastinTime,
+                Laboratory = test.Laboratory,
+                OrderedBy = test.OrderedBy,
+                TestMethod = test.TestMethod,
+                IsPointOfCare = test.IsPointOfCare,
+                WasFasting = test.WasFasting,
+                LastMedicationTime = test.LastMedicationTime,
+                MedicationsTaken = test.MedicationsTaken,
+                FoodsConsumed = test.FoodsConsumed,
+                HealthConditions = test.HealthConditions,
+                Status = test.Status,
+                RecommendedActions = test.RecommendedActions,
+                DosageChanges = test.DosageChanges,
+                NextTestDate = test.NextTestDate,
+                Notes = test.Notes,
+                ReviewedByProvider = test.ReviewedByProvider,
+                ReviewedBy = test.ReviewedBy,
+                ReviewedAt = test.ReviewedAt,
+                PatientNotified = test.PatientNotified,
+                NotificationMethod = test.NotificationMethod,
+                CreatedAt = test.CreatedAt,
+                UpdatedAt = test.UpdatedAt
+            };
+
+            _logger.LogInformation("Updated INR test {Id} for user {UserId}", id, userId);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating INR test {Id}", id);
+            return StatusCode(500, "An error occurred while updating the INR test");
         }
     }
 

@@ -1,0 +1,698 @@
+@page "/medications/add"
+@using BloodThinnerTracker.Web.ViewModels
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.Data
+@using BloodThinnerTracker.Shared.Models
+@using static BloodThinnerTracker.Shared.Models.MedicationType
+@using static BloodThinnerTracker.Shared.Models.MedicationFrequency
+@inject IMedicationService MedicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Add Medication - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudStack Spacing="4">
+            <!-- Page Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Filled.Medication" Class="mr-2" />
+                        Add New Medication
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Enter medication details, schedule, and inventory information
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text"
+                          StartIcon="@Icons.Material.Filled.Close"
+                          OnClick="Cancel"
+                          Color="Color.Default">
+                    Cancel
+                </MudButton>
+            </MudStack>
+
+            <MudDivider />
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            }
+
+            <EditForm Model="@medication" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <!-- Basic Information Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-2" />
+                        Basic Information
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudAutocomplete T="MedicationSuggestion"
+                                           Label="Medication Name *"
+                                           @bind-Value="selectedMedication"
+                                           SearchFunc="@SearchMedications"
+                                           ToStringFunc="@(m => m?.PrimaryName ?? string.Empty)"
+                                           Variant="Variant.Outlined"
+                                           Clearable="true"
+                                           HelperText="Start typing to search common blood thinners"
+                                           Immediate="true"
+                                           OnBlur="OnMedicationSelected">
+                                <ItemTemplate Context="item">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body1"><strong>@item.BrandNames</strong></MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@item.GenericName - @item.DrugClass</MudText>
+                                    </MudStack>
+                                </ItemTemplate>
+                            </MudAutocomplete>
+                            @if (selectedMedication == null && !string.IsNullOrEmpty(medication.Name))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1">
+                                    Custom medication: @medication.Name
+                                </MudText>
+                            }
+                        </MudItem>
+
+                        <MudItem xs="12" sm="3">
+                            <MudNumericField @bind-Value="medication.Dosage"
+                                           Label="Dosage *"
+                                           Variant="Variant.Outlined"
+                                           Min="0.0m"
+                                           Max="10000m"
+                                           Step="0.5m"
+                                           For="@(() => medication.Dosage)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="3">
+                            <MudSelect @bind-Value="medication.DosageUnit"
+                                     Label="Unit *"
+                                     Variant="Variant.Outlined"
+                                     For="@(() => medication.DosageUnit)">
+                                <MudSelectItem Value="@("mg")">mg (milligrams)</MudSelectItem>
+                                <MudSelectItem Value="@("mcg")">mcg (micrograms)</MudSelectItem>
+                                <MudSelectItem Value="@("g")">g (grams)</MudSelectItem>
+                                <MudSelectItem Value="@("mL")">mL (milliliters)</MudSelectItem>
+                                <MudSelectItem Value="@("units")">units</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.BrandName"
+                                        Label="Brand Name"
+                                        Variant="Variant.Outlined"
+                                        For="@(() => medication.BrandName)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.GenericName"
+                                        Label="Generic Name"
+                                        Variant="Variant.Outlined"
+                                        For="@(() => medication.GenericName)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="medication.Form"
+                                        Label="Form"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., Tablet, Capsule"
+                                        For="@(() => medication.Form)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="medication.Color"
+                                        Label="Color"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., White, Blue"
+                                        For="@(() => medication.Color)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="medication.Shape"
+                                        Label="Shape"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., Round, Oval"
+                                        For="@(() => medication.Shape)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.Imprint"
+                                        Label="Imprint/Markings"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., WRF 5"
+                                        For="@(() => medication.Imprint)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.Indication"
+                                        Label="Indication"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., Anticoagulant"
+                                        For="@(() => medication.Indication)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Schedule Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-2" />
+                        Schedule Configuration
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="medication.Frequency"
+                                     Label="Frequency *"
+                                     Variant="Variant.Outlined"
+                                     For="@(() => medication.Frequency)">
+                                <MudSelectItem Value="@("Once Daily")">Once Daily (QD)</MudSelectItem>
+                                <MudSelectItem Value="@("Twice Daily")">Twice Daily (BID)</MudSelectItem>
+                                <MudSelectItem Value="@("Three Times Daily")">Three Times Daily (TID)</MudSelectItem>
+                                <MudSelectItem Value="@("Four Times Daily")">Four Times Daily (QID)</MudSelectItem>
+                                <MudSelectItem Value="@("Every Other Day")">Every Other Day</MudSelectItem>
+                                <MudSelectItem Value="@("Weekly")">Weekly</MudSelectItem>
+                                <MudSelectItem Value="@("As Needed")">As Needed (PRN)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudCheckBox @bind-Value="medication.AsNeeded"
+                                       Label="Take as needed (PRN)"
+                                       Color="Color.Primary" />
+                        </MudItem>
+
+                        @if (!medication.AsNeeded)
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2" Class="mb-2">Scheduled Times</MudText>
+                                @for (int i = 0; i < medication.ScheduledTimes.Count; i++)
+                                {
+                                    var index = i; // Capture for lambda
+                                    TimeSpan? timeValue = medication.ScheduledTimes[index];
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                                        <MudTimePicker Label="@($"Time {index + 1}")"
+                                                     Time="@timeValue"
+                                                     TimeChanged="@((TimeSpan? newTime) => UpdateScheduledTime(index, newTime))"
+                                                     Variant="Variant.Outlined"
+                                                     AmPm="true"
+                                                     PickerVariant="PickerVariant.Dialog" />
+                                        @if (medication.ScheduledTimes.Count > 1)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                         Color="Color.Error"
+                                                         Size="Size.Small"
+                                                         OnClick="@(() => RemoveScheduledTime(index))" />
+                                        }
+                                    </MudStack>
+                                }
+                                <MudButton StartIcon="@Icons.Material.Filled.Add"
+                                         Color="Color.Primary"
+                                         Variant="Variant.Text"
+                                         Size="Size.Small"
+                                         OnClick="AddScheduledTime">
+                                    Add Time
+                                </MudButton>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="medication.TimingInstructions"
+                                            Label="Timing Instructions"
+                                            Variant="Variant.Outlined"
+                                            Lines="2"
+                                            Placeholder="e.g., Take with food, Take on empty stomach"
+                                            For="@(() => medication.TimingInstructions)" />
+                            </MudItem>
+                        }
+                        else
+                        {
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="medication.AsNeededInstructions"
+                                            Label="PRN Instructions"
+                                            Variant="Variant.Outlined"
+                                            Lines="2"
+                                            Placeholder="e.g., Take for pain, Maximum 4 doses per day"
+                                            For="@(() => medication.AsNeededInstructions)" />
+                            </MudItem>
+                        }
+
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="Start Date"
+                                         @bind-Date="medication.StartDate"
+                                         Variant="Variant.Outlined"
+                                         For="@(() => medication.StartDate)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="End Date"
+                                         @bind-Date="medication.EndDate"
+                                         Variant="Variant.Outlined"
+                                         MinDate="medication.StartDate"
+                                         For="@(() => medication.EndDate)"
+                                         HelperText="Optional - leave blank for ongoing medication" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Prescriber Information Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.MedicalServices" Size="Size.Small" Class="mr-2" />
+                        Prescriber Information
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PrescriberName"
+                                        Label="Prescriber Name"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="Dr. John Smith"
+                                        For="@(() => medication.PrescriberName)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PrescriberSpecialty"
+                                        Label="Specialty"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="e.g., Cardiology"
+                                        For="@(() => medication.PrescriberSpecialty)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PrescriberPhone"
+                                        Label="Phone Number"
+                                        Variant="Variant.Outlined"
+                                        Placeholder="(555) 123-4567"
+                                        InputType="InputType.Telephone"
+                                        For="@(() => medication.PrescriberPhone)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.ClinicName"
+                                        Label="Clinic/Hospital Name"
+                                        Variant="Variant.Outlined"
+                                        For="@(() => medication.ClinicName)" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="medication.ClinicAddress"
+                                        Label="Clinic Address"
+                                        Variant="Variant.Outlined"
+                                        Lines="2"
+                                        For="@(() => medication.ClinicAddress)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Safety Information Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Class="mr-2" />
+                        Safety Information
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="medication.SideEffects"
+                                        Label="Side Effects"
+                                        Variant="Variant.Outlined"
+                                        Lines="3"
+                                        Placeholder="Common side effects to monitor"
+                                        For="@(() => medication.SideEffects)" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="medication.Warnings"
+                                        Label="Warnings"
+                                        Variant="Variant.Outlined"
+                                        Lines="3"
+                                        Placeholder="Important warnings and precautions"
+                                        For="@(() => medication.Warnings)" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="medication.Interactions"
+                                        Label="Drug Interactions"
+                                        Variant="Variant.Outlined"
+                                        Lines="3"
+                                        Placeholder="Known drug interactions"
+                                        For="@(() => medication.Interactions)" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="medication.StorageInstructions"
+                                        Label="Storage Instructions"
+                                        Variant="Variant.Outlined"
+                                        Lines="2"
+                                        Placeholder="e.g., Store at room temperature, Keep away from moisture"
+                                        For="@(() => medication.StorageInstructions)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Pharmacy Information Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalPharmacy" Size="Size.Small" Class="mr-2" />
+                        Pharmacy Information
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PharmacyName"
+                                        Label="Pharmacy Name"
+                                        Variant="Variant.Outlined"
+                                        For="@(() => medication.PharmacyName)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PharmacyPhone"
+                                        Label="Pharmacy Phone"
+                                        Variant="Variant.Outlined"
+                                        InputType="InputType.Telephone"
+                                        Placeholder="(555) 987-6543"
+                                        For="@(() => medication.PharmacyPhone)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.PrescriptionNumber"
+                                        Label="Rx Number"
+                                        Variant="Variant.Outlined"
+                                        For="@(() => medication.PrescriptionNumber)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField @bind-Value="medication.RefillsRemaining"
+                                           Label="Refills Remaining"
+                                           Variant="Variant.Outlined"
+                                           Min="0"
+                                           Max="100"
+                                           Step="1"
+                                           For="@(() => medication.RefillsRemaining)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Additional Notes Section -->
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" Class="mr-2" />
+                        Additional Notes
+                    </MudText>
+
+                    <MudTextField @bind-Value="medication.Notes"
+                                Label="Notes"
+                                Variant="Variant.Outlined"
+                                Lines="4"
+                                Placeholder="Any additional information about this medication"
+                                For="@(() => medication.Notes)" />
+                </MudPaper>
+
+                <!-- Form Actions -->
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                    <MudButton Variant="Variant.Text"
+                             OnClick="Cancel"
+                             Disabled="isLoading">
+                        Cancel
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                             Color="Color.Primary"
+                             ButtonType="ButtonType.Submit"
+                             Disabled="isLoading"
+                             StartIcon="@Icons.Material.Filled.Save">
+                        @(isLoading ? "Saving..." : "Save Medication")
+                    </MudButton>
+                </MudStack>
+
+                <ValidationSummary />
+            </EditForm>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MedicationViewModel medication = new();
+    private MedicationSuggestion? selectedMedication;
+    private bool isLoading = false;
+
+    private async Task<IEnumerable<MedicationSuggestion>> SearchMedications(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token); // Minimal delay for responsiveness
+
+        if (string.IsNullOrWhiteSpace(value))
+            return CommonBloodThinners.Medications;
+
+        return CommonBloodThinners.Search(value);
+    }
+
+    private void OnMedicationSelected()
+    {
+        if (selectedMedication != null)
+        {
+            medication.Name = selectedMedication.GenericName;
+            medication.BrandName = selectedMedication.BrandNames;
+            medication.GenericName = selectedMedication.GenericName;
+            medication.Form = selectedMedication.Form;
+            medication.Indication = selectedMedication.Indication;
+        }
+    }
+
+    private void AddScheduledTime()
+    {
+        if (medication.ScheduledTimes.Count < 6) // Max 6 times per day
+        {
+            medication.ScheduledTimes.Add(new TimeSpan(8, 0, 0));
+        }
+        else
+        {
+            Snackbar.Add("Maximum 6 scheduled times per day", Severity.Warning);
+        }
+    }
+
+    private void UpdateScheduledTime(int index, TimeSpan? newTime)
+    {
+        if (newTime.HasValue && index >= 0 && index < medication.ScheduledTimes.Count)
+        {
+            medication.ScheduledTimes[index] = newTime.Value;
+        }
+    }
+
+    private void RemoveScheduledTime(int index)
+    {
+        if (medication.ScheduledTimes.Count > 1)
+        {
+            medication.ScheduledTimes.RemoveAt(index);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isLoading = true;
+
+        try
+        {
+            // Custom validation
+            if (!medication.AreScheduledTimesValid())
+            {
+                Snackbar.Add("Scheduled times must be unique", Severity.Error);
+                return;
+            }
+
+            if (!medication.IsDateRangeValid())
+            {
+                Snackbar.Add("End date must be after start date", Severity.Error);
+                return;
+            }
+
+            // Check for duplicates
+            if (!string.IsNullOrEmpty(medication.Name))
+            {
+                var isDuplicate = await MedicationService.CheckDuplicateAsync(medication.Name);
+                if (isDuplicate)
+                {
+                    Snackbar.Add($"A medication named '{medication.Name}' already exists", Severity.Warning);
+                    return;
+                }
+            }
+
+            // Convert ViewModel to Model
+            // Map frequency string to enum
+            var frequencyEnum = medication.Frequency switch
+            {
+                "Once Daily" => MedicationFrequency.OnceDaily,
+                "Twice Daily" => MedicationFrequency.TwiceDaily,
+                "Three Times Daily" => MedicationFrequency.ThreeTimesDaily,
+                "Four Times Daily" => MedicationFrequency.FourTimesDaily,
+                "Every Other Day" => MedicationFrequency.EveryOtherDay,
+                "Weekly" => MedicationFrequency.Weekly,
+                "As Needed" => MedicationFrequency.AsNeeded,
+                _ => MedicationFrequency.OnceDaily
+            };
+
+            // Convert scheduled times to JSON string
+            var scheduledTimesJson = System.Text.Json.JsonSerializer.Serialize(
+                medication.ScheduledTimes.Select(t => t.ToString(@"hh\:mm")).ToArray());
+
+            // Determine medication type (simplified - could be enhanced with autocomplete)
+            var medicationType = DetermineMedicationType(medication.Name);
+
+            // Calculate max daily dose based on frequency
+            var maxDailyDose = CalculateMaxDailyDose(medication.Dosage, frequencyEnum);
+
+            // Determine if INR monitoring is required and set target ranges
+            var (requiresINR, inrMin, inrMax) = DetermineINRMonitoring(medicationType);
+
+            var medicationModel = new Medication
+            {
+                Name = medication.Name,
+                GenericName = medication.GenericName,
+                BrandName = medication.BrandName,
+                Type = medicationType,
+                Dosage = medication.Dosage,
+                DosageUnit = medication.DosageUnit,
+                Form = medication.Form,
+                Color = medication.Color,
+                Shape = medication.Shape,
+                Imprint = medication.Imprint,
+                Frequency = frequencyEnum,
+                ScheduledTimes = scheduledTimesJson,
+                StartDate = medication.StartDate ?? DateTime.Today,
+                EndDate = medication.EndDate,
+                IsActive = medication.IsActive,
+                PrescribedBy = medication.PrescriberName,
+                PrescriptionDate = medication.StartDate,
+                Pharmacy = medication.PharmacyName,
+                PrescriptionNumber = medication.PrescriptionNumber,
+                Instructions = medication.TimingInstructions,
+                DrugInteractions = medication.Interactions,
+                SideEffects = medication.SideEffects,
+                StorageInstructions = medication.StorageInstructions,
+                Notes = medication.Notes,
+                RemindersEnabled = true,
+                ReminderMinutes = 30,
+                MaxDailyDose = maxDailyDose,
+                MinHoursBetweenDoses = CalculateMinHoursBetweenDoses(frequencyEnum),
+                IsBloodThinner = true, // All medications in this tracker are blood thinners
+                RequiresINRMonitoring = requiresINR,
+                INRTargetMin = inrMin,
+                INRTargetMax = inrMax
+            };
+
+            var result = await MedicationService.CreateMedicationAsync(medicationModel);
+
+            if (result != null)
+            {
+                Navigation.NavigateTo("/medications");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/medications");
+    }
+
+    private MedicationType DetermineMedicationType(string medicationName)
+    {
+        var name = medicationName?.ToLowerInvariant() ?? "";
+
+        if (name.Contains("warfarin") || name.Contains("coumadin") || name.Contains("acenocoumarol") || name.Contains("sintrom"))
+            return MedicationType.VitKAntagonist;
+
+        if (name.Contains("apixaban") || name.Contains("rivaroxaban") ||
+            name.Contains("edoxaban") || name.Contains("dabigatran") ||
+            name.Contains("eliquis") || name.Contains("xarelto") || name.Contains("pradaxa"))
+            return MedicationType.DOAC;
+
+        if (name.Contains("heparin") && !name.Contains("enoxaparin") && !name.Contains("dalteparin"))
+            return MedicationType.Heparin;
+
+        if (name.Contains("enoxaparin") || name.Contains("dalteparin") ||
+            name.Contains("lovenox") || name.Contains("fragmin"))
+            return MedicationType.LMWH;
+
+        if (name.Contains("aspirin") || name.Contains("clopidogrel") ||
+            name.Contains("prasugrel") || name.Contains("ticagrelor") ||
+            name.Contains("plavix") || name.Contains("brilinta") || name.Contains("effient"))
+            return MedicationType.Antiplatelet;
+
+        return MedicationType.Other;
+    }
+
+    private decimal CalculateMaxDailyDose(decimal dosage, MedicationFrequency frequency)
+    {
+        // Calculate maximum daily dose based on frequency
+        var multiplier = frequency switch
+        {
+            MedicationFrequency.OnceDaily => 1,
+            MedicationFrequency.TwiceDaily => 2,
+            MedicationFrequency.ThreeTimesDaily => 3,
+            MedicationFrequency.FourTimesDaily => 4,
+            MedicationFrequency.EveryOtherDay => 1, // For validation purposes
+            MedicationFrequency.Weekly => 1, // For validation purposes
+            MedicationFrequency.AsNeeded => 4, // Allow up to 4 doses per day for PRN
+            MedicationFrequency.Custom => 4, // Default to 4 for custom
+            _ => 1
+        };
+
+        var calculatedDose = dosage * multiplier;
+
+        // Ensure it's within the valid range (0.01 - 1000)
+        return Math.Max(0.01m, Math.Min(1000m, calculatedDose));
+    }
+
+    private int CalculateMinHoursBetweenDoses(MedicationFrequency frequency)
+    {
+        // Calculate minimum hours between doses based on frequency
+        return frequency switch
+        {
+            MedicationFrequency.OnceDaily => 24,
+            MedicationFrequency.TwiceDaily => 12,
+            MedicationFrequency.ThreeTimesDaily => 8,
+            MedicationFrequency.FourTimesDaily => 6,
+            MedicationFrequency.EveryOtherDay => 48,
+            MedicationFrequency.Weekly => 168,
+            MedicationFrequency.AsNeeded => 4, // Minimum 4 hours for PRN
+            MedicationFrequency.Custom => 6, // Default to 6 hours for custom
+            _ => 6
+        };
+    }
+
+    private (bool RequiresINR, decimal? INRMin, decimal? INRMax) DetermineINRMonitoring(MedicationType type)
+    {
+        // Warfarin (Vitamin K Antagonist) requires INR monitoring
+        if (type == MedicationType.VitKAntagonist)
+        {
+            return (true, 2.0m, 3.0m); // Standard therapeutic range
+        }
+
+        // DOACs (Direct Oral Anticoagulants) typically don't require INR monitoring
+        // But we'll set it to false with no range
+        if (type == MedicationType.DOAC)
+        {
+            return (false, null, null);
+        }
+
+        // Heparin and LMWH use different monitoring (aPTT, anti-Xa)
+        if (type == MedicationType.Heparin || type == MedicationType.LMWH)
+        {
+            return (false, null, null);
+        }
+
+        // Antiplatelets don't require INR monitoring
+        if (type == MedicationType.Antiplatelet)
+        {
+            return (false, null, null);
+        }
+
+        // Default for other types - typically don't require INR
+        return (false, null, null);
+    }
+}

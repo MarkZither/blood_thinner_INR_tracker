@@ -1,0 +1,308 @@
+@page "/medications/{id}/history"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Shared.Models
+@inject IMedicationService MedicationService
+@inject IMedicationLogService MedicationLogService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Medication History - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudText Typo="Typo.body1" Class="mt-2">Loading history...</MudText>
+    }
+    else if (_medication == null)
+    {
+        <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" 
+                   OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudText Typo="Typo.h5" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+                        @_medication.Name - Dose History
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Prescribed: @_medication.Dosage @_medication.DosageUnit
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-end justify-end">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Add"
+                              OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/log"))">
+                        Log New Dose
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Adherence Statistics *@
+        @if (_logs.Any())
+        {
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Adherence Statistics</MudText>
+                <MudGrid>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Logged</MudText>
+                        <MudText Typo="Typo.h6">@_logs.Count</MudText>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Taken On Time</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Success">@_takenOnTimeCount</MudText>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Missed/Skipped</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Error">@_missedCount</MudText>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Adherence Rate</MudText>
+                        <MudText Typo="Typo.h6" Color="@GetAdherenceColor()">@_adherenceRate%</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
+
+        @* Date Range Filter *@
+        <MudPaper Class="pa-4 mb-4">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudDatePicker Label="From Date" 
+                                   @bind-Date="_fromDate"
+                                   MaxDate="DateTime.Today" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudDatePicker Label="To Date" 
+                                   @bind-Date="_toDate"
+                                   MaxDate="DateTime.Today" />
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              OnClick="ApplyFilter"
+                              FullWidth="true">
+                        Apply Filter
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Medication Log Table *@
+        <MudPaper Class="pa-4">
+            @if (!_logs.Any())
+            {
+                <MudAlert Severity="Severity.Info">
+                    No doses logged yet. Click "Log New Dose" to record your first dose.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable T="MedicationLogDto" Items="@_logs" Dense="true" Hover="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Scheduled</MudTh>
+                        <MudTh>Actual</MudTh>
+                        <MudTh>Dosage</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Timing</MudTh>
+                        <MudTh>Notes</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Date">
+                            @context.ScheduledTime.ToString("MMM dd, yyyy")
+                        </MudTd>
+                        <MudTd DataLabel="Scheduled">
+                            @context.ScheduledTime.ToString("h:mm tt")
+                        </MudTd>
+                        <MudTd DataLabel="Actual">
+                            @if (context.ActualTime.HasValue)
+                            {
+                                @context.ActualTime.Value.ToString("h:mm tt")
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Dosage">
+                            @context.ActualDosage @context.ActualDosageUnit
+                        </MudTd>
+                        <MudTd DataLabel="Status">
+                            @GetStatusChip(context.Status)
+                        </MudTd>
+                        <MudTd DataLabel="Timing">
+                            @GetTimingChip(context.TimeVarianceMinutes)
+                        </MudTd>
+                        <MudTd DataLabel="Notes">
+                            @if (!string.IsNullOrEmpty(context.Notes))
+                            {
+                                <MudTooltip Text="@context.Notes">
+                                    <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" />
+                                </MudTooltip>
+                            }
+                            @if (!string.IsNullOrEmpty(context.SideEffects))
+                            {
+                                <MudTooltip Text="@context.SideEffects">
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Color="Color.Warning" />
+                                </MudTooltip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                          Size="Size.Small"
+                                          Color="Color.Error"
+                                          OnClick="@(() => DeleteLog(context.Id))"
+                                          aria-label="delete" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private Medication? _medication;
+    private List<MedicationLogDto> _logs = new();
+    
+    private bool _loading = true;
+    
+    private DateTime? _fromDate = DateTime.Today.AddDays(-30);
+    private DateTime? _toDate = DateTime.Today;
+
+    private int _takenOnTimeCount;
+    private int _missedCount;
+    private decimal _adherenceRate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedication();
+        await LoadLogs();
+        CalculateStatistics();
+        _loading = false;
+    }
+
+    private async Task LoadMedication()
+    {
+        _medication = await MedicationService.GetMedicationByIdAsync(Id);
+    }
+
+    private async Task LoadLogs()
+    {
+        var logs = await MedicationLogService.GetMedicationLogsAsync(Id, _fromDate, _toDate);
+        _logs = logs ?? new List<MedicationLogDto>();
+    }
+
+    private async Task ApplyFilter()
+    {
+        _loading = true;
+        await LoadLogs();
+        CalculateStatistics();
+        _loading = false;
+    }
+
+    private void CalculateStatistics()
+    {
+        if (!_logs.Any())
+        {
+            _takenOnTimeCount = 0;
+            _missedCount = 0;
+            _adherenceRate = 0;
+            return;
+        }
+
+        _takenOnTimeCount = _logs.Count(l => 
+            l.Status == MedicationLogStatus.Taken && 
+            Math.Abs(l.TimeVarianceMinutes) <= 120);
+
+        _missedCount = _logs.Count(l => l.Status == MedicationLogStatus.Skipped);
+
+        var totalDoses = _logs.Count(l => l.Status != MedicationLogStatus.Scheduled);
+        _adherenceRate = totalDoses > 0 
+            ? Math.Round((decimal)_takenOnTimeCount / totalDoses * 100, 1)
+            : 0;
+    }
+
+    private Color GetAdherenceColor()
+    {
+        if (_adherenceRate >= 90) return Color.Success;
+        if (_adherenceRate >= 75) return Color.Warning;
+        return Color.Error;
+    }
+
+    private RenderFragment GetStatusChip(MedicationLogStatus status)
+    {
+        return status switch
+        {
+            MedicationLogStatus.Taken => 
+                @<MudChip T="string" Size="Size.Small" Color="Color.Success">Taken</MudChip>,
+            MedicationLogStatus.Skipped => 
+                @<MudChip T="string" Size="Size.Small" Color="Color.Warning">Skipped</MudChip>,
+            MedicationLogStatus.PartiallyTaken => 
+                @<MudChip T="string" Size="Size.Small" Color="Color.Info">Partial</MudChip>,
+            MedicationLogStatus.Scheduled => 
+                @<MudChip T="string" Size="Size.Small" Color="Color.Info">Scheduled</MudChip>,
+            _ => 
+                @<MudChip T="string" Size="Size.Small">Unknown</MudChip>
+        };
+    }
+
+    private RenderFragment GetTimingChip(int varianceMinutes)
+    {
+        var absVariance = Math.Abs(varianceMinutes);
+        
+        if (absVariance <= 15)
+            return @<MudChip T="string" Size="Size.Small" Color="Color.Success">On Time</MudChip>;
+        
+        if (absVariance <= 60)
+        {
+            var text = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
+            return @<MudChip T="string" Size="Size.Small" Color="Color.Info">@text</MudChip>;
+        }
+        
+        if (absVariance <= 120)
+        {
+            var text = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
+            return @<MudChip T="string" Size="Size.Small" Color="Color.Warning">@text</MudChip>;
+        }
+        
+        var lateText = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
+        return @<MudChip T="string" Size="Size.Small" Color="Color.Error">@lateText</MudChip>;
+    }
+
+    private async Task DeleteLog(string logId)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            "Are you sure you want to delete this medication log? This action cannot be undone.",
+            yesText:"Delete", cancelText:"Cancel");
+
+        if (result == true)
+        {
+            var success = await MedicationLogService.DeleteMedicationLogAsync(logId);
+            if (success)
+            {
+                await LoadLogs();
+                CalculateStatistics();
+                Snackbar.Add("Medication log deleted successfully", Severity.Success);
+            }
+        }
+    }
+}

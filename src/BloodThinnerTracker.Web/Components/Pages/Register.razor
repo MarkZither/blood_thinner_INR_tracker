@@ -3,7 +3,6 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 @inject ILogger<Register> Logger
 
 <PageTitle>Register - Blood Thinner Tracker</PageTitle>
@@ -20,7 +19,7 @@
                         <h3 class="mb-0">Create Your Account</h3>
                         <p class="mb-0 opacity-75">Join Blood Thinner Tracker</p>
                     </div>
-                    
+
                     <div class="card-body p-4">
                         @if (!string.IsNullOrEmpty(_errorMessage))
                         {
@@ -42,7 +41,7 @@
 
                         <!-- Social Registration Options -->
                         <div class="d-grid gap-2 mb-4">
-                            <button type="button" class="btn btn-outline-primary btn-lg" 
+                            <button type="button" class="btn btn-outline-primary btn-lg"
                                     @onclick="RegisterWithAzureAD" disabled="@_isLoading">
                                 @if (_isLoading && _registrationProvider == "Azure")
                                 {
@@ -55,7 +54,7 @@
                                 Sign up with Microsoft
                             </button>
 
-                            <button type="button" class="btn btn-outline-danger btn-lg" 
+                            <button type="button" class="btn btn-outline-danger btn-lg"
                                     @onclick="RegisterWithGoogle" disabled="@_isLoading">
                                 @if (_isLoading && _registrationProvider == "Google")
                                 {
@@ -81,28 +80,28 @@
                         <!-- Registration Form -->
                         <EditForm Model="_registerModel" OnValidSubmit="HandleEmailRegistration" class="needs-validation" novalidate>
                             <DataAnnotationsValidator />
-                            
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="firstName" class="form-label">
                                         <i class="fas fa-user me-1"></i> First Name
                                         <span class="text-danger">*</span>
                                     </label>
-                                    <InputText @bind-Value="_registerModel.FirstName" 
-                                              class="form-control" 
+                                    <InputText @bind-Value="_registerModel.FirstName"
+                                              class="form-control"
                                               id="firstName"
                                               placeholder="Enter first name"
                                               disabled="@_isLoading" />
                                     <ValidationMessage For="@(() => _registerModel.FirstName)" class="text-danger small" />
                                 </div>
-                                
+
                                 <div class="col-md-6 mb-3">
                                     <label for="lastName" class="form-label">
                                         <i class="fas fa-user me-1"></i> Last Name
                                         <span class="text-danger">*</span>
                                     </label>
-                                    <InputText @bind-Value="_registerModel.LastName" 
-                                              class="form-control" 
+                                    <InputText @bind-Value="_registerModel.LastName"
+                                              class="form-control"
                                               id="lastName"
                                               placeholder="Enter last name"
                                               disabled="@_isLoading" />
@@ -115,8 +114,8 @@
                                     <i class="fas fa-envelope me-1"></i> Email Address
                                     <span class="text-danger">*</span>
                                 </label>
-                                <InputText @bind-Value="_registerModel.Email" 
-                                          class="form-control" 
+                                <InputText @bind-Value="_registerModel.Email"
+                                          class="form-control"
                                           id="email"
                                           type="email"
                                           placeholder="Enter your email address"
@@ -131,13 +130,13 @@
                                         <span class="text-danger">*</span>
                                     </label>
                                     <div class="input-group">
-                                        <InputText @bind-Value="_registerModel.Password" 
+                                        <InputText @bind-Value="_registerModel.Password"
                                                   type="@(_showPassword ? "text" : "password")"
-                                                  class="form-control" 
+                                                  class="form-control"
                                                   id="password"
                                                   placeholder="Create password"
                                                   disabled="@_isLoading" />
-                                        <button type="button" class="btn btn-outline-secondary" 
+                                        <button type="button" class="btn btn-outline-secondary"
                                                 @onclick="TogglePasswordVisibility">
                                             <i class="fas @(_showPassword ? "fa-eye-slash" : "fa-eye")"></i>
                                         </button>
@@ -153,9 +152,9 @@
                                         <i class="fas fa-lock me-1"></i> Confirm Password
                                         <span class="text-danger">*</span>
                                     </label>
-                                    <InputText @bind-Value="_registerModel.ConfirmPassword" 
+                                    <InputText @bind-Value="_registerModel.ConfirmPassword"
                                               type="@(_showPassword ? "text" : "password")"
-                                              class="form-control" 
+                                              class="form-control"
                                               id="confirmPassword"
                                               placeholder="Confirm password"
                                               disabled="@_isLoading" />
@@ -168,8 +167,8 @@
                                     <i class="fas fa-calendar me-1"></i> Date of Birth
                                     <span class="text-danger">*</span>
                                 </label>
-                                <InputDate @bind-Value="_registerModel.DateOfBirth" 
-                                          class="form-control" 
+                                <InputDate @bind-Value="_registerModel.DateOfBirth"
+                                          class="form-control"
                                           id="dateOfBirth"
                                           disabled="@_isLoading" />
                                 <ValidationMessage For="@(() => _registerModel.DateOfBirth)" class="text-danger small" />
@@ -191,8 +190,8 @@
                                         </label>
                                         <div class="row">
                                             <div class="col-6">
-                                                <InputNumber @bind-Value="_registerModel.TargetINRMin" 
-                                                           class="form-control" 
+                                                <InputNumber @bind-Value="_registerModel.TargetINRMin"
+                                                           class="form-control"
                                                            id="targetINRMin"
                                                            placeholder="Min (e.g., 2.0)"
                                                            step="0.1"
@@ -200,8 +199,8 @@
                                                 <small class="form-text">Minimum</small>
                                             </div>
                                             <div class="col-6">
-                                                <InputNumber @bind-Value="_registerModel.TargetINRMax" 
-                                                           class="form-control" 
+                                                <InputNumber @bind-Value="_registerModel.TargetINRMax"
+                                                           class="form-control"
                                                            placeholder="Max (e.g., 3.0)"
                                                            step="0.1"
                                                            disabled="@_isLoading" />
@@ -218,11 +217,11 @@
                             <!-- Terms and Privacy -->
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <InputCheckbox @bind-Value="_registerModel.AgreeToTerms" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_registerModel.AgreeToTerms"
+                                                  class="form-check-input"
                                                   id="agreeToTerms" />
                                     <label class="form-check-label" for="agreeToTerms">
-                                        I agree to the <a href="/terms" target="_blank" class="text-decoration-none">Terms of Service</a> 
+                                        I agree to the <a href="/terms" target="_blank" class="text-decoration-none">Terms of Service</a>
                                         and <a href="/privacy" target="_blank" class="text-decoration-none">Privacy Policy</a>
                                         <span class="text-danger">*</span>
                                     </label>
@@ -232,8 +231,8 @@
 
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <InputCheckbox @bind-Value="_registerModel.AgreeToMedicalDisclaimer" 
-                                                  class="form-check-input" 
+                                    <InputCheckbox @bind-Value="_registerModel.AgreeToMedicalDisclaimer"
+                                                  class="form-check-input"
                                                   id="agreeToMedicalDisclaimer" />
                                     <label class="form-check-label" for="agreeToMedicalDisclaimer">
                                         I understand this app is for tracking only and does not replace professional medical advice
@@ -262,7 +261,7 @@
 
                     <div class="card-footer text-center py-3 bg-light">
                         <p class="mb-0">
-                            Already have an account? 
+                            Already have an account?
                             <a href="/login" class="text-decoration-none fw-bold">
                                 <i class="fas fa-sign-in-alt me-1"></i>
                                 Sign in here
@@ -276,7 +275,7 @@
                     <div class="card-body text-center py-2">
                         <small class="text-muted">
                             <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-                            <strong>Medical Disclaimer:</strong> This application is for tracking purposes only. 
+                            <strong>Medical Disclaimer:</strong> This application is for tracking purposes only.
                             Always consult your healthcare provider for medical decisions and treatment plans.
                         </small>
                     </div>
@@ -290,25 +289,25 @@
     .bg-gradient {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     }
-    
+
     .card {
         border-radius: 15px;
         overflow: hidden;
     }
-    
+
     .btn-lg {
         padding: 0.75rem 1.5rem;
         font-size: 1.1rem;
     }
-    
+
     .form-control {
         padding: 0.75rem 1rem;
     }
-    
+
     .card-header {
         border-bottom: none;
     }
-    
+
     .form-text small {
         color: #6c757d;
     }
@@ -327,7 +326,7 @@
         // Clear any previous messages
         _errorMessage = string.Empty;
         _successMessage = string.Empty;
-        
+
         // Set default INR range
         _registerModel.TargetINRMin = 2.0m;
         _registerModel.TargetINRMax = 3.0m;
@@ -393,18 +392,18 @@
 
             // TODO: Implement email/password registration
             // This would typically call your registration API
-            
+
             await Task.Delay(1500); // Simulate API call
-            
+
             _successMessage = "Registration successful! Please check your email to verify your account.";
-            
+
             // Clear the form
             _registerModel = new RegisterModel
             {
                 TargetINRMin = 2.0m,
                 TargetINRMax = 3.0m
             };
-            
+
             // Redirect to login after delay
             await Task.Delay(3000);
             Navigation.NavigateTo("/login");
@@ -442,7 +441,7 @@
 
         [Required(ErrorMessage = "Password is required")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$", 
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$",
             ErrorMessage = "Password must contain uppercase, lowercase, number, and special character")]
         public string Password { get; set; } = string.Empty;
 
