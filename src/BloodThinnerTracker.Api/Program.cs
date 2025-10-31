@@ -29,9 +29,8 @@ if (builder.Environment.IsProduction())
     }
 }
 
-// Add service defaults (logging, health checks, etc.)
-// Note: Temporarily commented out until ServiceDefaults.AddServiceDefaults is properly implemented
-// builder.AddServiceDefaults();
+// Add service defaults (OpenTelemetry, health checks, service discovery, resilience)
+builder.AddServiceDefaults();
 
 // Configure medical database with encryption and compliance features
 builder.Services.AddMedicalDatabase(builder.Configuration, builder.Environment);

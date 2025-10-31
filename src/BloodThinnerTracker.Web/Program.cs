@@ -24,6 +24,9 @@ if (builder.Environment.IsProduction())
     }
 }
 
+// Add service defaults (OpenTelemetry, health checks, service discovery, resilience)
+builder.AddServiceDefaults();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

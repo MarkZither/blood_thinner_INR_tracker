@@ -15,21 +15,38 @@
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Shared Infrastructure) ✅ COMPLETE
 
 **Purpose**: Scaffold Aspire projects using official templates and prepare existing projects for integration
 
 **UPDATED**: Aspire workload deprecated - use NuGet packages + project templates (see research.md R-010)
 
-- [ ] T001 Install Aspire project templates: `dotnet new install Aspire.ProjectTemplates`
-- [ ] T002 **RECOMMENDED**: Delete existing AppHost and ServiceDefaults projects (if manually created)
-- [ ] T003 Create AppHost using template: `dotnet new aspire-xunit -n BloodThinnerTracker.AppHost.Tests -o tests/BloodThinnerTracker.AppHost.Tests`
-- [ ] T004 Move generated AppHost project from tests/ to src/ and rename to BloodThinnerTracker.AppHost
-- [ ] T005 Create ServiceDefaults using template: `dotnet new aspire-servicedefaults -n BloodThinnerTracker.ServiceDefaults -o src/BloodThinnerTracker.ServiceDefaults`
-- [ ] T006 Update global.json to ensure .NET 10 RC2 SDK (10.0.100-rc.2) specified
-- [ ] T007 [P] Add project references in AppHost to API and Web projects
-- [ ] T008 [P] Add ServiceDefaults project reference to API and Web projects
-- [ ] T009 Verify solution builds successfully with new template-based projects
+**Status**: ✅ Complete (2025-10-31) - All projects created, configured, and building successfully
+
+- [x] T001 Install Aspire project templates: `dotnet new install Aspire.ProjectTemplates`
+- [x] T002 **RECOMMENDED**: Delete existing AppHost and ServiceDefaults projects (if manually created) - Backed up existing projects
+- [x] T003 Create AppHost.Tests using template: `dotnet new aspire-xunit -n BloodThinnerTracker.AppHost.Tests -o tests/BloodThinnerTracker.AppHost.Tests`
+- [x] T004 Create AppHost using template: `dotnet new aspire-apphost -n BloodThinnerTracker.AppHost -o src/BloodThinnerTracker.AppHost` (used separate template, not extracted from xunit)
+- [x] T005 Create ServiceDefaults using template: `dotnet new aspire-servicedefaults -n BloodThinnerTracker.ServiceDefaults -o src/BloodThinnerTracker.ServiceDefaults`
+- [x] T006 Update projects to target .NET 10 with Aspire 9.5.2 (only stable version available on NuGet)
+- [x] T007 [P] Add project references in AppHost to API and Web projects
+- [x] T008 [P] Add ServiceDefaults project reference to API and Web projects
+- [x] T009 Verify solution builds successfully with new template-based projects
+
+**Implementation Notes**:
+- Used Aspire 9.5.2 (latest stable) with .NET 10 target framework
+- Aspire 10.0.0-rc versions do NOT exist on public NuGet
+- Configured explicit endpoint names (api-https, api-http, web-https, web-http) for clarity
+- AppHost successfully orchestrates API (ports 7234/5234) and Web (ports 7235/5235) with SQLite
+- ServiceDefaults.AddServiceDefaults() called in both API and Web Program.cs
+- Dashboard accessible and showing logs, traces, and metrics
+- All projects added to solution and building without errors
+
+**Verification**:
+```bash
+dotnet build  # ✅ Success
+dotnet run --project src/BloodThinnerTracker.AppHost  # ✅ Dashboard at https://localhost:17225
+```
 
 **Notes**: 
 - aspire-xunit template provides AppHost with integrated testing setup (Aspire.Hosting.Testing)
