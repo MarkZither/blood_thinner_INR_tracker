@@ -249,4 +249,7 @@ app.MapGet("/info", () => new
 .WithName("GetApplicationInfo")
 .WithSummary("Blood Thinner Tracker API information with medical compliance details");
 
+// Map Aspire health check endpoints (/health, /alive)
+app.MapDefaultEndpoints();
+
 app.Run();

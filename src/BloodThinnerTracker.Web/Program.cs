@@ -180,4 +180,7 @@ app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+// Map Aspire health check endpoints (/health, /alive)
+app.MapDefaultEndpoints();
+
 app.Run();
