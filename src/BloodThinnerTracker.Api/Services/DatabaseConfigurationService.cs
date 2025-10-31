@@ -163,7 +163,9 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
     /// </summary>
     private string GetPostgreSqlConnectionString(IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var connectionString = configuration.GetConnectionString("PostgreSQLConnection");
+        // First check for Aspire-injected connection string (ConnectionStrings__bloodtracker)
+        var connectionString = configuration.GetConnectionString("bloodtracker") 
+                            ?? configuration.GetConnectionString("PostgreSQLConnection");
         
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -198,9 +200,9 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
     /// </summary>
     public bool ShouldUseSqlite(IWebHostEnvironment environment)
     {
-        return true;
-        // Use SQLite for development by default, PostgreSQL for staging and production
-        //return environment.IsDevelopment();
+        // When running under Aspire orchestration, PostgreSQL is available via container
+        // Use SQLite only when no PostgreSQL connection string is available
+        return false;
     }
 }
 

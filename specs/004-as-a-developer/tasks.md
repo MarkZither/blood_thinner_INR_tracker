@@ -116,7 +116,7 @@ curl https://localhost:7235/health  # Web health check (Development only)
 
 ## Phase 3: User Story 1 - One-Click Local Development Environment (Priority: P1) 🎯 MVP
 
-**Goal**: Press F5 in Visual Studio and have all services start automatically with containers, service discovery, and connection strings
+**Goal**: Press F5 in Visual Studio and visual Studio Code and have all services start automatically with containers, service discovery, and connection strings
 
 **Independent Test**: Open solution, set AppHost as startup project, press F5, verify all services start and API/Web are accessible
 
