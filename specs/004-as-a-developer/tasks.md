@@ -17,14 +17,24 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Create new AppHost project and prepare existing projects for Aspire integration
+**Purpose**: Scaffold Aspire projects using official templates and prepare existing projects for integration
 
-- [ ] T001 Update global.json to specify .NET 10 RC2 SDK version (10.0.100-rc.2)
-- [ ] T002 Install .NET Aspire workload via `dotnet workload install aspire`
-- [ ] T003 Create src/BloodThinnerTracker.AppHost project with Aspire.Hosting package
-- [ ] T004 Add Aspire NuGet packages to src/BloodThinnerTracker.ServiceDefaults/BloodThinnerTracker.ServiceDefaults.csproj
-- [ ] T005 [P] Add project references in AppHost to API and Web projects
-- [ ] T006 [P] Add ServiceDefaults project reference to API and Web projects
+**UPDATED**: Aspire workload deprecated - use NuGet packages + project templates (see research.md R-010)
+
+- [ ] T001 Install Aspire project templates: `dotnet new install Aspire.ProjectTemplates`
+- [ ] T002 **RECOMMENDED**: Delete existing AppHost and ServiceDefaults projects (if manually created)
+- [ ] T003 Create AppHost using template: `dotnet new aspire-xunit -n BloodThinnerTracker.AppHost.Tests -o tests/BloodThinnerTracker.AppHost.Tests`
+- [ ] T004 Move generated AppHost project from tests/ to src/ and rename to BloodThinnerTracker.AppHost
+- [ ] T005 Create ServiceDefaults using template: `dotnet new aspire-servicedefaults -n BloodThinnerTracker.ServiceDefaults -o src/BloodThinnerTracker.ServiceDefaults`
+- [ ] T006 Update global.json to ensure .NET 10 RC2 SDK (10.0.100-rc.2) specified
+- [ ] T007 [P] Add project references in AppHost to API and Web projects
+- [ ] T008 [P] Add ServiceDefaults project reference to API and Web projects
+- [ ] T009 Verify solution builds successfully with new template-based projects
+
+**Notes**: 
+- aspire-xunit template provides AppHost with integrated testing setup (Aspire.Hosting.Testing)
+- Templates include correct NuGet package versions and project configuration
+- No workload installation needed (deprecated)
 
 ---
 
@@ -34,18 +44,19 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Implement AddServiceDefaults() extension method in src/BloodThinnerTracker.ServiceDefaults/ServiceDefaults.cs
-- [ ] T008 Configure OpenTelemetry (tracing, metrics, OTLP exporter) in ServiceDefaults.cs
-- [ ] T009 Configure Serilog with Console and OpenTelemetry sinks in ServiceDefaults.cs
-- [ ] T010 Configure service discovery integration in ServiceDefaults.cs
-- [ ] T011 Configure Polly standard resilience handler (retry, circuit breaker, timeout) in ServiceDefaults.cs
-- [ ] T012 Configure health checks in ServiceDefaults.cs with MapDefaultEndpoints()
-- [ ] T013 Update src/BloodThinnerTracker.Api/Program.cs to call builder.AddServiceDefaults()
-- [ ] T014 Update src/BloodThinnerTracker.Web/Program.cs to call builder.AddServiceDefaults()
-- [ ] T015 Create src/BloodThinnerTracker.AppHost.Tests project with xUnit and Aspire.Hosting.Testing
-- [ ] T015a [P] Create unit tests for ServiceDefaults extensions in BloodThinnerTracker.ServiceDefaults.Tests/ServiceDefaultsTests.cs
-- [ ] T015b [P] Create unit tests for AppHost configuration logic in BloodThinnerTracker.AppHost.Tests/ConfigurationTests.cs
-- [ ] T015c [P] Verify 90% test coverage for ServiceDefaults project using code coverage tools
+**Note**: ServiceDefaults template provides base configuration; customize for project needs
+
+- [ ] T010 Review and customize AddServiceDefaults() extension in src/BloodThinnerTracker.ServiceDefaults/ServiceDefaults.cs
+- [ ] T011 Configure OpenTelemetry (tracing, metrics, OTLP exporter) in ServiceDefaults.cs (template provides baseline)
+- [ ] T012 Configure Serilog with Console and OpenTelemetry sinks in ServiceDefaults.cs
+- [ ] T013 Configure service discovery integration in ServiceDefaults.cs (template includes this)
+- [ ] T014 Configure Polly standard resilience handler (retry, circuit breaker, timeout) in ServiceDefaults.cs
+- [ ] T015 Configure health checks in ServiceDefaults.cs with MapDefaultEndpoints() (template includes this)
+- [ ] T016 Update src/BloodThinnerTracker.Api/Program.cs to call builder.AddServiceDefaults()
+- [ ] T017 Update src/BloodThinnerTracker.Web/Program.cs to call builder.AddServiceDefaults()
+- [ ] T018 Create unit tests for ServiceDefaults extensions in BloodThinnerTracker.ServiceDefaults.Tests/ServiceDefaultsTests.cs
+- [ ] T019 [P] Create unit tests for AppHost configuration logic using test project from aspire-xunit template
+- [ ] T020 [P] Verify 90% test coverage for ServiceDefaults project using code coverage tools
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -59,18 +70,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Define PostgreSQL container resource with WithDataVolume() in src/BloodThinnerTracker.AppHost/Program.cs
-- [ ] T017 [US1] Define database reference (postgres.AddDatabase("bloodtracker")) in AppHost/Program.cs
-- [ ] T018 [US1] Define API project resource with WithReference(db) in AppHost/Program.cs
-- [ ] T019 [US1] Configure API HTTP/HTTPS endpoints (5234, 7234) in AppHost/Program.cs
-- [ ] T020 [US1] Define Web project resource with WithReference(api) in AppHost/Program.cs
-- [ ] T021 [US1] Configure Web HTTP/HTTPS endpoints (5235, 7235) in AppHost/Program.cs
-- [ ] T022 [US1] Configure AppHost launchSettings.json for F5 debugging experience
-- [ ] T023 [US1] Update API appsettings.Development.json to remove hardcoded connection strings (use injected)
-- [ ] T024 [US1] Update Web appsettings.Development.json to remove hardcoded API URLs (use service discovery)
-- [ ] T025 [US1] Verify API can connect to PostgreSQL using injected connection string
-- [ ] T026 [US1] Verify Web can call API using service discovery (http://api)
-- [ ] T027 [US1] Test complete F5 workflow: Press F5, all services start, navigate to http://localhost:5235
+- [ ] T021 [US1] Define PostgreSQL container resource with WithDataVolume() in src/BloodThinnerTracker.AppHost/Program.cs
+- [ ] T022 [US1] Define database reference (postgres.AddDatabase("bloodtracker")) in AppHost/Program.cs
+- [ ] T023 [US1] Define API project resource with WithReference(db) in AppHost/Program.cs
+- [ ] T024 [US1] Configure API HTTP/HTTPS endpoints (5234, 7234) in AppHost/Program.cs
+- [ ] T025 [US1] Define Web project resource with WithReference(api) in AppHost/Program.cs
+- [ ] T026 [US1] Configure Web HTTP/HTTPS endpoints (5235, 7235) in AppHost/Program.cs
+- [ ] T027 [US1] Configure AppHost launchSettings.json for F5 debugging experience
+- [ ] T028 [US1] Update API appsettings.Development.json to remove hardcoded connection strings (use injected)
+- [ ] T029 [US1] Update Web appsettings.Development.json to remove hardcoded API URLs (use service discovery)
+- [ ] T030 [US1] Verify API can connect to PostgreSQL using injected connection string
+- [ ] T031 [US1] Verify Web can call API using service discovery (http://api)
+- [ ] T032 [US1] Test complete F5 workflow: Press F5, all services start, navigate to http://localhost:5235
 
 **Checkpoint**: User Story 1 complete - F5 starts all services with automatic configuration
 
@@ -84,17 +95,17 @@
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Verify Aspire Dashboard auto-starts on http://localhost:15000 when AppHost runs
-- [ ] T029 [US2] Configure OTEL_EXPORTER_OTLP_ENDPOINT environment variable injection in AppHost/Program.cs
-- [ ] T030 [US2] Add OpenTelemetry instrumentation for ASP.NET Core requests in ServiceDefaults (already in T008)
-- [ ] T031 [US2] Add OpenTelemetry instrumentation for HttpClient calls in ServiceDefaults (already in T008)
-- [ ] T032 [P] [US2] Add OpenTelemetry instrumentation for Entity Framework Core queries in ServiceDefaults
-- [ ] T033 [P] [US2] Implement structured logging pattern in API controllers (use ILogger<T> with structured properties)
-- [ ] T034 [P] [US2] Implement structured logging pattern in Web Blazor pages
-- [ ] T035 [US2] Test log filtering in Dashboard: Search for "medication", "error", verify results
-- [ ] T036 [US2] Test trace visualization: Make API call from Web, verify trace shows Web→API→Database span hierarchy
-- [ ] T037 [US2] Test metrics display: Verify CPU, memory, request duration metrics appear for API and Web services
-- [ ] T038 [US2] Verify health check status displayed in Dashboard for all services
+- [ ] T033 [US2] Verify Aspire Dashboard auto-starts on http://localhost:15000 when AppHost runs
+- [ ] T034 [US2] Configure OTEL_EXPORTER_OTLP_ENDPOINT environment variable injection in AppHost/Program.cs
+- [ ] T035 [US2] Add OpenTelemetry instrumentation for ASP.NET Core requests in ServiceDefaults (already in T011)
+- [ ] T036 [US2] Add OpenTelemetry instrumentation for HttpClient calls in ServiceDefaults (already in T011)
+- [ ] T037 [P] [US2] Add OpenTelemetry instrumentation for Entity Framework Core queries in ServiceDefaults
+- [ ] T038 [P] [US2] Implement structured logging pattern in API controllers (use ILogger<T> with structured properties)
+- [ ] T039 [P] [US2] Implement structured logging pattern in Web Blazor pages
+- [ ] T040 [US2] Test log filtering in Dashboard: Search for "medication", "error", verify results
+- [ ] T041 [US2] Test trace visualization: Make API call from Web, verify trace shows Web→API→Database span hierarchy
+- [ ] T042 [US2] Test metrics display: Verify CPU, memory, request duration metrics appear for API and Web services
+- [ ] T043 [US2] Verify health check status displayed in Dashboard for all services
 
 **Checkpoint**: User Story 2 complete - Dashboard provides full observability for all services
 
@@ -108,18 +119,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T039 [US3] Configure PostgreSQL container with WithLifetime(ContainerLifetime.Persistent) in AppHost/Program.cs
-- [ ] T040 [US3] Configure PostgreSQL container environment variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
-- [ ] T040a [US3] Document connection string security approach in plan.md: Use hardcoded password "local_dev_only_password" for initial implementation
-- [ ] T041 [US3] Verify PostgreSQL container pulls image on first run (postgres:16-alpine)
-- [ ] T042 [US3] Verify PostgreSQL container starts automatically when AppHost starts
-- [ ] T043 [US3] Verify PostgreSQL data volume created (aspire-postgres-data)
-- [ ] T044 [US3] Test data persistence: Create test data, restart AppHost, verify data still exists
-- [ ] T045 [US3] Add error handling for container startup failures in AppHost/Program.cs
-- [ ] T046 [US3] Verify Dashboard shows clear error message when container fails to start
-- [ ] T047 [US3] Create tools/scripts/reset-database.ps1 script that safely stops containers and removes volumes
-- [ ] T048 [US3] Document how to reset database (run reset-database.ps1 script) in specs/004-as-a-developer/quickstart.md
-- [ ] T049 [US3] Test offline scenario: Stop Docker, verify AppHost shows actionable error message
+- [ ] T044 [US3] Configure PostgreSQL container with WithLifetime(ContainerLifetime.Persistent) in AppHost/Program.cs
+- [ ] T045 [US3] Configure PostgreSQL container environment variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+- [ ] T046 [US3] Document connection string security approach in plan.md: Use hardcoded password "local_dev_only_password" for initial implementation
+- [ ] T047 [US3] Verify PostgreSQL container pulls image on first run (postgres:16-alpine)
+- [ ] T048 [US3] Verify PostgreSQL container starts automatically when AppHost starts
+- [ ] T049 [US3] Verify PostgreSQL data volume created (aspire-postgres-data)
+- [ ] T050 [US3] Test data persistence: Create test data, restart AppHost, verify data still exists
+- [ ] T051 [US3] Add error handling for container startup failures in AppHost/Program.cs
+- [ ] T052 [US3] Verify Dashboard shows clear error message when container fails to start
+- [ ] T053 [US3] Create tools/scripts/reset-database.ps1 script that safely stops containers and removes volumes
+- [ ] T054 [US3] Document how to reset database (run reset-database.ps1 script) in specs/004-as-a-developer/quickstart.md
+- [ ] T055 [US3] Test offline scenario: Stop Docker, verify AppHost shows actionable error message
 
 **Checkpoint**: User Story 3 complete - Containers managed automatically with data persistence
 
@@ -133,15 +144,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T050 [US4] Verify WithReference(api) in Web project injects services__api__http__0 environment variable
-- [ ] T051 [US4] Verify WithReference(db) in API project injects ConnectionStrings__bloodtracker environment variable
-- [ ] T052 [US4] Configure HttpClient in Web with BaseAddress = new Uri("http://api")
-- [ ] T053 [US4] Test service discovery resolution: Make API call from Web, verify resolves to http://localhost:5234
-- [ ] T054 [US4] Test connection string injection: Verify API connects to PostgreSQL using injected connection string
-- [ ] T055 [US4] Remove all hardcoded URLs from appsettings.json files (API and Web)
-- [ ] T056 [US4] Test port change scenario: Change API port in AppHost, restart, verify Web discovers new port automatically
-- [ ] T057 [US4] Add environment-specific configuration support (Development, Staging) in AppHost/Program.cs
-- [ ] T058 [US4] Verify ASPNETCORE_ENVIRONMENT=Development injected into all services
+- [ ] T056 [US4] Verify WithReference(api) in Web project injects services__api__http__0 environment variable
+- [ ] T057 [US4] Verify WithReference(db) in API project injects ConnectionStrings__bloodtracker environment variable
+- [ ] T058 [US4] Configure HttpClient in Web with BaseAddress = new Uri("http://api")
+- [ ] T059 [US4] Test service discovery resolution: Make API call from Web, verify resolves to http://localhost:5234
+- [ ] T060 [US4] Test connection string injection: Verify API connects to PostgreSQL using injected connection string
+- [ ] T061 [US4] Remove all hardcoded URLs from appsettings.json files (API and Web)
+- [ ] T062 [US4] Test port change scenario: Change API port in AppHost, restart, verify Web discovers new port automatically
+- [ ] T063 [US4] Add environment-specific configuration support (Development, Staging) in AppHost/Program.cs
+- [ ] T064 [US4] Verify ASPNETCORE_ENVIRONMENT=Development injected into all services
 
 **Checkpoint**: User Story 4 complete - All services use service discovery and injected configuration
 
@@ -155,16 +166,16 @@
 
 ### Implementation for User Story 5
 
-- [ ] T059 [US5] Configure Visual Studio solution (.sln) to support multi-project debugging
-- [ ] T060 [US5] Set AppHost as startup project in Visual Studio
-- [ ] T061 [US5] Test breakpoint in API controller: Set breakpoint, make request from Web, verify stops
-- [ ] T062 [US5] Test breakpoint in Web Blazor page: Set breakpoint, navigate to page, verify stops
-- [ ] T063 [US5] Test cross-service debugging: Set breakpoints in Web and API, verify stops in correct sequence
-- [ ] T064 [US5] Test hot reload for Blazor .razor files: Modify component, save, verify browser updates without restart
-- [ ] T065 [US5] Test hot reload for C# code files: Modify service method, save, verify changes apply without restart
-- [ ] T066 [US5] Document hot reload limitations in specs/004-as-a-developer/quickstart.md (AppHost changes require restart)
-- [ ] T067 [US5] Verify Dashboard accessible during debugging without breaking debugger session
-- [ ] T068 [US5] Test exception handling: Throw exception in API, verify Dashboard shows exception details
+- [ ] T065 [US5] Configure Visual Studio solution (.sln) to support multi-project debugging
+- [ ] T066 [US5] Set AppHost as startup project in Visual Studio
+- [ ] T067 [US5] Test breakpoint in API controller: Set breakpoint, make request from Web, verify stops
+- [ ] T068 [US5] Test breakpoint in Web Blazor page: Set breakpoint, navigate to page, verify stops
+- [ ] T069 [US5] Test cross-service debugging: Set breakpoints in Web and API, verify stops in correct sequence
+- [ ] T070 [US5] Test hot reload for Blazor .razor files: Modify component, save, verify browser updates without restart
+- [ ] T071 [US5] Test hot reload for C# code files: Modify service method, save, verify changes apply without restart
+- [ ] T072 [US5] Document hot reload limitations in specs/004-as-a-developer/quickstart.md (AppHost changes require restart)
+- [ ] T073 [US5] Verify Dashboard accessible during debugging without breaking debugger session
+- [ ] T074 [US5] Test exception handling: Throw exception in API, verify Dashboard shows exception details
 
 **Checkpoint**: User Story 5 complete - Full debugging experience across all services
 
@@ -174,20 +185,20 @@
 
 **Purpose**: Documentation, testing, and quality improvements across all user stories
 
-- [ ] T069 [P] Create integration tests for AppHost startup in src/BloodThinnerTracker.AppHost.Tests/AppHostTests.cs
-- [ ] T070 [P] Create integration tests for service discovery in AppHostTests/ServiceDiscoveryTests.cs
-- [ ] T071 [P] Create integration tests for health checks in AppHostTests/HealthCheckTests.cs
-- [ ] T072 [P] Update README.md with Aspire setup instructions and F5 workflow
-- [ ] T073 [P] Add optional InfluxDB container configuration (behind feature flag) in AppHost/Program.cs
-- [ ] T073a [SECURITY] Upgrade PostgreSQL password from hardcoded to environment variable (POSTGRES_PASSWORD env var)
-- [ ] T073b [SECURITY] Update reset-database.ps1 to handle environment variable-based passwords
-- [ ] T074 Verify all documentation in specs/004-as-a-developer/ is accurate and complete
-- [ ] T075 Run full quickstart.md validation: Fresh clone, press F5, verify all steps work
-- [ ] T076 Test port conflict handling: Occupy port 5234, start AppHost, verify error message
-- [ ] T077 Performance test: Measure startup time (should be <30 seconds with warm containers)
-- [ ] T078 Code review and cleanup: Remove TODO comments, unused code, ensure consistent style
-- [ ] T079 Security review: Verify Dashboard only accessible on localhost, no production secrets
-- [ ] T080 Update .github/copilot-instructions.md with Aspire patterns (run update-agent-context.ps1)
+- [ ] T075 [P] Create integration tests for AppHost startup using test project from aspire-xunit template
+- [ ] T076 [P] Create integration tests for service discovery in AppHost.Tests/ServiceDiscoveryTests.cs
+- [ ] T077 [P] Create integration tests for health checks in AppHost.Tests/HealthCheckTests.cs
+- [ ] T078 [P] Update README.md with Aspire setup instructions (template-based approach, no workload)
+- [ ] T079 [P] Add optional InfluxDB container configuration (behind feature flag) in AppHost/Program.cs
+- [ ] T080 [SECURITY] Upgrade PostgreSQL password from hardcoded to environment variable (POSTGRES_PASSWORD env var)
+- [ ] T081 [SECURITY] Update reset-database.ps1 to handle environment variable-based passwords
+- [ ] T082 Verify all documentation in specs/004-as-a-developer/ is accurate and complete
+- [ ] T083 Run full quickstart.md validation: Fresh clone, install templates, press F5, verify all steps work
+- [ ] T084 Test port conflict handling: Occupy port 5234, start AppHost, verify error message
+- [ ] T085 Performance test: Measure startup time (should be <30 seconds with warm containers)
+- [ ] T086 Code review and cleanup: Remove TODO comments, unused code, ensure consistent style
+- [ ] T087 Security review: Verify Dashboard only accessible on localhost, no production secrets
+- [ ] T088 Update .github/copilot-instructions.md with Aspire patterns (run update-agent-context.ps1)
 
 ---
 
@@ -287,18 +298,18 @@ Task T034: "Implement structured logging pattern in Web Blazor pages"
 4. v1.3: US5 = Advanced debugging (Nice to have, not critical)
 
 **Task Estimation**:
-- **Phase 1 (Setup)**: 2-3 hours (6 tasks, mostly configuration)
-- **Phase 2 (Foundational)**: 10-12 hours (12 tasks including unit tests, core infrastructure)
+- **Phase 1 (Setup)**: 3-4 hours (9 tasks, template-based project creation)
+- **Phase 2 (Foundational)**: 10-12 hours (11 tasks including unit tests, customizing template defaults)
 - **Phase 3 (US1)**: 10-12 hours (12 tasks, AppHost topology)
 - **Phase 4 (US2)**: 8-10 hours (11 tasks, observability integration)
 - **Phase 5 (US3)**: 8-10 hours (12 tasks including reset script, container configuration)
 - **Phase 6 (US4)**: 5-6 hours (9 tasks, mostly verification)
 - **Phase 7 (US5)**: 6-8 hours (10 tasks, debugging experience)
-- **Phase 8 (Polish)**: 10-12 hours (15 tasks including security upgrade, testing and documentation)
+- **Phase 8 (Polish)**: 10-12 hours (14 tasks including security upgrade, testing and documentation)
 
-**Total Estimated Effort**: 59-73 hours (approximately 8-10 working days for one developer)
+**Total Estimated Effort**: 60-74 hours (approximately 8-10 working days for one developer)
 
-**Recommended Approach**: Deliver MVP (US1+US2) first (~22-25 hours), then iterate with remaining user stories based on priority and developer feedback.
+**Recommended Approach**: Deliver MVP (US1+US2) first (~22-26 hours), then iterate with remaining user stories based on priority and developer feedback.
 
 ---
 
@@ -321,7 +332,7 @@ Task T034: "Implement structured logging pattern in Web Blazor pages"
 - [ ] PostgreSQL container starts automatically on first run
 - [ ] Data persists across application restarts
 - [ ] Clear error messages when container fails
-- [ ] Developer can reset data by deleting Docker volume
+- [ ] Developer can reset data using reset-database.ps1 script
 
 ### User Story 4 Success
 - [ ] No hardcoded URLs in appsettings.json files
@@ -339,15 +350,17 @@ Task T034: "Implement structured logging pattern in Web Blazor pages"
 - [ ] Complete F5 workflow works end-to-end in under 30 seconds (warm containers)
 - [ ] All constitution principles validated (code quality, testing, performance, security)
 - [ ] Documentation complete and validated (quickstart.md walkthrough works)
-- [ ] Zero manual configuration steps required after git clone
+- [ ] Zero manual configuration steps required after git clone + template installation
 
 ---
 
 ## Notes
 
-- All tasks assume .NET 10 RC2 and Aspire 10.0.0-rc.2 installed
+- **UPDATED**: Aspire workload deprecated - use `dotnet new install Aspire.ProjectTemplates` instead
+- All tasks assume .NET 10 RC2 and Aspire 10.0.0-rc.2 (NuGet packages)
 - Docker Desktop must be running before starting application
 - This feature is LOCAL DEVELOPMENT ONLY - no production deployment changes
 - Aspire Dashboard is ephemeral (not persisted, starts fresh each time)
 - Hot reload has limitations documented in quickstart.md (AppHost changes require restart)
-- Optional InfluxDB integration (T073) can be skipped for MVP
+- Optional InfluxDB integration (T079) can be skipped for MVP
+- Templates (aspire-xunit, aspire-servicedefaults) provide better starting point than manual project creation

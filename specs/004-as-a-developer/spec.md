@@ -158,7 +158,7 @@ As a developer, I want to set breakpoints across multiple services and debug the
 
 1. Developers are using Visual Studio 2025, Visual Studio Code with C# Dev Kit, or Rider on Windows, macOS, or Linux
 2. Docker Desktop (Windows/macOS) or Docker Engine (Linux) version 20.10+ is installed and running
-3. .NET 10 SDK with .NET Aspire workload installed
+3. .NET 10 SDK installed with Aspire.ProjectTemplates (`dotnet new install Aspire.ProjectTemplates`) - **Aspire workload is deprecated**
 4. Developer machine has sufficient resources (8GB+ RAM, 20GB+ disk space, 4+ CPU cores)
 5. PostgreSQL is the primary database for this feature
 6. OpenTelemetry is the standard for logs, metrics, and traces
@@ -192,7 +192,8 @@ As a developer, I want to set breakpoints across multiple services and debug the
 ## Dependencies
 
 ### External Dependencies
-- .NET 10 SDK with .NET Aspire workload (`dotnet workload install aspire`)
+- .NET 10 SDK (10.0.100-rc.2 or later)
+- Aspire.ProjectTemplates (`dotnet new install Aspire.ProjectTemplates`) - **NOTE: Aspire workload deprecated, use NuGet packages**
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux) version 20.10+
 - Visual Studio 2025, VS Code with C# Dev Kit, or JetBrains Rider
 - Container images: `postgres:16-alpine`
@@ -224,6 +225,10 @@ As a developer, I want to set breakpoints across multiple services and debug the
 - Q: How long should the dashboard retain historical logs after a service is stopped or restarted? → A: Retain logs for current session only; clear on application stop (Aspire default)
 - Q: When port conflicts are detected (default ports already in use), how should the system respond? → A: Auto-assign alternative ports and display mapping in dashboard
 - Q: When a container (PostgreSQL) fails during runtime (not startup), how should the system respond? → A: Mark container as unhealthy in dashboard; services continue but show degraded state with auto-restart attempts (3x with backoff)
+
+### Session 2025-10-31
+
+- **CRITICAL UPDATE**: Aspire workload (`dotnet workload install aspire`) is **deprecated and no longer necessary**. Aspire is now distributed exclusively via NuGet packages (Aspire.Hosting, etc.). Project templates installed via `dotnet new install Aspire.ProjectTemplates`. Recommendation: Use `aspire-xunit` template to scaffold AppHost with integrated testing, then customize. See research.md R-010 for full details.
 
 ---
 

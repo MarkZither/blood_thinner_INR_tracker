@@ -18,7 +18,8 @@ This document captures all technology decisions, rationale, and alternatives con
 - .NET Aspire 10.0 RC releases are specifically designed for .NET 10 RC
 - Aspire.Hosting packages target net10.0 framework
 - Microsoft's official documentation confirms RC alignment
-- Aspire workload installation via `dotnet workload install aspire` handles version matching
+- **Aspire distributed via NuGet packages** (workload deprecated - see R-010)
+- Project templates via `dotnet new install Aspire.ProjectTemplates` provide scaffolding
 
 **Configuration**:
 ```json
@@ -572,6 +573,84 @@ export POSTGRES_PASSWORD="MySecureLocalPassword123"
 
 ---
 
+## R-010: Aspire Workload Deprecation & Distribution Model Change
+
+**Question**: How should Aspire be installed and distributed in .NET 10 RC2? Is the workload still required?
+
+**Decision**: Use NuGet packages directly + Aspire.ProjectTemplates for project scaffolding. **DO NOT use `dotnet workload install aspire`** (deprecated).
+
+**Rationale**:
+- **CRITICAL CHANGE**: As of .NET Aspire 10, the Aspire workload is **deprecated and no longer necessary**
+- Aspire is now distributed exclusively via NuGet packages (Aspire.Hosting, Aspire.Hosting.PostgreSQL, etc.)
+- Project templates are installed separately via `dotnet new install Aspire.ProjectTemplates`
+- This simplifies installation, reduces SDK bloat, and aligns with standard .NET package management
+- Official guidance from Microsoft redirects from workload to NuGet approach
+- Using templates (e.g., `aspire-xunit`) provides better starting point than manual project creation
+
+**Updated Installation Steps**:
+```powershell
+# 1. Install project templates (one-time)
+dotnet new install Aspire.ProjectTemplates
+
+# 2. No workload installation needed! (deprecated)
+# OLD (DO NOT USE): dotnet workload install aspire
+
+# 3. Create projects using templates
+dotnet new aspire-apphost -n BloodThinnerTracker.AppHost
+dotnet new aspire-servicedefaults -n BloodThinnerTracker.ServiceDefaults
+
+# OR use aspire-xunit template for testing-first approach
+dotnet new aspire-xunit -n BloodThinnerTracker.AppHost.Tests
+```
+
+**Updated Package References**:
+```xml
+<!-- AppHost.csproj -->
+<ItemGroup>
+  <PackageReference Include="Aspire.Hosting" Version="10.0.0-rc.2" />
+  <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="10.0.0-rc.2" />
+</ItemGroup>
+
+<!-- ServiceDefaults.csproj -->
+<ItemGroup>
+  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0-rc.2" />
+  <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+</ItemGroup>
+```
+
+**Recommended Approach for This Feature**:
+1. **Delete existing AppHost and ServiceDefaults projects** (if manually created)
+2. Use `dotnet new aspire-xunit` template to scaffold AppHost with integrated testing
+3. Customize generated AppHost/Program.cs with our service topology
+4. Add ServiceDefaults using `aspire-servicedefaults` template
+5. Reference AppHost from test project using `DistributedApplication` pattern
+
+**Advantages of Template Approach**:
+- ✅ Correct project structure from start (proper references, launch settings)
+- ✅ Integrated testing setup (aspire-xunit includes Aspire.Hosting.Testing)
+- ✅ Up-to-date NuGet package versions
+- ✅ Proper SDK configuration (EnableSdkContainerSupport, etc.)
+- ✅ No manual configuration of OTLP endpoints, service discovery, etc.
+
+**Alternatives Considered**:
+- ❌ Using deprecated `dotnet workload install aspire`: No longer supported, generates warnings
+- ❌ Manual project creation: Error-prone, misses template-provided configuration
+- ❌ Keeping existing AppHost/ServiceDefaults: May have incorrect structure/missing configuration
+
+**Impact on Implementation Plan**:
+- **Phase 1 Setup (T001-T006)**: Replace manual project creation with template usage
+- **T001**: Change from "Create AppHost project" to "Generate from aspire-xunit template"
+- **T002**: Template handles global.json and SDK configuration automatically
+- **T003**: Template includes ServiceDefaults reference and package setup
+- **Prerequisites Documentation**: Update to remove workload, add template installation
+
+**References**:
+- https://aka.ms/aspire/support-policy (Workload deprecation notice)
+- https://learn.microsoft.com/en-us/dotnet/aspire/get-started/
+- NuGet: https://www.nuget.org/packages/Aspire.ProjectTemplates
+
+---
+
 ## Summary
 
 All research tasks completed. Key technology decisions:
@@ -579,13 +658,16 @@ All research tasks completed. Key technology decisions:
 | Component | Decision | Version |
 |-----------|----------|---------|
 | .NET SDK | .NET 10 RC2 | 10.0.100-rc.2 |
-| Aspire | Aspire.Hosting | 10.0.0-rc.2 |
+| Aspire | **NuGet packages (NOT workload)** | 10.0.0-rc.2 |
+| Templates | Aspire.ProjectTemplates | 10.0.0-rc.2 |
 | Logging | Serilog + OTLP | Serilog.AspNetCore 8.0.2 |
 | Resilience | Microsoft.Extensions.Http.Resilience | 8.10.0 |
 | Service Discovery | Aspire built-in | (included in Aspire) |
 | Container Storage | Docker named volumes | (persistent by default) |
 | Authentication | None (local dev only) | N/A |
 | Connection Security | Phase 1: Hardcoded → Phase 2: Env Var | PostgreSQL 16-alpine |
+
+**CRITICAL NOTE**: Aspire workload is deprecated. Use NuGet packages + project templates instead.
 
 **Exit Criteria**: ✅ All research questions answered with documented rationale and alternatives considered.
 
