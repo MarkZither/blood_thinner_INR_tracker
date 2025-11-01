@@ -148,6 +148,95 @@ dotnet test --collect:"XPlat Code Coverage"
 - Secure storage using platform keychains
 - Battery optimization for background tasks
 
+### .NET Aspire Orchestration Patterns
+
+**AppHost Configuration** (BloodThinnerTracker.AppHost):
+- Use `DistributedApplication.CreateBuilder(args)` to create AppHost
+- Configure container lifetime based on environment (Persistent vs Session)
+- Use parameters for secrets: `builder.AddParameter("name", secret: true)`
+- Reference services with `WithReference()` for automatic service discovery
+- Configure ports with `WithHttpsEndpoint()` and `WithHttpEndpoint()`
+- Add database containers with `.AddPostgres()`, `.AddSqlServer()`, etc.
+- Use `.WithDataVolume()` for persistent container storage
+
+**ServiceDefaults Configuration** (BloodThinnerTracker.ServiceDefaults):
+- All projects MUST call `builder.AddServiceDefaults()` in Program.cs
+- All projects MUST call `app.MapDefaultEndpoints()` before Run()
+- ServiceDefaults provides: OpenTelemetry, Service Discovery, Polly, Health Checks
+- Use `IServiceDefaults` interface for shared configuration
+- Test ServiceDefaults with unit tests (target 90%+ coverage)
+
+**Service Discovery Pattern**:
+```csharp
+// In AppHost.cs
+var api = builder.AddProject<Projects.BloodThinnerTracker_Api>("api");
+var web = builder.AddProject<Projects.BloodThinnerTracker_Web>("web")
+    .WithReference(api); // Web can now discover API
+
+// In Program.cs (Web project)
+builder.AddServiceDefaults(); // Enables service discovery
+var app = builder.Build();
+
+// HttpClient automatically resolves "http://api" to actual endpoint
+var response = await httpClient.GetAsync("http://api/health");
+```
+
+**Database Reference Pattern**:
+```csharp
+// In AppHost.cs
+var postgres = builder.AddPostgres("postgres", password: postgresPassword)
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithDataVolume();
+var bloodtrackerDb = postgres.AddDatabase("bloodtracker");
+
+var api = builder.AddProject<Projects.BloodThinnerTracker_Api>("api")
+    .WithReference(bloodtrackerDb); // Injects connection string
+
+// Connection string automatically available as:
+// ConnectionStrings__bloodtracker (environment variable)
+```
+
+**Testing Pattern** (AppHost.Tests):
+```csharp
+// Use AppHostFixture with IClassFixture for test performance
+public class AppHostFixture : IAsyncLifetime
+{
+    private DistributedApplication? _app;
+    
+    public async Task InitializeAsync()
+    {
+        var appHost = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
+        _app = await appHost.BuildAsync(cancellationToken);
+        await _app.StartAsync(cancellationToken);
+    }
+}
+
+// Use fixture in tests
+[Collection("AppHost")]
+public class MyTests : IClassFixture<AppHostFixture>
+{
+    private readonly AppHostFixture _fixture;
+    
+    [Fact]
+    public async Task Test()
+    {
+        var httpClient = _fixture.App.CreateHttpClient("api");
+        // Test code here
+    }
+}
+```
+
+**Container Lifetime Management**:
+- Use `ASPIRE_CONTAINER_LIFETIME=Session` environment variable for tests (ephemeral)
+- Use `ContainerLifetime.Persistent` for local development (preserves data)
+- Always call `.WithDataVolume()` when using Persistent lifetime
+
+**Optional Features**:
+- Use configuration-based feature flags: `builder.Configuration.GetValue<bool>("Features:EnableX")`
+- InfluxDB: Optional time-series metrics storage (disabled by default)
+- Keep optional features behind flags to maintain simple default experience
+
 When generating code, ALWAYS:
 - Use .NET 10 syntax and features
 - Include proper error handling

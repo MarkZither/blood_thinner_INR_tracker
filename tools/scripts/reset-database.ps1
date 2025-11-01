@@ -27,9 +27,11 @@
     - All data in the local PostgreSQL container will be permanently deleted
     - Production databases are NOT affected (this is local development only)
     - After running this script, press F5 in Visual Studio to recreate the database
+    - Password configuration: Set POSTGRES_PASSWORD environment variable or use appsettings.json
+    - The new container will use the configured password from AppHost
 
 Author: Blood Thinner Tracker Development Team
-Version: 1.0.0
+Version: 1.1.0 - Added environment variable password support
 #>
 
 [CmdletBinding()]
@@ -76,7 +78,7 @@ Write-Host ""
 # Check if Docker is running
 Write-Info "Checking Docker status..."
 try {
-    $dockerInfo = docker info 2>&1
+    $null = docker info 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Custom "Docker is not running!"
         Write-Host ""

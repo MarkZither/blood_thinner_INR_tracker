@@ -8,6 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>6c203cd7-3541-4a5a-b51f-355c2b59fe86</UserSecretsId>
+    <!-- Suppress SA1516 for minimal hosting model (top-level statements) -->
+    <NoWarn>SA1516</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

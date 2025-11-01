@@ -726,9 +726,67 @@ HttpRequestException: No such host is known (http://api)
    }
    ```
 
-2. Restart AppHost
+3. Restart AppHost
 
-3. Dashboard now at http://localhost:16000
+4. Dashboard now at http://localhost:16000
+
+### Enable InfluxDB for Time-Series Metrics (Optional)
+
+**Purpose**: Store metrics in InfluxDB for long-term analysis and custom dashboards
+
+**Enable InfluxDB**:
+
+1. Edit `AppHost/appsettings.json`:
+   ```json
+   {
+     "Features": {
+       "EnableInfluxDB": true
+     }
+   }
+   ```
+
+2. Restart AppHost (F5)
+
+3. InfluxDB will start automatically and appear in Dashboard under **Resources**
+
+**Access InfluxDB UI**:
+- URL: http://localhost:8086
+- Username: `admin`
+- Password: `local_dev_only_password` (from appsettings.json)
+- Organization: `bloodtracker`
+- Bucket: `metrics`
+
+**Configure OpenTelemetry to Export to InfluxDB**:
+
+1. Add package to `ServiceDefaults`:
+   ```bash
+   dotnet add package OpenTelemetry.Exporter.InfluxDB
+   ```
+
+2. Update `ServiceDefaults.cs` to add InfluxDB exporter:
+   ```csharp
+   services.AddOpenTelemetry()
+       .WithMetrics(metrics =>
+       {
+           metrics.AddInfluxDBMetricsExporter(options =>
+           {
+               options.Endpoint = new Uri("http://localhost:8086");
+               options.Token = "your_influxdb_token";
+               options.Org = "bloodtracker";
+               options.Bucket = "metrics";
+           });
+       });
+   ```
+
+3. Restart services to begin exporting metrics
+
+**Use Cases**:
+- **Long-term metric storage**: Keep metrics beyond Dashboard's in-memory retention
+- **Custom dashboards**: Build custom Grafana/InfluxDB dashboards
+- **Alerting**: Set up alerts based on metric thresholds
+- **Historical analysis**: Compare performance over weeks/months
+
+**Note**: InfluxDB is disabled by default to keep local setup simple. Enable only if you need advanced metrics capabilities.
 
 ---
 

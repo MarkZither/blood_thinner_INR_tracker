@@ -84,8 +84,10 @@ blood_thinner_INR_tracker/
 ### Prerequisites
 
 - .NET 10 SDK (10.0.x or later)
-- Visual Studio 2025 or Visual Studio Code
+- Visual Studio 2025 or Visual Studio Code with C# Dev Kit
 - Git
+- Docker Desktop (for PostgreSQL container - used by Aspire orchestration)
+- .NET Aspire templates (optional - usually pre-installed with .NET 10 SDK)
 
 ### Build
 
@@ -99,11 +101,35 @@ dotnet build
 dotnet run --project src/BloodThinnerTracker.Api
 ```
 
-### Run with Aspire (Orchestration)
+### Run with Aspire (Orchestration) - Recommended
 
+**.NET Aspire** provides one-click developer orchestration with:
+- 🚀 **One-Click F5**: Start all services and containers automatically
+- 📊 **Observability Dashboard**: Real-time logs, traces, and metrics at https://localhost:17225
+- 🐳 **Container Management**: PostgreSQL database with automatic lifecycle
+- 🔍 **Service Discovery**: Automatic endpoint resolution between services
+- 🐛 **Integrated Debugging**: Breakpoints work across API, Web, and Database
+
+**Quick Start (30 seconds)**:
+1. Set `BloodThinnerTracker.AppHost` as startup project in Visual Studio 2025
+2. Press **F5** (or `dotnet run --project src/BloodThinnerTracker.AppHost`)
+3. Dashboard opens automatically at https://localhost:17225
+4. All services start automatically (API, Web, PostgreSQL)
+
+**First-Time Setup** (optional - templates pre-installed):
 ```bash
-dotnet run --project src/BloodThinnerTracker.AppHost
+# Install Aspire templates (if not already installed)
+dotnet new install Aspire.ProjectTemplates::9.5.2
 ```
+
+**Dashboard Features**:
+- 📝 **Logs**: View real-time logs from all services with filtering
+- 📈 **Traces**: See distributed traces across API and Web
+- 📊 **Metrics**: Monitor request counts, durations, database calls
+- 💚 **Health**: Check service and database health status
+- 🔗 **Resources**: Quick links to API, Web, and database connections
+
+**For More Details**: See [specs/004-as-a-developer/quickstart.md](specs/004-as-a-developer/quickstart.md)
 
 ### Test
 
