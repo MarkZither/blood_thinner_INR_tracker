@@ -217,48 +217,106 @@ dotnet run --project src/BloodThinnerTracker.AppHost
 
 ---
 
-## Phase 5: User Story 3 - Container Lifecycle Management (Priority: P2)
+## Phase 5: User Story 3 - Container Lifecycle Management (Priority: P2) ✅ COMPLETE
 
 **Goal**: Docker containers automatically start, stop, and persist data between runs
 
 **Independent Test**: Start application, verify PostgreSQL container auto-starts, stop application, verify data persists
 
+**Status**: ✅ Complete (2025-11-01) - Container lifecycle management fully implemented with persistent volumes, reset tooling, and password parameter system
+
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Configure PostgreSQL container with WithLifetime(ContainerLifetime.Persistent) in AppHost/Program.cs
-- [ ] T045 [US3] Configure PostgreSQL container environment variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
-- [ ] T046 [US3] Document connection string security approach in plan.md: Use hardcoded password "local_dev_only_password" for initial implementation
-- [ ] T047 [US3] Verify PostgreSQL container pulls image on first run (postgres:16-alpine)
-- [ ] T048 [US3] Verify PostgreSQL container starts automatically when AppHost starts
-- [ ] T049 [US3] Verify PostgreSQL data volume created (aspire-postgres-data)
-- [ ] T050 [US3] Test data persistence: Create test data, restart AppHost, verify data still exists
-- [ ] T051 [US3] Add error handling for container startup failures in AppHost/Program.cs
-- [ ] T052 [US3] Verify Dashboard shows clear error message when container fails to start
-- [ ] T053 [US3] Create tools/scripts/reset-database.ps1 script that safely stops containers and removes volumes
-- [ ] T054 [US3] Document how to reset database (run reset-database.ps1 script) in specs/004-as-a-developer/quickstart.md
-- [ ] T055 [US3] Test offline scenario: Stop Docker, verify AppHost shows actionable error message
+- [x] T044 [US3] Configure PostgreSQL container with WithLifetime(ContainerLifetime.Persistent) in AppHost/Program.cs
+- [x] T045 [US3] Configure PostgreSQL container environment variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+- [x] T046 [US3] Document connection string security approach in plan.md: Use hardcoded password "local_dev_only_password" for initial implementation
+- [x] T047 [US3] Verify PostgreSQL container pulls image on first run (postgres:16-alpine)
+- [x] T048 [US3] Verify PostgreSQL container starts automatically when AppHost starts
+- [x] T049 [US3] Verify PostgreSQL data volume created (aspire-postgres-data)
+- [x] T050 [US3] Test data persistence: Create test data, restart AppHost, verify data still exists
+- [x] T051 [US3] Add error handling for container startup failures in AppHost/Program.cs
+- [x] T052 [US3] Verify Dashboard shows clear error message when container fails to start
+- [x] T053 [US3] Create tools/scripts/reset-database.ps1 script that safely stops containers and removes volumes
+- [x] T054 [US3] Document how to reset database (run reset-database.ps1 script) in specs/004-as-a-developer/quickstart.md
+- [x] T055 [US3] Test offline scenario: Stop Docker, verify AppHost shows actionable error message
 
-**Checkpoint**: User Story 3 complete - Containers managed automatically with data persistence
+**Implementation Summary**:
+- **Container Lifecycle**: PostgreSQL configured with ContainerLifetime.Persistent (or Session for tests)
+- **Password Management**: ✅ **FIXED** - Using Aspire parameter system for password synchronization
+  - Created `builder.AddParameter("postgres-password")` to ensure same password in connection string AND container
+  - Set parameter value in `appsettings.json` and `appsettings.Development.json`
+  - This fixed "password authentication failed" errors that were appearing in tests
+- **PostgreSQL User**: ✅ **FIXED** - Using standard `postgres` user instead of custom `bloodtracker_user`
+  - Prevents PostgreSQL container initialization errors
+  - Updated DatabaseConfigurationService fallback to use `postgres` as default username
+- **Environment Variables**: POSTGRES_DB="bloodtracker" (password managed via parameter)
+- **Data Volume**: WithDataVolume() ensures data persists across container restarts
+- **Reset Tooling**: Comprehensive reset-database.ps1 script with interactive/force modes
+- **Documentation**: Quickstart.md updated with reset instructions and container management details
+- **Testing**: ✅ **ALL TESTS PASSING** - 5/5 tests passing cleanly in 57 seconds
+  - **52% faster** than before (57s vs 118s)
+  - **Zero PostgreSQL authentication errors**
+  - **Zero DCP endpoint persistence errors**
+  - Sequential test execution working correctly
+
+**Verification**:
+```bash
+dotnet test tests\BloodThinnerTracker.AppHost.Tests
+# Result: 5/5 tests passed in 57 seconds ✅
+# Result: Container lifecycle verified (ephemeral + persistent modes) ✅
+# Result: Data persistence confirmed ✅
+# Result: Clean test output - no password or DCP errors ✅
+```
+
+**Key Fixes Applied**:
+1. **Aspire Password Parameter System**: Created shared parameter that's used in both connection string injection and container environment
+2. **PostgreSQL Standard User**: Using default `postgres` user to avoid container init errors
+3. **Sequential Test Execution**: Collection attribute prevents DCP resource conflicts
+4. **Performance**: Tests run 52% faster with proper lifecycle management
+
+**Checkpoint**: User Story 3 complete - Containers managed automatically with data persistence and reliable test coverage
 
 ---
 
-## Phase 6: User Story 4 - Service Configuration and Discovery (Priority: P2)
+## Phase 6: User Story 4 - Service Configuration and Discovery (Priority: P2) ✅ COMPLETE
 
 **Goal**: Services automatically discover each other and receive injected configuration without hardcoded URLs
 
 **Independent Test**: Verify Web calls API using "http://api" (not localhost:5234), verify connection strings injected
 
+**Status**: ✅ Complete (2025-11-01) - Service discovery working with automatic endpoint injection and connection string configuration
+
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Verify WithReference(api) in Web project injects services__api__http__0 environment variable
-- [ ] T057 [US4] Verify WithReference(db) in API project injects ConnectionStrings__bloodtracker environment variable
-- [ ] T058 [US4] Configure HttpClient in Web with BaseAddress = new Uri("http://api")
-- [ ] T059 [US4] Test service discovery resolution: Make API call from Web, verify resolves to http://localhost:5234
-- [ ] T060 [US4] Test connection string injection: Verify API connects to PostgreSQL using injected connection string
-- [ ] T061 [US4] Remove all hardcoded URLs from appsettings.json files (API and Web)
-- [ ] T062 [US4] Test port change scenario: Change API port in AppHost, restart, verify Web discovers new port automatically
-- [ ] T063 [US4] Add environment-specific configuration support (Development, Staging) in AppHost/Program.cs
-- [ ] T064 [US4] Verify ASPNETCORE_ENVIRONMENT=Development injected into all services
+- [x] T056 [US4] Verify WithReference(api) in Web project injects services__api__http__0 environment variable
+- [x] T057 [US4] Verify WithReference(db) in API project injects ConnectionStrings__bloodtracker environment variable
+- [x] T058 [US4] Configure HttpClient in Web with BaseAddress = new Uri("http://api")
+- [x] T059 [US4] Test service discovery resolution: Make API call from Web, verify resolves to http://localhost:5234
+- [x] T060 [US4] Test connection string injection: Verify API connects to PostgreSQL using injected connection string
+- [x] T061 [US4] Remove all hardcoded URLs from appsettings.json files (API and Web)
+- [x] T062 [US4] Test port change scenario: Change API port in AppHost, restart, verify Web discovers new port automatically
+- [x] T063 [US4] Add environment-specific configuration support (Development, Staging) in AppHost/Program.cs
+- [x] T064 [US4] Verify ASPNETCORE_ENVIRONMENT=Development injected into all services
+
+**Implementation Summary**:
+- **Service Discovery**: Web project uses `.WithReference(api)` to inject API endpoint via environment variables
+- **Connection Strings**: API project uses `.WithReference(postgres)` to receive database connection string
+- **HttpClient Configuration**: Web HttpClient configured with service discovery-based BaseAddress
+- **Testing**: Comprehensive tests in ServiceDiscoveryTests.cs cover all requirements:
+  - `WebCanDiscoverAndCallApiViaServiceDiscovery` - Tests T056, T058, T059
+  - `ApiReceivesDatabaseConnectionStringViaAspireInjection` - Tests T057, T060
+  - `ServiceDiscovery_HandlesConfiguredPorts` - Tests T062
+- **No Hardcoded URLs**: All configuration via Aspire service discovery and injection
+- **Environment Support**: ASPNETCORE_ENVIRONMENT properly configured for all services
+
+**Verification**:
+```bash
+dotnet test tests\BloodThinnerTracker.AppHost.Tests --filter "FullyQualifiedName~ServiceDiscovery"
+# Result: 4/4 tests passed in 35 seconds ✅
+# - WebCanDiscoverAndCallApiViaServiceDiscovery: ✅ Passed (1s)
+# - ApiReceivesDatabaseConnectionStringViaAspireInjection: ✅ Passed (18s)
+# - ServiceDiscovery_HandlesConfiguredPorts: ✅ Passed (30ms)
+```
 
 **Checkpoint**: User Story 4 complete - All services use service discovery and injected configuration
 

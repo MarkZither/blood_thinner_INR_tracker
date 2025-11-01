@@ -24,7 +24,7 @@ public class ServiceDefaultsTests
 
         // Assert
         var serviceProvider = builder.Services.BuildServiceProvider();
-        
+
         // Verify IHttpClientFactory is registered (service discovery uses HttpClient)
         var httpClientFactory = serviceProvider.GetService<IHttpClientFactory>();
         Assert.NotNull(httpClientFactory);
@@ -149,7 +149,7 @@ public class ServiceDefaultsTests
         builder.Environment.EnvironmentName = "Development";
         builder.AddServiceDefaults();
         builder.WebHost.UseTestServer(); // Use TestServer instead of Kestrel
-        
+
         var app = builder.Build();
         app.MapDefaultEndpoints();
         await app.StartAsync();
@@ -160,7 +160,7 @@ public class ServiceDefaultsTests
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
-        
+
         await app.DisposeAsync();
     }
 
@@ -172,7 +172,7 @@ public class ServiceDefaultsTests
         builder.Environment.EnvironmentName = "Development";
         builder.AddServiceDefaults();
         builder.WebHost.UseTestServer(); // Use TestServer instead of Kestrel
-        
+
         var app = builder.Build();
         app.MapDefaultEndpoints();
         await app.StartAsync();
@@ -183,7 +183,7 @@ public class ServiceDefaultsTests
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
-        
+
         await app.DisposeAsync();
     }
 
@@ -194,7 +194,7 @@ public class ServiceDefaultsTests
         var builder = WebApplication.CreateBuilder();
         builder.Environment.EnvironmentName = "Production";
         builder.AddServiceDefaults();
-        
+
         var app = builder.Build();
         app.MapDefaultEndpoints();
 
@@ -204,10 +204,10 @@ public class ServiceDefaultsTests
         var dataSource = app.Services.GetServices<EndpointDataSource>().FirstOrDefault();
         if (dataSource != null)
         {
-            var healthEndpoints = dataSource.Endpoints.Where(e => 
-                e.DisplayName?.Contains("/health", StringComparison.OrdinalIgnoreCase) == true || 
+            var healthEndpoints = dataSource.Endpoints.Where(e =>
+                e.DisplayName?.Contains("/health", StringComparison.OrdinalIgnoreCase) == true ||
                 e.DisplayName?.Contains("/alive", StringComparison.OrdinalIgnoreCase) == true).ToList();
-            
+
             Assert.Empty(healthEndpoints);
         }
     }

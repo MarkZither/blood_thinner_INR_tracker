@@ -1,3 +1,4 @@
+using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -5,24 +6,56 @@ using System.Net;
 
 namespace BloodThinnerTracker.AppHost.Tests;
 
-public class AppHostIntegrationTests
+/// <summary>
+/// Fixture for managing AppHost lifecycle across tests.
+/// Creates a single AppHost instance that is shared across all tests in the class.
+/// </summary>
+public sealed class AppHostFixture : IAsyncLifetime
 {
+    private DistributedApplication? _app;
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
-    [Fact]
-    public async Task AppHost_StartsSuccessfully()
+    public DistributedApplication App => _app ?? throw new InvalidOperationException("AppHost not initialized. Call InitializeAsync first.");
+
+    public async Task InitializeAsync()
     {
-        // Arrange
         var cancellationToken = CancellationToken.None;
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
+        
         appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {
             clientBuilder.AddStandardResilienceHandler();
         });
 
-        // Act
-        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        _app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await _app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_app != null)
+        {
+            await _app.StopAsync();
+            await _app.DisposeAsync();
+        }
+    }
+}
+
+public class AppHostIntegrationTests : IClassFixture<AppHostFixture>
+{
+    private readonly AppHostFixture _fixture;
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+
+    public AppHostIntegrationTests(AppHostFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    [Fact]
+    public async Task AppHost_StartsSuccessfully()
+    {
+        // Arrange & Act - AppHost already started by fixture
+        var app = _fixture.App;
 
         // Assert
         Assert.NotNull(app);
@@ -33,14 +66,7 @@ public class AppHostIntegrationTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
-        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
-        });
-
-        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var app = _fixture.App;
 
         // Act
         await app.ResourceNotifications.WaitForResourceHealthyAsync("api", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
@@ -54,14 +80,7 @@ public class AppHostIntegrationTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
-        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
-        });
-
-        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var app = _fixture.App;
 
         // Act
         await app.ResourceNotifications.WaitForResourceHealthyAsync("web", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
@@ -75,14 +94,7 @@ public class AppHostIntegrationTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
-        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
-        });
-
-        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var app = _fixture.App;
 
         // Act
         using var httpClient = app.CreateHttpClient("api");
@@ -98,14 +110,7 @@ public class AppHostIntegrationTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
-        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
-        });
-
-        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var app = _fixture.App;
 
         // Act
         using var httpClient = app.CreateHttpClient("web");

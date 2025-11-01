@@ -35,6 +35,9 @@ builder.AddServiceDefaults();
 // Configure medical database with encryption and compliance features
 builder.Services.AddMedicalDatabase(builder.Configuration, builder.Environment);
 
+// Add database migration hosted service to run migrations after app starts
+builder.Services.AddHostedService<DatabaseMigrationHostedService>();
+
 // Configure authentication and security for medical application
 builder.Services.ConfigureMedicalAuthentication(builder.Configuration);
 
@@ -140,10 +143,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 var app = builder.Build();
 
-// Initialize database on startup
-await app.Services.EnsureDatabaseAsync();
-
-    app.MapOpenApi();
+app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
     options

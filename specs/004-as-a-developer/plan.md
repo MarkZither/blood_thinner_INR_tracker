@@ -251,6 +251,26 @@ Directory.Build.props                    # EXISTING - Already configured for .NE
 
 **Structure Decision**: Using Option 2 (Web application) with modifications. The existing structure has separate API and Web projects. This feature adds a new AppHost project that orchestrates both, plus modifies ServiceDefaults to provide shared Aspire configuration. The AppHost project becomes the new startup project for local development (F5 launches this instead of individual projects).
 
+## Database Connection Security
+
+**Approach**: For local development, PostgreSQL container uses hardcoded credentials configured in AppHost:
+
+```csharp
+var postgresBuilder = builder.AddPostgres("postgres")
+    .WithEnvironment("POSTGRES_USER", "bloodtracker_user")
+    .WithEnvironment("POSTGRES_PASSWORD", "local_dev_only_password")
+    .WithEnvironment("POSTGRES_DB", "bloodtracker");
+```
+
+**Rationale**: 
+- These credentials are ONLY used in local Docker containers
+- NEVER used in production (production uses Azure Key Vault from Feature 002)
+- Simplifies local development setup (no environment variables needed on developer machines)
+- Credentials are visible in source control, which is acceptable for local development
+- Container is not exposed externally (localhost only)
+
+**Future Enhancement** (Phase 8, Task T080): Optional upgrade to environment variable-based passwords using `POSTGRES_PASSWORD` environment variable for teams with strict credential policies.
+
 ## Complexity Tracking
 
 *No constitution violations. This section is left empty per template instructions.*

@@ -303,15 +303,50 @@ SELECT * FROM medications LIMIT 10;
 
 ### Reset Database Data
 
+**Recommended: Use reset-database.ps1 script** (safest and easiest):
+
+```powershell
+# Navigate to repository root
+cd c:\Source\github\blood_thinner_INR_tracker
+
+# Run reset script (interactive mode with confirmation)
+.\tools\scripts\reset-database.ps1
+
+# Or run with -Force to skip confirmation
+.\tools\scripts\reset-database.ps1 -Force
+```
+
+**What the script does**:
+- ✓ Finds all PostgreSQL containers used by the application
+- ✓ Safely stops running containers
+- ✓ Removes containers
+- ✓ Removes associated data volumes
+- ✓ Provides clear status messages and error handling
+
+**After running the script**:
+1. Press F5 in Visual Studio (or run `dotnet run --project src/BloodThinnerTracker.AppHost`)
+2. Aspire automatically creates a fresh PostgreSQL container
+3. Entity Framework migrations run automatically
+4. Clean database is ready to use
+
+**Manual Options** (if script is unavailable):
+
 **Option 1: Delete Docker volume** (complete reset):
 ```bash
-docker volume ls  # Find volume name (aspire-postgres-data)
-docker volume rm aspire-postgres-data
+# Find volume name
+docker volume ls | findstr postgres
+
+# Stop and remove containers
+docker stop <container_id>
+docker rm <container_id>
+
+# Remove volume
+docker volume rm <volume_name>
 ```
 
 **Option 2: Truncate tables** (keep schema):
 ```bash
-docker exec -it aspire-postgres-1 psql -U bloodtracker -d bloodtracker_dev -c "TRUNCATE TABLE medications CASCADE;"
+docker exec -it <container_name> psql -U bloodtracker_user -d bloodtracker -c "TRUNCATE TABLE medications CASCADE;"
 ```
 
 ---

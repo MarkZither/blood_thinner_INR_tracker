@@ -12,9 +12,16 @@ using System.ComponentModel.DataAnnotations;
 public interface IMedicalEntity
 {
     /// <summary>
-    /// Gets or sets the unique identifier for this entity.
+    /// Gets or sets the internal database identifier for this entity.
+    /// ⚠️ SECURITY: Internal use only - never expose in APIs.
     /// </summary>
-    string Id { get; set; }
+    int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the public-facing identifier for API consumers.
+    /// ⚠️ SECURITY: Non-sequential GUID prevents IDOR and enumeration attacks.
+    /// </summary>
+    Guid PublicId { get; set; }
 
     /// <summary>
     /// Gets or sets when this record was created.
@@ -27,10 +34,12 @@ public interface IMedicalEntity
     DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// Gets or sets the user ID who owns this record.
+    /// Gets or sets the user ID who owns this record (internal foreign key).
+    /// ⚠️ SECURITY: This is the internal int FK for database efficiency.
+    /// API consumers should never see this value - use PublicId instead.
     /// Medical data must be isolated per user for privacy and security.
     /// </summary>
-    string UserId { get; set; }
+    int UserId { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this record is soft deleted for medical data retention compliance.
@@ -50,14 +59,28 @@ public interface IMedicalEntity
 /// ⚠️ MEDICAL BASE ENTITY:
 /// This base class implements common medical data requirements including
 /// audit trails, soft deletion, and user data isolation.
+///
+/// SECURITY: Uses dual-key pattern for defense-in-depth:
+/// - Internal PK: Int with auto-increment for efficient database indexing and relationships
+/// - Public Key: GUID exposed to API consumers to prevent IDOR and enumeration attacks
 /// </summary>
 public abstract class MedicalEntityBase : IMedicalEntity
 {
     /// <summary>
-    /// Gets or sets the unique identifier for this entity.
+    /// Gets or sets the internal database identifier for this entity.
+    /// ⚠️ SECURITY: Internal use only - NEVER expose this in APIs!
+    /// Use PublicId for all external references.
     /// </summary>
     [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the public-facing identifier for API consumers.
+    /// ⚠️ SECURITY: Always use this in API responses instead of Id.
+    /// Non-sequential GUID prevents IDOR attacks and enumeration attacks.
+    /// </summary>
+    [Required]
+    public Guid PublicId { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Gets or sets when this record was created.
@@ -72,12 +95,13 @@ public abstract class MedicalEntityBase : IMedicalEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Gets or sets the user ID who owns this record.
+    /// Gets or sets the user ID who owns this record (internal foreign key).
+    /// ⚠️ SECURITY: This is the internal int FK for database efficiency.
+    /// API consumers should never see this value - use PublicId instead.
     /// Medical data must be isolated per user for privacy and security.
     /// </summary>
     [Required]
-    [StringLength(450)] // Standard ASP.NET Identity user ID length
-    public string UserId { get; set; } = string.Empty;
+    public int UserId { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this record is soft deleted for medical data retention compliance.
@@ -102,10 +126,18 @@ public abstract class MedicalEntityBase : IMedicalEntity
 public class AuditLog
 {
     /// <summary>
-    /// Gets or sets the unique identifier for this audit log entry.
+    /// Gets or sets the internal database primary key (IDENTITY/SERIAL/AUTOINCREMENT).
+    /// This is NOT exposed to API consumers for security reasons.
     /// </summary>
     [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the public-facing unique identifier exposed via APIs.
+    /// Used to prevent IDOR and enumeration attacks. Generated on creation.
+    /// </summary>
+    [Required]
+    public Guid PublicId { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Gets or sets the name of the entity that was changed.
@@ -129,11 +161,12 @@ public class AuditLog
     public string Action { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the user who performed the action.
+    /// Gets or sets the user who performed the action (internal foreign key).
+    /// ⚠️ SECURITY: This is the internal int FK for database efficiency.
+    /// API consumers should never see this value - use PublicId instead.
     /// </summary>
     [Required]
-    [StringLength(450)]
-    public string UserId { get; set; } = string.Empty;
+    public int UserId { get; set; }
 
     /// <summary>
     /// Gets or sets when the action was performed.

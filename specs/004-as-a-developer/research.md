@@ -658,7 +658,7 @@ All research tasks completed. Key technology decisions:
 | Component | Decision | Version |
 |-----------|----------|---------|
 | .NET SDK | .NET 10 RC2 | 10.0.100-rc.2 |
-| Aspire | **NuGet packages (NOT workload)** | 10.0.0-rc.2 |
+| Aspire | **NuGet packages (NOT workload)** | 9.5.2 |
 | Templates | Aspire.ProjectTemplates | 10.0.0-rc.2 |
 | Logging | Serilog + OTLP | Serilog.AspNetCore 8.0.2 |
 | Resilience | Microsoft.Extensions.Http.Resilience | 8.10.0 |

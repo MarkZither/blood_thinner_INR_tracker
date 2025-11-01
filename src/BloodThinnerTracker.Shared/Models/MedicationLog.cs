@@ -9,20 +9,21 @@ namespace BloodThinnerTracker.Shared.Models
     /// <summary>
     /// Medication log entity for tracking when medications are taken.
     /// Records actual medication intake events for compliance monitoring.
-    /// 
+    ///
     /// MEDICAL DISCLAIMER: This entity tracks medication adherence.
     /// Always follow prescribed medication schedules and consult healthcare providers.
     /// </summary>
     [Table("MedicationLogs")]
 public class MedicationLog : MedicalEntityBase
 {
-    /// <summary>
-    /// Gets or sets the related medication identifier.
-    /// </summary>
-    [Required]
-    public string MedicationId { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the related medication identifier.
+        /// ⚠️ SECURITY: This is an internal foreign key. Use Medication.PublicId when exposing via API.
+        /// </summary>
+        [Required]
+        public int MedicationId { get; set; } 
 
-    /// <summary>
+        /// <summary>
         /// Gets or sets the scheduled time when medication should have been taken.
         /// </summary>
         [Required]
@@ -188,16 +189,16 @@ public class MedicationLog : MedicalEntityBase
                 return "On time";
 
             var direction = difference.TotalMinutes > 0 ? "late" : "early";
-            
+
             if (absDifference < 60)
                 return $"{(int)absDifference} minutes {direction}";
-            
+
             var hours = (int)(absDifference / 60);
             var minutes = (int)(absDifference % 60);
-            
+
             if (minutes == 0)
                 return $"{hours} hour{(hours > 1 ? "s" : "")} {direction}";
-            
+
             return $"{hours}h {minutes}m {direction}";
         }
 

@@ -19,12 +19,13 @@
     <PackageReference Include="Azure.Identity" Version="1.17.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-rc.2" />
     <PackageReference Include="Scalar.AspNetCore" Version="1.2.42" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <!-- Removed unnecessary DataProtection reference - included in ASP.NET Core -->
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
@@ -38,6 +39,10 @@
   <ItemGroup>
     <ProjectReference Include="..\BloodThinnerTracker.ServiceDefaults\BloodThinnerTracker.ServiceDefaults.csproj" />
     <ProjectReference Include="..\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
+    <ProjectReference Include="..\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
+    <ProjectReference Include="..\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" />
+    <ProjectReference Include="..\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
+    <ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
   </ItemGroup>
 
 </Project>

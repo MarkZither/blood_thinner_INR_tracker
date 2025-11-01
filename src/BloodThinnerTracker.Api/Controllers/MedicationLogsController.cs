@@ -1,21 +1,21 @@
 /*
  * BloodThinnerTracker.Api - Medication Logs Controller
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * REST API controller for medication dose logging and adherence tracking.
  * Provides endpoints for logging when medications are taken and viewing history.
- * 
+ *
  * ⚠️ MEDICAL DATA CONTROLLER:
  * This controller handles medication intake records which are protected health information (PHI).
  * All operations must comply with healthcare data protection regulations and include proper
  * authentication, authorization, audit logging, and medical safety validations.
- * 
+ *
  * ⚠️ MEDICATION SAFETY WARNINGS:
  * - 12-hour minimum between doses for blood thinners
  * - Maximum daily dose validation enforced
  * - Cannot log future doses
  * - Missed dose tracking for adherence monitoring
- * 
+ *
  * IMPORTANT MEDICAL DISCLAIMER:
  * This software is for informational purposes only and should not replace
  * professional medical advice. Users should consult healthcare providers
@@ -28,7 +28,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using BloodThinnerTracker.Api.Data;
+using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
 
 namespace BloodThinnerTracker.Api.Controllers;
@@ -43,7 +43,7 @@ namespace BloodThinnerTracker.Api.Controllers;
 [Produces("application/json")]
 public sealed class MedicationLogsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ILogger<MedicationLogsController> _logger;
 
     /// <summary>
@@ -51,7 +51,7 @@ public sealed class MedicationLogsController : ControllerBase
     /// </summary>
     /// <param name="context">Database context for medication log data access.</param>
     /// <param name="logger">Logger for operation tracking and debugging.</param>
-    public MedicationLogsController(ApplicationDbContext context, ILogger<MedicationLogsController> logger)
+    public MedicationLogsController(IApplicationDbContext context, ILogger<MedicationLogsController> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -68,37 +68,40 @@ public sealed class MedicationLogsController : ControllerBase
     /// <response code="200">Medication logs retrieved successfully.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">Medication not found.</response>
-    [HttpGet("medication/{medicationId}")]
+    [HttpGet("medication/{medicationPublicId:guid}")]
     [ProducesResponseType(typeof(List<MedicationLogResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<MedicationLogResponse>>> GetMedicationLogs(
-        string medicationId,
+        Guid medicationPublicId,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] MedicationLogStatus? status = null)
     {
+        Guid? userPublicId = null;
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to get medication logs with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
-            // Verify medication exists and belongs to user
+            // Verify medication exists and belongs to user - get internal ID for FK queries
             var medication = await _context.Medications
-                .FirstOrDefaultAsync(m => m.Id == medicationId && m.UserId == userId && !m.IsDeleted);
+                .Include(m => m.User)
+                .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
 
             if (medication == null)
             {
-                _logger.LogWarning("Medication not found: {MedicationId} for user ID: {UserId}", medicationId, userId);
+                _logger.LogWarning("Medication not found: {MedicationPublicId} for user {UserPublicId}", medicationPublicId, userPublicId);
                 return NotFound("Medication not found");
             }
 
+            // ⚠️ SECURITY: Use internal int IDs for FK comparisons
             var query = _context.MedicationLogs
-                .Where(ml => ml.MedicationId == medicationId && ml.UserId == userId && !ml.IsDeleted);
+                .Where(ml => ml.Medication.PublicId == medication.PublicId && ml.UserId == medication.UserId && !ml.IsDeleted);
 
             if (fromDate.HasValue)
                 query = query.Where(ml => ml.ScheduledTime >= fromDate.Value);
@@ -113,8 +116,8 @@ public sealed class MedicationLogsController : ControllerBase
                 .OrderByDescending(ml => ml.ScheduledTime)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.Id,
-                    MedicationId = ml.MedicationId,
+                    Id = ml.PublicId.ToString(),
+                    MedicationId = medication.PublicId.ToString(),
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -131,49 +134,52 @@ public sealed class MedicationLogsController : ControllerBase
                 })
                 .ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} medication logs for medication {MedicationId}, user ID: {UserId}", 
-                logs.Count, medicationId, userId);
+            _logger.LogInformation("Retrieved {Count} medication logs for medication {MedicationPublicId}, user {UserPublicId}",
+                logs.Count, medicationPublicId, userPublicId);
             return Ok(logs);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving medication logs for medication {MedicationId}, user ID: {UserId}", 
-                medicationId, GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error retrieving medication logs for medication {MedicationPublicId}, user {UserPublicId}",
+                medicationPublicId, userPublicId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while retrieving medication logs");
         }
     }
 
     /// <summary>
-    /// Gets a specific medication log by ID.
+    /// Gets a specific medication log by PublicId.
     /// </summary>
-    /// <param name="id">Medication log ID.</param>
+    /// <param name="publicId">Medication log PublicId (GUID).</param>
     /// <returns>Medication log details.</returns>
     /// <response code="200">Medication log retrieved successfully.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">Medication log not found.</response>
-    [HttpGet("{id}")]
+    [HttpGet("{publicId:guid}")]
     [ProducesResponseType(typeof(MedicationLogResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MedicationLogResponse>> GetMedicationLog(string id)
+    public async Task<ActionResult<MedicationLogResponse>> GetMedicationLog(Guid publicId)
     {
+        Guid? userPublicId = null;
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to get medication log with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
+            // ⚠️ SECURITY: Query by PublicId and verify user ownership
             var log = await _context.MedicationLogs
                 .Include(ml => ml.Medication)
-                .Where(ml => ml.Id == id && ml.UserId == userId && !ml.IsDeleted)
+                    .ThenInclude(m => m.User)
+                .Where(ml => ml.PublicId == publicId && ml.Medication.User.PublicId == userPublicId.Value && !ml.IsDeleted)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.Id,
-                    MedicationId = ml.MedicationId,
+                    Id = ml.PublicId.ToString(),
+                    MedicationId = ml.Medication.PublicId.ToString(),
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -192,17 +198,17 @@ public sealed class MedicationLogsController : ControllerBase
 
             if (log == null)
             {
-                _logger.LogWarning("Medication log not found: {LogId} for user ID: {UserId}", id, userId);
+                _logger.LogWarning("Medication log not found: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
                 return NotFound("Medication log not found");
             }
 
-            _logger.LogInformation("Medication log retrieved successfully: {LogId} for user ID: {UserId}", id, userId);
+            _logger.LogInformation("Medication log retrieved successfully: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
             return Ok(log);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving medication log {LogId} for user ID: {UserId}", id, GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error retrieving medication log {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while retrieving the medication log");
         }
     }
@@ -221,34 +227,52 @@ public sealed class MedicationLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<MedicationLogResponse>> LogMedicationDose([FromBody] LogMedicationRequest request)
     {
+        Guid? userPublicId = null;
         try
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for medication log creation: {Errors}", 
+                _logger.LogWarning("Invalid model state for medication log creation: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
             }
 
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to log medication with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
-            // Get medication and verify ownership
+            // Parse medication PublicId from request
+            if (!Guid.TryParse(request.MedicationId, out var medicationPublicId))
+            {
+                _logger.LogWarning("Invalid medication PublicId format: {MedicationId}", request.MedicationId);
+                return BadRequest("Invalid medication ID format");
+            }
+
+            // Get user's internal Id first
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.PublicId == userPublicId.Value && !u.IsDeleted);
+
+            if (user == null)
+            {
+                _logger.LogWarning("User not found: {UserPublicId}", userPublicId);
+                return Unauthorized("User not found");
+            }
+
+            // Get medication and verify ownership - need internal ID for FK
             var medication = await _context.Medications
-                .FirstOrDefaultAsync(m => m.Id == request.MedicationId && m.UserId == userId && !m.IsDeleted);
+                .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.UserId == user.Id && !m.IsDeleted);
 
             if (medication == null)
             {
-                _logger.LogWarning("Medication not found: {MedicationId} for user ID: {UserId}", request.MedicationId, userId);
+                _logger.LogWarning("Medication not found: {MedicationPublicId} for user {UserPublicId}", medicationPublicId, userPublicId);
                 return NotFound("Medication not found");
             }
 
             // Medical safety validations
-            var safetyValidation = await ValidateMedicationLogSafety(request, medication, userId);
+            var safetyValidation = await ValidateMedicationLogSafety(request, medication, user.Id);
             if (!safetyValidation.IsValid)
             {
                 _logger.LogWarning("Medication log safety validation failed: {Errors}", string.Join(", ", safetyValidation.Errors));
@@ -258,11 +282,12 @@ public sealed class MedicationLogsController : ControllerBase
             var actualTime = request.ActualTime ?? DateTime.UtcNow;
             var scheduledTime = request.ScheduledTime ?? actualTime;
 
+            // ⚠️ SECURITY: Generate PublicId for new entity, use internal int IDs for FKs
             var medicationLog = new MedicationLog
             {
-                Id = Guid.NewGuid().ToString(),
-                UserId = userId,
-                MedicationId = request.MedicationId,
+                PublicId = Guid.NewGuid(),
+                MedicationId = medication.Id,
+                UserId = user.Id,
                 ScheduledTime = scheduledTime,
                 ActualTime = actualTime,
                 Status = request.Status ?? MedicationLogStatus.Taken,
@@ -285,8 +310,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = medicationLog.Id,
-                MedicationId = medicationLog.MedicationId,
+                Id = medicationLog.PublicId.ToString(),
+                MedicationId = medication.PublicId.ToString(),
                 MedicationName = medication.Name,
                 ScheduledTime = medicationLog.ScheduledTime,
                 ActualTime = medicationLog.ActualTime,
@@ -302,14 +327,14 @@ public sealed class MedicationLogsController : ControllerBase
                 CreatedAt = medicationLog.CreatedAt
             };
 
-            _logger.LogInformation("Medication dose logged successfully: {LogId} for medication {MedicationId}, user ID: {UserId}", 
-                medicationLog.Id, request.MedicationId, userId);
-            return CreatedAtAction(nameof(GetMedicationLog), new { id = medicationLog.Id }, response);
+            _logger.LogInformation("Medication dose logged successfully: {LogPublicId} for medication {MedicationPublicId}, user {UserPublicId}",
+                medicationLog.PublicId, medicationPublicId, userPublicId);
+            return CreatedAtAction(nameof(GetMedicationLog), new { publicId = medicationLog.PublicId }, response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error logging medication dose for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error logging medication dose for user {UserPublicId}", userPublicId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while logging the medication dose");
         }
     }
@@ -317,31 +342,32 @@ public sealed class MedicationLogsController : ControllerBase
     /// <summary>
     /// Updates an existing medication log.
     /// </summary>
-    /// <param name="id">Medication log ID.</param>
+    /// <param name="publicId">Medication log PublicId (GUID).</param>
     /// <param name="request">Updated medication log data.</param>
     /// <returns>Updated medication log details.</returns>
     /// <response code="200">Medication log updated successfully.</response>
     /// <response code="400">Invalid medication log data provided.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">Medication log not found.</response>
-    [HttpPut("{id}")]
+    [HttpPut("{publicId:guid}")]
     [ProducesResponseType(typeof(MedicationLogResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MedicationLogResponse>> UpdateMedicationLog(string id, [FromBody] UpdateMedicationLogRequest request)
+    public async Task<ActionResult<MedicationLogResponse>> UpdateMedicationLog(Guid publicId, [FromBody] UpdateMedicationLogRequest request)
     {
+        Guid? userPublicId = null;
         try
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for medication log update: {Errors}", 
+                _logger.LogWarning("Invalid model state for medication log update: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
             }
 
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to update medication log with invalid user ID");
                 return Unauthorized("Invalid user authentication");
@@ -350,11 +376,12 @@ public sealed class MedicationLogsController : ControllerBase
             // Get existing log and verify ownership
             var existingLog = await _context.MedicationLogs
                 .Include(ml => ml.Medication)
-                .FirstOrDefaultAsync(ml => ml.Id == id && ml.UserId == userId && !ml.IsDeleted);
+                    .ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(ml => ml.PublicId == publicId && ml.Medication.User.PublicId == userPublicId.Value && !ml.IsDeleted);
 
             if (existingLog == null)
             {
-                _logger.LogWarning("Medication log not found for update: {LogId} for user ID: {UserId}", id, userId);
+                _logger.LogWarning("Medication log not found for update: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
                 return NotFound("Medication log not found");
             }
 
@@ -395,8 +422,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = existingLog.Id,
-                MedicationId = existingLog.MedicationId,
+                Id = existingLog.PublicId.ToString(),
+                MedicationId = existingLog.Medication.PublicId.ToString(),
                 MedicationName = existingLog.Medication.Name,
                 ScheduledTime = existingLog.ScheduledTime,
                 ActualTime = existingLog.ActualTime,
@@ -412,13 +439,13 @@ public sealed class MedicationLogsController : ControllerBase
                 CreatedAt = existingLog.CreatedAt
             };
 
-            _logger.LogInformation("Medication log updated successfully: {LogId} for user ID: {UserId}", id, userId);
+            _logger.LogInformation("Medication log updated successfully: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating medication log {LogId} for user ID: {UserId}", id, GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error updating medication log {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while updating the medication log");
         }
     }
@@ -426,32 +453,35 @@ public sealed class MedicationLogsController : ControllerBase
     /// <summary>
     /// Deletes a medication log (soft delete).
     /// </summary>
-    /// <param name="id">Medication log ID.</param>
+    /// <param name="publicId">Medication log PublicId (GUID).</param>
     /// <returns>No content on success.</returns>
     /// <response code="204">Medication log deleted successfully.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">Medication log not found.</response>
-    [HttpDelete("{id}")]
+    [HttpDelete("{publicId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteMedicationLog(string id)
+    public async Task<IActionResult> DeleteMedicationLog(Guid publicId)
     {
+        Guid? userPublicId = null;
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to delete medication log with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var log = await _context.MedicationLogs
-                .FirstOrDefaultAsync(ml => ml.Id == id && ml.UserId == userId && !ml.IsDeleted);
+                .Include(ml => ml.Medication)
+                    .ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(ml => ml.PublicId == publicId && ml.Medication.User.PublicId == userPublicId.Value && !ml.IsDeleted);
 
             if (log == null)
             {
-                _logger.LogWarning("Medication log not found for deletion: {LogId} for user ID: {UserId}", id, userId);
+                _logger.LogWarning("Medication log not found for deletion: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
                 return NotFound("Medication log not found");
             }
 
@@ -462,13 +492,13 @@ public sealed class MedicationLogsController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Medication log deleted successfully: {LogId} for user ID: {UserId}", id, userId);
+            _logger.LogInformation("Medication log deleted successfully: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting medication log {LogId} for user ID: {UserId}", id, GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error deleting medication log {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while deleting the medication log");
         }
     }
@@ -478,9 +508,9 @@ public sealed class MedicationLogsController : ControllerBase
     /// </summary>
     /// <param name="request">Medication log request.</param>
     /// <param name="medication">Medication being logged.</param>
-    /// <param name="userId">User ID.</param>
+    /// <param name="userId">User's internal ID (int).</param>
     /// <returns>Validation result with any safety concerns.</returns>
-    private async Task<SafetyValidationResult> ValidateMedicationLogSafety(LogMedicationRequest request, Medication medication, string userId)
+    private async Task<SafetyValidationResult> ValidateMedicationLogSafety(LogMedicationRequest request, Medication medication, int userId)
     {
         var errors = new List<string>();
         var actualTime = request.ActualTime ?? DateTime.UtcNow;
@@ -494,9 +524,10 @@ public sealed class MedicationLogsController : ControllerBase
         // Check minimum time between doses for blood thinners
         if (medication.IsBloodThinner && medication.MinHoursBetweenDoses > 0)
         {
+            // ⚠️ SECURITY: Use internal int IDs for FK comparisons
             var lastDose = await _context.MedicationLogs
-                .Where(ml => ml.MedicationId == request.MedicationId && 
-                            ml.UserId == userId && 
+                .Where(ml => ml.Medication.PublicId == medication.PublicId &&
+                            ml.UserId == userId &&
                             ml.Status == MedicationLogStatus.Taken &&
                             ml.ActualTime.HasValue &&
                             ml.ActualTime.Value < actualTime && // Only check doses that are actually before this one
@@ -507,10 +538,10 @@ public sealed class MedicationLogsController : ControllerBase
             if (lastDose != null && lastDose.ActualTime.HasValue)
             {
                 var hoursSinceLastDose = (actualTime - lastDose.ActualTime.Value).TotalHours;
-                
+
                 // Add 2-hour grace period for flexibility (e.g., 12 hours becomes 10 hours minimum)
                 var minimumHoursWithGrace = Math.Max(medication.MinHoursBetweenDoses - 2, medication.MinHoursBetweenDoses * 0.8);
-                
+
                 if (hoursSinceLastDose < minimumHoursWithGrace)
                 {
                     // This is a hard error - too soon
@@ -520,7 +551,7 @@ public sealed class MedicationLogsController : ControllerBase
                 else if (hoursSinceLastDose < medication.MinHoursBetweenDoses)
                 {
                     // This is a warning but allowed (within grace period)
-                    _logger.LogWarning("Dose logged within grace period: {Hours} hours since last dose (minimum: {Min})", 
+                    _logger.LogWarning("Dose logged within grace period: {Hours} hours since last dose (minimum: {Min})",
                         hoursSinceLastDose, medication.MinHoursBetweenDoses);
                 }
             }
@@ -531,8 +562,9 @@ public sealed class MedicationLogsController : ControllerBase
         var todayStart = today.ToUniversalTime();
         var todayEnd = today.AddDays(1).ToUniversalTime();
 
+        // ⚠️ SECURITY: Use internal int IDs for FK comparisons
         var todayDoses = await _context.MedicationLogs
-            .Where(ml => ml.MedicationId == request.MedicationId &&
+            .Where(ml => ml.Medication.PublicId == medication.PublicId &&
                         ml.UserId == userId &&
                         ml.Status == MedicationLogStatus.Taken &&
                         ml.ActualTime.HasValue &&
@@ -543,7 +575,7 @@ public sealed class MedicationLogsController : ControllerBase
 
         var totalDosageToday = todayDoses.Sum(ml => ml.ActualDosage ?? 0);
         var newDosage = request.ActualDosage ?? medication.Dosage;
-        
+
         if (totalDosageToday + newDosage > medication.MaxDailyDose)
         {
             errors.Add($"Daily dose limit ({medication.MaxDailyDose}{medication.DosageUnit}) would be exceeded. " +
@@ -573,14 +605,20 @@ public sealed class MedicationLogsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the current user ID from JWT claims.
+    /// Gets the current user's public ID (GUID) from JWT claims.
+    /// ⚠️ SECURITY: JWT claims contain PublicId (GUID), never internal database Id.
     /// </summary>
-    /// <returns>Current user ID or null if not authenticated.</returns>
-    private string? GetCurrentUserId()
+    /// <returns>Current user's public GUID or null if not authenticated.</returns>
+    private Guid? GetCurrentUserPublicId()
     {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-               User.FindFirst("sub")?.Value ??
-               User.FindFirst("userId")?.Value;
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                        User.FindFirst("sub")?.Value ??
+                        User.FindFirst("userId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdStr))
+            return null;
+
+        return Guid.TryParse(userIdStr, out var guid) ? guid : null;
     }
 }
 

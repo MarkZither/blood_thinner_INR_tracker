@@ -702,8 +702,8 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userPublicId))
             {
                 _logger.LogWarning("Unable to extract user ID from token");
                 return Unauthorized();
@@ -711,7 +711,7 @@ public class AuthController : ControllerBase
 
             var userInfo = new UserInfo
             {
-                Id = userId,
+                Id = userIdStr,  // Return PublicId as string for API consumers
                 Email = User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty,
                 Name = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty,
                 Role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Patient",
@@ -719,9 +719,9 @@ public class AuthController : ControllerBase
                 TimeZone = User.FindFirst("timezone")?.Value ?? "UTC"
             };
 
-            var permissions = await _authenticationService.GetUserPermissionsAsync(userId);
+            var permissions = await _authenticationService.GetUserPermissionsAsync(userPublicId);
 
-            _logger.LogDebug("Retrieved user information for {UserId}", userId);
+            _logger.LogDebug("Retrieved user information for {UserPublicId}", userPublicId);
             return Ok(new { user = userInfo, permissions });
         }
         catch (Exception ex)

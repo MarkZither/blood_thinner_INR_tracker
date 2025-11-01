@@ -231,9 +231,15 @@ public class MedicationService : IMedicationService
         try
         {
             var medications = await GetMedicationsAsync();
+            int? excludeIdInt = null;
+            if (!string.IsNullOrEmpty(excludeId) && int.TryParse(excludeId, out var parsedId))
+            {
+                excludeIdInt = parsedId;
+            }
+            
             return medications.Any(m =>
                 m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
-                (string.IsNullOrEmpty(excludeId) || m.Id != excludeId));
+                (!excludeIdInt.HasValue || m.Id != excludeIdInt.Value));
         }
         catch (Exception ex)
         {

@@ -18,6 +18,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.2.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +28,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BloodThinnerTracker.Api\BloodThinnerTracker.Api.csproj" />
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
   </ItemGroup>
 
 </Project>

@@ -368,9 +368,9 @@
                 // Map to today's medications view model
                 todayMedications = medications.Select(m => new TodayMedicationViewModel
                 {
-                    Id = m.Id,
+                    Id = m.PublicId.ToString(),
                     Name = m.Name,
-                    Dosage = (int)m.Dosage,
+                    Dosage = m.Dosage,
                     DosageUnit = m.DosageUnit,
                     NextDoseTime = DateTime.Today.AddHours(8), // TODO: Calculate from schedule
                     IsTaken = false // TODO: Check from medication logs
@@ -383,7 +383,7 @@
             {
                 recentINRTests = inrTests.Select(r => new INRTest
                 {
-                    Id = r.Id,
+                    Id = int.TryParse(r.Id, out var id) ? id : 0,
                     INRValue = r.INRValue,
                     TestDate = r.TestDate,
                     Status = r.Status,
