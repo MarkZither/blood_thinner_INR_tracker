@@ -245,6 +245,223 @@ web → GET /medications → 245ms
 - appsettings.json changes **require restart**
 - NuGet package changes **require restart**
 
+### Debugging Across Multiple Services
+
+.NET Aspire provides a seamless multi-project debugging experience. You can set breakpoints in any service (API, Web, etc.) and debug simultaneously.
+
+#### Setting Up Debug Configuration
+
+**Visual Studio 2025**:
+1. Open `BloodThinnerTracker.sln`
+2. Right-click `BloodThinnerTracker.AppHost` project → **Set as Startup Project**
+3. Verify you see AppHost in the debug dropdown (should show "https" or "http" profile)
+4. Press **F5** to start debugging
+
+**Visual Studio Code**:
+1. Open repository root folder
+2. Create/verify `.vscode/launch.json` (AppHost should be the default launch configuration)
+3. Press **F5** to start debugging
+4. Select `.NET Core Launch (AppHost)` if prompted
+
+**JetBrains Rider**:
+1. Open solution
+2. In Run/Debug Configurations, select `AppHost` profile
+3. Click **Debug** button or press **Shift+F9**
+
+#### Debugging API Controllers
+
+**Example: Debug a medication endpoint**
+
+1. Open `src/BloodThinnerTracker.Api/Controllers/MedicationsController.cs`
+2. Set breakpoint on line in `GetMedications()` method:
+   ```csharp
+   [HttpGet]
+   public async Task<ActionResult<List<MedicationDto>>> GetMedications()
+   {
+       var medications = await _medicationService.GetAllMedicationsAsync(); // ← SET BREAKPOINT HERE
+       return Ok(medications);
+   }
+   ```
+3. Start debugging (F5)
+4. Once application is running, open browser to `http://localhost:5235/medications`
+5. Debugger will stop at your breakpoint
+6. Inspect variables:
+   - Hover over `medications` to see the collection
+   - Use **Watch** window to examine `medications.Count`, individual items, etc.
+   - Check **Call Stack** to see Web → API request flow
+7. Press **F5** or **F10** (Step Over) / **F11** (Step Into) to continue
+
+**Debug API directly via Swagger**:
+1. Set breakpoint in API controller
+2. Navigate to `http://localhost:5234/swagger`
+3. Expand endpoint (e.g., `GET /medications`)
+4. Click **Try it out** → **Execute**
+5. Debugger stops at breakpoint
+
+#### Debugging Blazor Web Pages
+
+**Example: Debug a Razor component**
+
+1. Open `src/BloodThinnerTracker.Web/Components/Pages/Medications.razor`
+2. Set breakpoint in the `@code` block:
+   ```csharp
+   @code {
+       private List<MedicationDto>? medications;
+
+       protected override async Task OnInitializedAsync()
+       {
+           medications = await Http.GetFromJsonAsync<List<MedicationDto>>("medications"); // ← SET BREAKPOINT HERE
+       }
+   }
+   ```
+3. Start debugging (F5)
+4. Navigate to `http://localhost:5235/medications` in browser
+5. Debugger stops at your breakpoint
+6. Inspect `Http` client, `medications` variable, etc.
+
+**Note**: Blazor Server-side rendering means breakpoints work seamlessly - no special configuration needed!
+
+#### Cross-Service Debugging
+
+You can debug requests that flow across multiple services:
+
+**Scenario: Web calls API, which queries database**
+
+1. Set breakpoint in **Web** (e.g., `Medications.razor` in `OnInitializedAsync`)
+2. Set breakpoint in **API** (e.g., `MedicationsController.GetMedications()`)
+3. Set breakpoint in **API** data service (e.g., `MedicationService.GetAllMedicationsAsync()`)
+4. Start debugging (F5)
+5. Navigate to medications page in browser
+6. Debugger stops at **first breakpoint** (Web component)
+7. Press **F5** to continue → stops at **second breakpoint** (API controller)
+8. Press **F5** to continue → stops at **third breakpoint** (data service)
+9. Use **Call Stack** window to see complete request flow
+
+**Call Stack Example**:
+```
+BloodThinnerTracker.Api.Services.MedicationService.GetAllMedicationsAsync()
+BloodThinnerTracker.Api.Controllers.MedicationsController.GetMedications()
+Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeActionMethodAsync()
+...
+System.Net.Http.HttpClient.GetFromJsonAsync()
+BloodThinnerTracker.Web.Components.Pages.Medications.OnInitializedAsync()
+```
+
+#### Debugging with Aspire Dashboard Open
+
+The Aspire Dashboard remains accessible during debugging:
+
+1. Start debugging (F5)
+2. Open `http://localhost:17225` in **separate browser window**
+3. Set breakpoints in Visual Studio
+4. As requests execute and hit breakpoints:
+   - **Dashboard** shows real-time logs from the service
+   - **Visual Studio** pauses at breakpoint for inspection
+   - **Traces** tab shows distributed trace being built
+5. Continue debugging (F5) to resume
+
+**Tip**: Use **two monitors** - Visual Studio on one, Dashboard on the other - for optimal experience!
+
+#### Exception Debugging
+
+**Catch exceptions in the Dashboard**:
+
+1. Trigger an exception (e.g., pass invalid ID to API):
+   ```bash
+   curl http://localhost:5234/medications/invalid-id
+   ```
+2. Open Dashboard → **Console Logs** tab → Filter by "Error"
+3. See exception details with full stack trace
+4. Click trace ID to view distributed trace showing where exception occurred
+
+**Debug exceptions in code**:
+
+1. Configure Visual Studio to break on exceptions:
+   - **Debug** menu → **Windows** → **Exception Settings**
+   - Check **Common Language Runtime Exceptions**
+2. Trigger exception by invalid operation
+3. Debugger breaks **immediately** when exception is thrown
+4. Inspect **Locals** window to see exception message, inner exception, stack trace
+5. Use **Immediate Window** to query variables: `?exception.Message`
+
+**Add exception breakpoint**:
+```csharp
+try
+{
+    var result = await _service.ProcessAsync(data);
+    return Ok(result);
+}
+catch (Exception ex)
+{
+    // SET BREAKPOINT HERE to inspect exceptions
+    _logger.LogError(ex, "Error processing request");
+    throw;
+}
+```
+
+#### Hot Reload During Debugging
+
+You can modify code **while debugging** without restarting:
+
+**Supported changes** (Hot Reload compatible):
+- ✅ Modify method bodies
+- ✅ Add/remove/modify local variables
+- ✅ Change string literals
+- ✅ Modify LINQ queries
+- ✅ Update Blazor .razor file HTML/CSS
+
+**Unsupported changes** (require restart):
+- ❌ Add/remove methods or properties
+- ❌ Change method signatures
+- ❌ Modify class inheritance
+- ❌ Add/remove using statements
+- ❌ Change dependency injection registrations
+
+**How to use Hot Reload**:
+1. Start debugging (F5)
+2. Set breakpoint and hit it
+3. **While paused at breakpoint**, modify code in the same method
+4. Visual Studio shows 🔥 "Hot Reload" indicator
+5. Press **F5** to continue → changes apply immediately
+6. No restart needed!
+
+**Example**:
+```csharp
+[HttpGet("{id}")]
+public async Task<ActionResult<MedicationDto>> GetMedication(int id)
+{
+    var medication = await _service.GetByIdAsync(id);
+    
+    if (medication == null)
+    {
+        // While debugging, change this message:
+        return NotFound("Medication not found"); // ← EDIT THIS
+        // to:
+        return NotFound($"Medication with ID {id} not found"); // ← NEW VERSION
+        // Press F5 → change applies immediately!
+    }
+    
+    return Ok(medication);
+}
+```
+
+#### Debugging Performance Issues
+
+**Identify slow endpoints**:
+1. Open Dashboard → **Metrics** tab
+2. Select `api` service
+3. View **Request Duration** chart
+4. Identify endpoints with high P95/P99 latency
+5. Set breakpoints in those endpoints and inspect with **Diagnostic Tools** window
+
+**Use Diagnostic Tools** (Visual Studio):
+- **Debug** menu → **Windows** → **Show Diagnostic Tools** (Ctrl+Alt+F2)
+- While debugging:
+  - **CPU Usage**: See which methods consume most CPU
+  - **Memory Usage**: Track memory allocations
+  - **Events**: See breakpoint hits, exceptions
+- Take **CPU/Memory snapshots** to compare before/after code changes
+
 ### Restart a Single Service
 
 **Via Dashboard**:
