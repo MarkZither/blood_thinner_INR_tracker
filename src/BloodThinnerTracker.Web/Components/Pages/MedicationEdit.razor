@@ -69,11 +69,11 @@
 
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_medication.GenericName"
-                                            Label="Medication Name"
+                                <MudTextField @bind-Value="_medication.Name"
+                                            Label="How You Know This Medication"
                                             Required="true"
                                             MaxLength="100"
-                                            HelperText="Brand or generic name" />
+                                            HelperText="The name you use for this medication" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -85,6 +85,20 @@
                                         <MudSelectItem Value="@type">@type</MudSelectItem>
                                     }
                                 </MudSelect>
+                            </MudItem>
+                            
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_medication.GenericName"
+                                            Label="Generic Name"
+                                            MaxLength="100"
+                                            HelperText="Optional - medical/scientific name" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_medication.BrandName"
+                                            Label="Brand Name(s)"
+                                            MaxLength="100"
+                                            HelperText="Optional - commercial/brand name" />
                             </MudItem>
 
                             <MudItem xs="12" md="4">
