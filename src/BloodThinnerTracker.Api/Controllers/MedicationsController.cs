@@ -636,16 +636,28 @@ public sealed class MedicationsController : ControllerBase
                 errors.Add("Blood thinners require minimum 12 hours between doses for safety");
             }
 
-            if (request.MaxDailyDose > 20)
+            // Warfarin (VitKAntagonist) specific validations
+            if (request.Type == MedicationType.VitKAntagonist)
             {
-                errors.Add("Blood thinner daily dose exceeds safe maximum (20mg). Consult healthcare provider.");
+                if (request.MaxDailyDose > 20)
+                {
+                    errors.Add("Warfarin dosage above 20mg requires special attention. Consult healthcare provider.");
+                }
+
+                // Warfarin MUST have INR monitoring
+                if (request.RequiresINRMonitoring == false)
+                {
+                    errors.Add("Warfarin (Vitamin K Antagonist) requires INR monitoring. This cannot be disabled.");
+                }
+
+                // Warfarin should have INR targets set
+                if (!request.INRTargetMin.HasValue || !request.INRTargetMax.HasValue)
+                {
+                    errors.Add("Warfarin requires INR target range to be set (typical: 2.0-3.0)");
+                }
             }
 
-            if (request.RequiresINRMonitoring == false)
-            {
-                errors.Add("Blood thinners typically require INR monitoring. Please verify with healthcare provider.");
-            }
-
+            // INR range validation (when specified)
             if (request.INRTargetMin.HasValue && request.INRTargetMax.HasValue)
             {
                 if (request.INRTargetMin.Value < 0.5m || request.INRTargetMax.Value > 8.0m)
@@ -695,6 +707,7 @@ public sealed class MedicationsController : ControllerBase
 
         // Check if this is a blood thinner (existing or being changed to one)
         var isBloodThinner = request.IsBloodThinner ?? existingMedication.IsBloodThinner;
+        var medicationType = existingMedication.Type; // Type cannot be changed via update
 
         if (isBloodThinner)
         {
@@ -704,18 +717,24 @@ public sealed class MedicationsController : ControllerBase
                 errors.Add("Blood thinners require minimum 12 hours between doses for safety");
             }
 
-            var maxDose = request.MaxDailyDose ?? existingMedication.MaxDailyDose;
-            if (maxDose > 20)
+            // Warfarin (VitKAntagonist) specific validations
+            if (medicationType == MedicationType.VitKAntagonist)
             {
-                errors.Add("Blood thinner daily dose exceeds safe maximum (20mg). Consult healthcare provider.");
+                var maxDose = request.MaxDailyDose ?? existingMedication.MaxDailyDose;
+                if (maxDose > 20)
+                {
+                    errors.Add("Warfarin dosage above 20mg requires special attention. Consult healthcare provider.");
+                }
+
+                // Warfarin MUST have INR monitoring
+                var requiresINR = request.RequiresINRMonitoring ?? existingMedication.RequiresINRMonitoring;
+                if (!requiresINR)
+                {
+                    errors.Add("Warfarin (Vitamin K Antagonist) requires INR monitoring. This cannot be disabled.");
+                }
             }
 
-            var requiresINR = request.RequiresINRMonitoring ?? existingMedication.RequiresINRMonitoring;
-            if (!requiresINR)
-            {
-                errors.Add("Blood thinners typically require INR monitoring. Please verify with healthcare provider.");
-            }
-
+            // INR range validation (when specified)
             var inrMin = request.INRTargetMin ?? existingMedication.INRTargetMin;
             var inrMax = request.INRTargetMax ?? existingMedication.INRTargetMax;
 

@@ -101,6 +101,46 @@ public class MedicationService : IMedicationService
                 _snackbar.Add("A medication with this name already exists.", Severity.Warning);
                 return null;
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // Parse validation errors from API response
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Medication validation failed: {Error}", errorContent);
+                
+                try
+                {
+                    // Try to parse the error response which contains validation errors
+                    var errorResponse = JsonSerializer.Deserialize<ValidationErrorResponse>(errorContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
+                    {
+                        // Show each validation error to the user
+                        foreach (var errorList in errorResponse.Errors.Values)
+                        {
+                            foreach (var error in errorList)
+                            {
+                                _snackbar.Add(error, Severity.Warning, config => config.VisibleStateDuration = 5000);
+                            }
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(errorResponse?.Detail))
+                    {
+                        _snackbar.Add(errorResponse.Detail, Severity.Warning);
+                    }
+                    else
+                    {
+                        _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Fallback if we can't parse the error response
+                    _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
+                }
+                
+                return null;
+            }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -145,6 +185,43 @@ public class MedicationService : IMedicationService
             else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 _snackbar.Add("A medication with this name already exists.", Severity.Warning);
+                return false;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // Parse validation errors from API response
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Medication update validation failed: {Error}", errorContent);
+                
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ValidationErrorResponse>(errorContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
+                    {
+                        foreach (var errorList in errorResponse.Errors.Values)
+                        {
+                            foreach (var error in errorList)
+                            {
+                                _snackbar.Add(error, Severity.Warning, config => config.VisibleStateDuration = 5000);
+                            }
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(errorResponse?.Detail))
+                    {
+                        _snackbar.Add(errorResponse.Detail, Severity.Warning);
+                    }
+                    else
+                    {
+                        _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
+                    }
+                }
+                catch (JsonException)
+                {
+                    _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
+                }
+                
                 return false;
             }
             else
@@ -266,4 +343,23 @@ public class MedicationService : IMedicationService
             return new List<Medication>();
         }
     }
+}
+
+/// <summary>
+/// Response model for validation errors from the API.
+/// Matches ASP.NET Core ValidationProblemDetails JSON structure.
+/// </summary>
+internal sealed class ValidationErrorResponse
+{
+    /// <summary>
+    /// Gets or sets the dictionary of validation errors by field.
+    /// Key is the field name, value is an array of error messages for that field.
+    /// </summary>
+    public Dictionary<string, string[]>? Errors { get; set; }
+
+    /// <summary>
+    /// Gets or sets the overall error detail message.
+    /// Used when no field-specific errors are available.
+    /// </summary>
+    public string? Detail { get; set; }
 }
