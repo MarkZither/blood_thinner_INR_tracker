@@ -461,94 +461,8 @@ public static class DatabaseConfigurationExtensions
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             var cancellationToken = cts.Token;
 
-            // Retry logic for database creation race conditions (Aspire may be creating the database)
-            const int maxRetries = 10;
-            var retryDelay = TimeSpan.FromSeconds(2);
-
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
-            {
-                try
-                {
-                    // Check if database exists and has tables
-                    var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
-
-                    if (!canConnect)
-                    {
-                        logger.LogWarning("Cannot connect to database (attempt {Attempt}/{MaxRetries}), will attempt to create it", attempt, maxRetries);
-                    }
-
-                    var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
-
-                    if (!canConnect || pendingMigrations.Any())
-                    {
-                        logger.LogInformation("Initializing medical database...");
-
-                        // Apply pending migrations (this will create the database if it doesn't exist)
-                        if (pendingMigrations.Any())
-                        {
-                            logger.LogInformation("Applying {Count} pending database migrations: {Migrations}",
-                                pendingMigrations.Count(),
-                                string.Join(", ", pendingMigrations));
-
-                            try
-                            {
-                                await dbContext.Database.MigrateAsync(cancellationToken);
-                                logger.LogInformation("Database migrations applied successfully");
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                logger.LogError("Database migration timed out after 5 minutes");
-                                throw new TimeoutException("Database migration operation timed out");
-                            }
-                        }
-                        else if (!canConnect)
-                        {
-                            // If no migrations are pending but database doesn't exist, create it
-                            logger.LogInformation("Creating database schema...");
-                            await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-                            logger.LogInformation("Database created successfully");
-                        }
-                    }
-                    else
-                    {
-                        logger.LogInformation("Database is up to date");
-                    }
-
-                    // Log database information
-                    var databaseProvider = dbContext.Database.ProviderName;
-                    logger.LogInformation("Medical database initialized successfully using {Provider} for {Environment}",
-                        databaseProvider, environment.EnvironmentName);
-
-                    // Success - break out of retry loop
-                    break;
-                }
-                catch (Exception ex) when (
-                    attempt < maxRetries &&
-                    (ex.Message.Contains("does not exist") ||
-                     ex.Message.Contains("EndOfStream") ||
-                     ex is System.IO.EndOfStreamException ||
-                     (ex.InnerException?.Message.Contains("EndOfStream") ?? false) ||
-                     (ex.InnerException is System.IO.EndOfStreamException)))
-                {
-                    // Database doesn't exist yet or connection failed mid-creation
-                    // This is expected when Aspire is creating the database
-                    logger.LogWarning(ex,
-                        "Database connection failed on attempt {Attempt}/{MaxRetries}. " +
-                        "This is expected during Aspire database creation. Waiting {Delay} seconds before retry...",
-                        attempt, maxRetries, retryDelay.TotalSeconds);
-
-                    if (attempt < maxRetries)
-                    {
-                        await Task.Delay(retryDelay, cancellationToken);
-                    }
-                    else
-                    {
-                        // Last attempt failed - rethrow
-                        logger.LogError(ex, "Failed to connect to database after {MaxRetries} attempts", maxRetries);
-                        throw;
-                    }
-                }
-            }
+            // Apply migrations with retry logic for database creation race conditions
+            await TryApplyMigrationsWithRetry(dbContext, logger, environment, cancellationToken);
         }
         catch (TimeoutException)
         {
@@ -560,5 +474,115 @@ public static class DatabaseConfigurationExtensions
             logger.LogError(ex, "Failed to initialize medical database");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Attempts to apply database migrations with retry logic for race conditions.
+    /// </summary>
+    private static async Task TryApplyMigrationsWithRetry(
+        DbContext dbContext,
+        ILogger<DatabaseConfigurationService> logger,
+        IWebHostEnvironment environment,
+        CancellationToken cancellationToken)
+    {
+        const int maxRetries = 10;
+        var retryDelay = TimeSpan.FromSeconds(2);
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await ApplyPendingMigrations(dbContext, logger, environment, cancellationToken);
+
+                // Success - break out of retry loop
+                break;
+            }
+            catch (Exception ex) when (
+                attempt < maxRetries &&
+                (ex.Message.Contains("does not exist") ||
+                 ex.Message.Contains("EndOfStream") ||
+                 ex is System.IO.EndOfStreamException ||
+                 (ex.InnerException?.Message.Contains("EndOfStream") ?? false) ||
+                 (ex.InnerException is System.IO.EndOfStreamException)))
+            {
+                // Database doesn't exist yet or connection failed mid-creation
+                // This is expected when Aspire is creating the database
+                logger.LogWarning(ex,
+                    "Database connection failed on attempt {Attempt}/{MaxRetries}. " +
+                    "This is expected during Aspire database creation. Waiting {Delay} seconds before retry...",
+                    attempt, maxRetries, retryDelay.TotalSeconds);
+
+                if (attempt < maxRetries)
+                {
+                    await Task.Delay(retryDelay, cancellationToken);
+                }
+                else
+                {
+                    // Last attempt failed - rethrow
+                    logger.LogError(ex, "Failed to connect to database after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies pending database migrations or creates the database if needed.
+    /// </summary>
+    private static async Task ApplyPendingMigrations(
+        DbContext dbContext,
+        ILogger<DatabaseConfigurationService> logger,
+        IWebHostEnvironment environment,
+        CancellationToken cancellationToken)
+    {
+        // Check if database exists and has tables
+        var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
+
+        if (!canConnect)
+        {
+            logger.LogWarning("Cannot connect to database, will attempt to create it");
+        }
+
+        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
+
+        if (!canConnect || pendingMigrations.Any())
+        {
+            logger.LogInformation("Initializing medical database...");
+
+            // Apply pending migrations (this will create the database if it doesn't exist)
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation("Applying {Count} pending database migrations: {Migrations}",
+                    pendingMigrations.Count(),
+                    string.Join(", ", pendingMigrations));
+
+                try
+                {
+                    await dbContext.Database.MigrateAsync(cancellationToken);
+                    logger.LogInformation("Database migrations applied successfully");
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogError("Database migration timed out after 5 minutes");
+                    throw new TimeoutException("Database migration operation timed out");
+                }
+            }
+            else if (!canConnect)
+            {
+                // If no migrations are pending but database doesn't exist, create it
+                logger.LogInformation("Creating database schema...");
+                await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+                logger.LogInformation("Database created successfully");
+            }
+        }
+        else
+        {
+            logger.LogInformation("Database is up to date");
+        }
+
+        // Log database information
+        var databaseProvider = dbContext.Database.ProviderName;
+        logger.LogInformation("Medical database initialized successfully using {Provider} for {Environment}",
+            databaseProvider, environment.EnvironmentName);
     }
 }
