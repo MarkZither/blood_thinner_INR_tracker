@@ -58,8 +58,7 @@ var api = builder.AddProject<Projects.BloodThinnerTracker_Api>("api")
 var web = builder.AddProject<Projects.BloodThinnerTracker_Web>("web")
     .WithHttpsEndpoint(port: 7235, name: "web-https")
     .WithHttpEndpoint(port: 5235, name: "web-http")
-    .WithReference(api)
-    .WithEnvironment("ApiBaseUrl", api.GetEndpoint("api-https"));
+    .WithReference(api);
 
 // Optional: Add InfluxDB for time-series metrics storage
 // Enable by setting Features:EnableInfluxDB to true in appsettings.json
