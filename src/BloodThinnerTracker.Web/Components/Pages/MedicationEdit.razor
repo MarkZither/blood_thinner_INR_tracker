@@ -22,7 +22,7 @@
     else if (_medication == null)
     {
         <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" 
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
             Back to Medications
         </MudButton>
@@ -70,10 +70,10 @@
                         <MudGrid>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_medication.Name"
-                                            Label="Medication Name"
+                                            Label="How You Know This Medication"
                                             Required="true"
                                             MaxLength="100"
-                                            HelperText="Brand or generic name" />
+                                            HelperText="The name you use for this medication" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -86,12 +86,26 @@
                                     }
                                 </MudSelect>
                             </MudItem>
+                            
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_medication.GenericName"
+                                            Label="Generic Name"
+                                            MaxLength="100"
+                                            HelperText="Optional - medical/scientific name" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_medication.BrandName"
+                                            Label="Brand Name(s)"
+                                            MaxLength="100"
+                                            HelperText="Optional - commercial/brand name" />
+                            </MudItem>
 
                             <MudItem xs="12" md="4">
                                 <MudNumericField @bind-Value="_medication.Dosage"
                                                Label="Dosage"
                                                Required="true"
-                                               Min="0.01m"
+                                               Min="0.5m"
                                                Max="1000m"
                                                Step="0.5m" />
                             </MudItem>

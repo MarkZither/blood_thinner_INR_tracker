@@ -29,12 +29,14 @@ if (builder.Environment.IsProduction())
     }
 }
 
-// Add service defaults (logging, health checks, etc.)
-// Note: Temporarily commented out until ServiceDefaults.AddServiceDefaults is properly implemented
-// builder.AddServiceDefaults();
+// Add service defaults (OpenTelemetry, health checks, service discovery, resilience)
+builder.AddServiceDefaults();
 
 // Configure medical database with encryption and compliance features
 builder.Services.AddMedicalDatabase(builder.Configuration, builder.Environment);
+
+// Add database migration hosted service to run migrations after app starts
+builder.Services.AddHostedService<DatabaseMigrationHostedService>();
 
 // Configure authentication and security for medical application
 builder.Services.ConfigureMedicalAuthentication(builder.Configuration);
@@ -141,10 +143,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 var app = builder.Build();
 
-// Initialize database on startup
-await app.Services.EnsureDatabaseAsync();
-
-    app.MapOpenApi();
+app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
     options
@@ -249,5 +248,8 @@ app.MapGet("/info", () => new
 })
 .WithName("GetApplicationInfo")
 .WithSummary("Blood Thinner Tracker API information with medical compliance details");
+
+// Map Aspire health check endpoints (/health, /alive)
+app.MapDefaultEndpoints();
 
 app.Run();

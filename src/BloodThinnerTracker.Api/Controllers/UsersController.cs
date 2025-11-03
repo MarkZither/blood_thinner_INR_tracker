@@ -1,15 +1,15 @@
 /*
  * BloodThinnerTracker.Api - Users Controller
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * REST API controller for user profile management in the blood thinner tracking system.
  * Provides endpoints for user registration, profile management, and account settings.
- * 
+ *
  * ⚠️ MEDICAL DATA CONTROLLER:
  * This controller handles protected health information (PHI). All operations
  * must comply with healthcare data protection regulations and include proper
  * authentication, authorization, and audit logging.
- * 
+ *
  * IMPORTANT MEDICAL DISCLAIMER:
  * This software is for informational purposes only and should not replace
  * professional medical advice. Users should consult healthcare providers
@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using BloodThinnerTracker.Api.Data;
+using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
 
 namespace BloodThinnerTracker.Api.Controllers;
@@ -37,7 +37,7 @@ namespace BloodThinnerTracker.Api.Controllers;
 [Produces("application/json")]
 public sealed class UsersController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ILogger<UsersController> _logger;
 
     /// <summary>
@@ -45,7 +45,7 @@ public sealed class UsersController : ControllerBase
     /// </summary>
     /// <param name="context">Database context for user data access.</param>
     /// <param name="logger">Logger for operation tracking and debugging.</param>
-    public UsersController(ApplicationDbContext context, ILogger<UsersController> logger)
+    public UsersController(IApplicationDbContext context, ILogger<UsersController> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -66,18 +66,18 @@ public sealed class UsersController : ControllerBase
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to get profile with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var user = await _context.Users
-                .Where(u => u.Id == userId && !u.IsDeleted)
+                .Where(u => u.PublicId == userPublicId.Value && !u.IsDeleted)
                 .Select(u => new UserProfileResponse
                 {
-                    Id = u.Id,
+                    Id = u.PublicId.ToString(), // API returns public GUID
                     Email = u.Email,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
@@ -100,17 +100,17 @@ public sealed class UsersController : ControllerBase
 
             if (user == null)
             {
-                _logger.LogWarning("User profile not found for user ID: {UserId}", userId);
+                _logger.LogWarning("User profile not found for user PublicId: {UserPublicId}", userPublicId);
                 return NotFound("User profile not found");
             }
 
-            _logger.LogInformation("User profile retrieved successfully for user ID: {UserId}", userId);
+            _logger.LogInformation("User profile retrieved successfully for user PublicId: {UserPublicId}", userPublicId);
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user profile for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error retrieving user profile for user PublicId: {UserPublicId}", GetCurrentUserPublicId());
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while retrieving user profile");
         }
     }
@@ -135,24 +135,24 @@ public sealed class UsersController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for profile update: {Errors}", 
+                _logger.LogWarning("Invalid model state for profile update: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
             }
 
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to update profile with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.PublicId == userPublicId.Value && !u.IsDeleted);
 
             if (user == null)
             {
-                _logger.LogWarning("User not found for profile update: {UserId}", userId);
+                _logger.LogWarning("User not found for profile update: {UserPublicId}", userPublicId);
                 return NotFound("User not found");
             }
 
@@ -170,8 +170,8 @@ public sealed class UsersController : ControllerBase
             user.ReminderAdvanceMinutes = Math.Max(5, Math.Min(120, request.ReminderAdvanceMinutes ?? 15));
 
             // Mark profile as completed if not already
-            if (user.ProfileCompletedAt == null && 
-                !string.IsNullOrWhiteSpace(user.FirstName) && 
+            if (user.ProfileCompletedAt == null &&
+                !string.IsNullOrWhiteSpace(user.FirstName) &&
                 !string.IsNullOrWhiteSpace(user.LastName))
             {
                 user.ProfileCompletedAt = DateTime.UtcNow;
@@ -183,7 +183,7 @@ public sealed class UsersController : ControllerBase
 
             var response = new UserProfileResponse
             {
-                Id = user.Id,
+                Id = user.PublicId.ToString(), // API returns public GUID
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -203,13 +203,13 @@ public sealed class UsersController : ControllerBase
                 UpdatedAt = user.UpdatedAt
             };
 
-            _logger.LogInformation("User profile updated successfully for user ID: {UserId}", userId);
+            _logger.LogInformation("User profile updated successfully for user PublicId: {UserPublicId}", userPublicId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user profile for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error updating user profile for user PublicId: {UserPublicId}", GetCurrentUserPublicId());
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while updating user profile");
         }
     }
@@ -229,15 +229,15 @@ public sealed class UsersController : ControllerBase
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to get notification preferences with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var user = await _context.Users
-                .Where(u => u.Id == userId && !u.IsDeleted)
+                .Where(u => u.PublicId == userPublicId.Value && !u.IsDeleted)
                 .Select(u => new NotificationPreferencesResponse
                 {
                     IsEmailNotificationsEnabled = u.IsEmailNotificationsEnabled,
@@ -251,17 +251,17 @@ public sealed class UsersController : ControllerBase
 
             if (user == null)
             {
-                _logger.LogWarning("User not found for notification preferences: {UserId}", userId);
+                _logger.LogWarning("User not found for notification preferences: {UserPublicId}", userPublicId);
                 return NotFound("User not found");
             }
 
-            _logger.LogInformation("Notification preferences retrieved successfully for user ID: {UserId}", userId);
+            _logger.LogInformation("Notification preferences retrieved successfully for user PublicId: {UserPublicId}", userPublicId);
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving notification preferences for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error retrieving notification preferences for user PublicId: {UserPublicId}", GetCurrentUserPublicId());
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while retrieving notification preferences");
         }
     }
@@ -286,24 +286,24 @@ public sealed class UsersController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for notification preferences update: {Errors}", 
+                _logger.LogWarning("Invalid model state for notification preferences update: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
             }
 
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to update notification preferences with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.PublicId == userPublicId.Value && !u.IsDeleted);
 
             if (user == null)
             {
-                _logger.LogWarning("User not found for notification preferences update: {UserId}", userId);
+                _logger.LogWarning("User not found for notification preferences update: {UserPublicId}", userPublicId);
                 return NotFound("User not found");
             }
 
@@ -311,7 +311,7 @@ public sealed class UsersController : ControllerBase
             user.IsEmailNotificationsEnabled = request.IsEmailNotificationsEnabled ?? user.IsEmailNotificationsEnabled;
             user.IsSmsNotificationsEnabled = request.IsSmsNotificationsEnabled ?? user.IsSmsNotificationsEnabled;
             user.IsPushNotificationsEnabled = request.IsPushNotificationsEnabled ?? user.IsPushNotificationsEnabled;
-            
+
             // Validate and set reminder advance minutes (5-120 minutes)
             if (request.ReminderAdvanceMinutes.HasValue)
             {
@@ -342,13 +342,13 @@ public sealed class UsersController : ControllerBase
                 TimeZone = user.TimeZone
             };
 
-            _logger.LogInformation("Notification preferences updated successfully for user ID: {UserId}", userId);
+            _logger.LogInformation("Notification preferences updated successfully for user PublicId: {UserPublicId}", userPublicId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating notification preferences for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error updating notification preferences for user PublicId: {UserPublicId}", GetCurrentUserPublicId());
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while updating notification preferences");
         }
     }
@@ -373,24 +373,24 @@ public sealed class UsersController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for account deactivation: {Errors}", 
+                _logger.LogWarning("Invalid model state for account deactivation: {Errors}",
                     string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
             }
 
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 _logger.LogWarning("Attempted to deactivate account with invalid user ID");
                 return Unauthorized("Invalid user authentication");
             }
 
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.PublicId == userPublicId.Value && !u.IsDeleted);
 
             if (user == null)
             {
-                _logger.LogWarning("User not found for account deactivation: {UserId}", userId);
+                _logger.LogWarning("User not found for account deactivation: {UserPublicId}", userPublicId);
                 return NotFound("User not found");
             }
 
@@ -401,8 +401,8 @@ public sealed class UsersController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            _logger.LogWarning("User account deactivated: {UserId}, Reason: {Reason}", userId, request.Reason);
-            
+            _logger.LogWarning("User account deactivated: {UserPublicId}, Reason: {Reason}", userPublicId, request.Reason);
+
             return Ok(new ApiResponse
             {
                 Success = true,
@@ -412,21 +412,27 @@ public sealed class UsersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deactivating account for user ID: {UserId}", GetCurrentUserId());
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            _logger.LogError(ex, "Error deactivating account for user PublicId: {UserPublicId}", GetCurrentUserPublicId());
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 "An error occurred while deactivating the account");
         }
     }
 
     /// <summary>
-    /// Gets the current user ID from JWT claims.
+    /// Gets the current user's public ID (GUID) from JWT claims.
+    /// ⚠️ SECURITY: JWT claims contain PublicId (GUID), never internal database Id.
     /// </summary>
-    /// <returns>Current user ID or null if not authenticated.</returns>
-    private string? GetCurrentUserId()
+    /// <returns>Current user's public GUID or null if not authenticated.</returns>
+    private Guid? GetCurrentUserPublicId()
     {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-               User.FindFirst("sub")?.Value ??
-               User.FindFirst("userId")?.Value;
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                        User.FindFirst("sub")?.Value ??
+                        User.FindFirst("userId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdStr))
+            return null;
+
+        return Guid.TryParse(userIdStr, out var guid) ? guid : null;
     }
 }
 
@@ -484,9 +490,9 @@ public sealed class UpdateUserProfileRequest
     public string? TimeZone { get; set; }
 
     public bool? IsEmailNotificationsEnabled { get; set; }
-    
+
     public bool? IsSmsNotificationsEnabled { get; set; }
-    
+
     public bool? IsPushNotificationsEnabled { get; set; }
 
     [Range(5, 120)]
@@ -512,9 +518,9 @@ public sealed class NotificationPreferencesResponse
 public sealed class UpdateNotificationPreferencesRequest
 {
     public bool? IsEmailNotificationsEnabled { get; set; }
-    
+
     public bool? IsSmsNotificationsEnabled { get; set; }
-    
+
     public bool? IsPushNotificationsEnabled { get; set; }
 
     [Range(5, 120)]

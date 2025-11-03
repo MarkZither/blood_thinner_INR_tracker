@@ -9,13 +9,56 @@ namespace BloodThinnerTracker.Shared.Models
     /// <summary>
     /// User entity for blood thinner medication tracking application.
     /// Represents a patient or healthcare provider using the system.
-    /// 
+    ///
     /// MEDICAL DISCLAIMER: This entity stores personal health information.
     /// Ensure compliance with HIPAA and other healthcare regulations.
+    ///
+    /// SECURITY NOTE: User is the root tenant entity and does NOT inherit from MedicalEntityBase.
+    /// User defines the tenant boundary - medical data belongs TO users, not the other way around.
     /// </summary>
     [Table("Users")]
-    public class User : MedicalEntityBase
+    public class User
     {
+        /// <summary>
+        /// Gets or sets the internal database identifier for this entity.
+        /// ⚠️ SECURITY: Internal use only - NEVER expose this in APIs!
+        /// Use PublicId for all external references.
+        /// </summary>
+        [Key]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the public-facing identifier for API consumers.
+        /// ⚠️ SECURITY: Always use this in API responses instead of Id.
+        /// Non-sequential GUID prevents IDOR attacks and enumeration attacks.
+        /// </summary>
+        [Required]
+        public Guid PublicId { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// Gets or sets when this record was created.
+        /// </summary>
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Gets or sets when this record was last updated.
+        /// </summary>
+        [Required]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this user account is soft deleted for data retention compliance.
+        /// User data cannot be permanently deleted immediately due to legal requirements (GDPR right to be forgotten, etc.).
+        /// </summary>
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets when this user account was soft deleted.
+        /// </summary>
+        public DateTime? DeletedAt { get; set; }
+
     /// <summary>
     /// Gets or sets the user's email address (used for authentication).
     /// </summary>

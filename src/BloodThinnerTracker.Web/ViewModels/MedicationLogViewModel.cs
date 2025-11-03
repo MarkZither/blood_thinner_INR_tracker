@@ -1,7 +1,7 @@
 /*
  * BloodThinnerTracker.Web - Medication Log View Model
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * View model for medication dose logging forms.
  * Handles form binding and validation for logging medication doses.
  */
@@ -172,7 +172,7 @@ public sealed class MedicationLogViewModel
         // Warn if significantly different from prescribed
         var variance = Math.Abs(ActualDosage.Value - PrescribedDosage);
         var percentVariance = (variance / PrescribedDosage) * 100;
-        
+
         if (percentVariance > 50)
             return $"Warning: Dosage differs significantly from prescribed ({PrescribedDosage}{PrescribedDosageUnit})";
 
@@ -185,7 +185,7 @@ public sealed class MedicationLogViewModel
     /// <param name="medication">Medication to log a dose for.</param>
     public void Reset(Medication medication)
     {
-        MedicationId = medication.Id;
+        MedicationId = medication.PublicId.ToString();
         MedicationName = medication.Name;
         ScheduledTime = DateTime.Now;
         ActualTime = DateTime.Now;

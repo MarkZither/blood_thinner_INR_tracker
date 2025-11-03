@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Api\BloodThinnerTracker.Api.csproj" />
+    <ProjectReference Include="..\..\src\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

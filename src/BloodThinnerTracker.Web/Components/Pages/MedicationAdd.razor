@@ -53,10 +53,10 @@
                     <MudGrid>
                         <MudItem xs="12" sm="6">
                             <MudAutocomplete T="MedicationSuggestion"
-                                           Label="Medication Name *"
+                                           Label="Search Medication *"
                                            @bind-Value="selectedMedication"
                                            SearchFunc="@SearchMedications"
-                                           ToStringFunc="@(m => m?.PrimaryName ?? string.Empty)"
+                                           ToStringFunc="@(m => m?.DisplayText ?? string.Empty)"
                                            Variant="Variant.Outlined"
                                            Clearable="true"
                                            HelperText="Start typing to search common blood thinners"
@@ -64,24 +64,35 @@
                                            OnBlur="OnMedicationSelected">
                                 <ItemTemplate Context="item">
                                     <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body1"><strong>@item.BrandNames</strong></MudText>
-                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@item.GenericName - @item.DrugClass</MudText>
+                                        <MudText Typo="Typo.body1"><strong>@item.GenericName</strong> (@item.BrandNames)</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@item.DrugClass</MudText>
                                     </MudStack>
                                 </ItemTemplate>
                             </MudAutocomplete>
-                            @if (selectedMedication == null && !string.IsNullOrEmpty(medication.Name))
+                            @if (selectedMedication != null)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1">
-                                    Custom medication: @medication.Name
+                                    <strong>Generic:</strong> @selectedMedication.GenericName | <strong>Brand:</strong> @selectedMedication.BrandNames
                                 </MudText>
                             }
+                        </MudItem>
+                        
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="medication.Name"
+                                        Label="How You Know This Medication *"
+                                        Variant="Variant.Outlined"
+                                        HelperText="Enter the name you use (e.g., Sintrom, Warfarin, or your own name)"
+                                        For="@(() => medication.Name)" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                This is the name that will appear in your medication list
+                            </MudText>
                         </MudItem>
 
                         <MudItem xs="12" sm="3">
                             <MudNumericField @bind-Value="medication.Dosage"
                                            Label="Dosage *"
                                            Variant="Variant.Outlined"
-                                           Min="0.0m"
+                                           Min="0.5m"
                                            Max="10000m"
                                            Step="0.5m"
                                            For="@(() => medication.Dosage)" />
@@ -102,8 +113,10 @@
 
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="medication.BrandName"
-                                        Label="Brand Name"
+                                        Label="Brand Name(s)"
                                         Variant="Variant.Outlined"
+                                        Disabled="@(selectedMedication != null)"
+                                        HelperText="@(selectedMedication != null ? "Auto-filled from selection" : "Optional - enter brand name")"
                                         For="@(() => medication.BrandName)" />
                         </MudItem>
 
@@ -111,6 +124,8 @@
                             <MudTextField @bind-Value="medication.GenericName"
                                         Label="Generic Name"
                                         Variant="Variant.Outlined"
+                                        Disabled="@(selectedMedication != null)"
+                                        HelperText="@(selectedMedication != null ? "Auto-filled from selection" : "Optional - enter generic name")"
                                         For="@(() => medication.GenericName)" />
                         </MudItem>
 
@@ -452,12 +467,44 @@
     {
         if (selectedMedication != null)
         {
-            medication.Name = selectedMedication.GenericName;
-            medication.BrandName = selectedMedication.BrandNames;
+            // Store both generic and brand names for medical records
             medication.GenericName = selectedMedication.GenericName;
+            medication.BrandName = selectedMedication.BrandNames;
             medication.Form = selectedMedication.Form;
             medication.Indication = selectedMedication.Indication;
+            
+            // For the display name, suggest the most user-friendly option:
+            // - For well-known generics like "Warfarin" or "Aspirin", use the generic name
+            // - For medications better known by brand (like Sintrom), suggest the brand name
+            // - User can always change this to what they prefer
+            medication.Name = GetSuggestedDisplayName(selectedMedication);
         }
+    }
+    
+    private string GetSuggestedDisplayName(MedicationSuggestion suggestion)
+    {
+        // Medications commonly referred to by generic name
+        var wellKnownGenerics = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Warfarin", "Aspirin", "Heparin", "Clopidogrel"
+        };
+        
+        // If the generic name is well-known, suggest it
+        if (wellKnownGenerics.Contains(suggestion.GenericName))
+        {
+            return suggestion.GenericName;
+        }
+        
+        // For medications with a single well-known brand name, suggest the brand
+        // (e.g., "Sintrom" is more commonly used than "Acenocoumarol")
+        if (!suggestion.BrandNames.Contains(",") && 
+            !suggestion.BrandNames.Equals("Various", StringComparison.OrdinalIgnoreCase))
+        {
+            return suggestion.BrandNames;
+        }
+        
+        // Default to generic name for medical accuracy
+        return suggestion.GenericName;
     }
 
     private void AddScheduledTime()

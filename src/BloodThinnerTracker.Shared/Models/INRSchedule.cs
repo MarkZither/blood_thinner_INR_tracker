@@ -122,8 +122,9 @@ namespace BloodThinnerTracker.Shared.Models
         /// <summary>
         /// Gets or sets the ID of the INR test that completed this schedule (if any).
         /// Links to the actual INR test result when the scheduled test is performed.
+        /// ⚠️ SECURITY: This is an internal foreign key. Use PublicId when exposing via API.
         /// </summary>
-        public string? CompletedTestId { get; set; }
+        public int? CompletedTestId { get; set; }
 
         /// <summary>
         /// Gets or sets the reason if schedule was modified or cancelled.
@@ -159,8 +160,9 @@ namespace BloodThinnerTracker.Shared.Models
         /// <summary>
         /// Gets or sets the parent schedule ID for automatically generated recurring schedules.
         /// This creates a hierarchy of related INR test schedules for tracking patterns.
+        /// ⚠️ SECURITY: This is an internal foreign key. Use PublicId when exposing via API.
         /// </summary>
-        public string? ParentScheduleId { get; set; }
+        public int? ParentScheduleId { get; set; }
 
         // Navigation properties
 
@@ -244,7 +246,7 @@ namespace BloodThinnerTracker.Shared.Models
                 return null;
 
             var nextDate = ScheduledDate.AddDays(IntervalDays);
-            
+
             // Don't generate if past end date
             if (EndDate.HasValue && nextDate > EndDate.Value)
                 return null;

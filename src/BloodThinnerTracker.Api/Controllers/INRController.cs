@@ -21,7 +21,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using BloodThinnerTracker.Api.Data;
+using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
 
 namespace BloodThinnerTracker.Api.Controllers;
@@ -36,7 +36,7 @@ namespace BloodThinnerTracker.Api.Controllers;
 [Produces("application/json")]
 public sealed class INRController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ILogger<INRController> _logger;
 
     /// <summary>
@@ -44,7 +44,7 @@ public sealed class INRController : ControllerBase
     /// </summary>
     /// <param name="context">Database context for INR data access.</param>
     /// <param name="logger">Logger for operation tracking and debugging.</param>
-    public INRController(ApplicationDbContext context, ILogger<INRController> logger)
+    public INRController(IApplicationDbContext context, ILogger<INRController> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -71,8 +71,8 @@ public sealed class INRController : ControllerBase
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 return Unauthorized("Invalid user authentication");
             }
@@ -81,7 +81,7 @@ public sealed class INRController : ControllerBase
             take = Math.Min(take, 100);
 
             var query = _context.INRTests
-                .Where(t => t.UserId == userId && !t.IsDeleted)
+                .Where(t => t.User.PublicId == userPublicId.Value && !t.IsDeleted)
                 .AsQueryable();
 
             // Apply date filters
@@ -102,8 +102,8 @@ public sealed class INRController : ControllerBase
                 .Take(take)
                 .Select(t => new INRTestResponse
                 {
-                    Id = t.Id,
-                    UserId = t.UserId,
+                    Id = t.PublicId.ToString(),
+                    UserId = t.User.PublicId.ToString(),
                     TestDate = t.TestDate,
                     INRValue = t.INRValue,
                     TargetINRMin = t.TargetINRMin,
@@ -134,7 +134,7 @@ public sealed class INRController : ControllerBase
                 })
                 .ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} INR tests for user {UserId}", tests.Count, userId);
+            _logger.LogInformation("Retrieved {Count} INR tests for user {UserPublicId}", tests.Count, userPublicId);
             return Ok(tests);
         }
         catch (Exception ex)
@@ -152,26 +152,26 @@ public sealed class INRController : ControllerBase
     /// <response code="200">Returns the INR test.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">INR test not found.</response>
-    [HttpGet("{id}")]
+    [HttpGet("{publicId:guid}")]
     [ProducesResponseType(typeof(INRTestResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<INRTestResponse>> GetINRTest(string id)
+    public async Task<ActionResult<INRTestResponse>> GetINRTest(Guid publicId)
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 return Unauthorized("Invalid user authentication");
             }
 
             var test = await _context.INRTests
-                .Where(t => t.Id == id && t.UserId == userId && !t.IsDeleted)
+                .Where(t => t.PublicId == publicId && t.User.PublicId == userPublicId.Value && !t.IsDeleted)
                 .Select(t => new INRTestResponse
                 {
-                    Id = t.Id,
-                    UserId = t.UserId,
+                    Id = t.PublicId.ToString(),
+                    UserId = t.User.PublicId.ToString(),
                     TestDate = t.TestDate,
                     INRValue = t.INRValue,
                     TargetINRMin = t.TargetINRMin,
@@ -204,15 +204,15 @@ public sealed class INRController : ControllerBase
 
             if (test == null)
             {
-                return NotFound($"INR test with ID {id} not found");
+                return NotFound($"INR test with ID {publicId} not found");
             }
 
-            _logger.LogInformation("Retrieved INR test {Id} for user {UserId}", id, userId);
+            _logger.LogInformation("Retrieved INR test {PublicId} for user {UserPublicId}", publicId, userPublicId);
             return Ok(test);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving INR test {Id}", id);
+            _logger.LogError(ex, "Error retrieving INR test {PublicId}", publicId);
             return StatusCode(500, "An error occurred while retrieving the INR test");
         }
     }
@@ -233,10 +233,19 @@ public sealed class INRController : ControllerBase
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 return Unauthorized("Invalid user authentication");
+            }
+
+            // Get the user's internal ID for foreign key relationship
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.PublicId == userPublicId.Value && !u.IsDeleted);
+
+            if (user == null)
+            {
+                return Unauthorized("User not found");
             }
 
             // Validate INR value range
@@ -248,8 +257,8 @@ public sealed class INRController : ControllerBase
             // Create the test entity
             var test = new INRTest
             {
-                Id = Guid.NewGuid().ToString(),
-                UserId = userId,
+                UserId = user.Id,  // ⚠️ SECURITY: Use internal int ID for FK
+                PublicId = Guid.NewGuid(),  // ⚠️ SECURITY: Generate non-sequential public ID
                 TestDate = request.TestDate,
                 INRValue = request.INRValue,
                 TargetINRMin = request.TargetINRMin,
@@ -282,8 +291,8 @@ public sealed class INRController : ControllerBase
 
             var response = new INRTestResponse
             {
-                Id = test.Id,
-                UserId = test.UserId,
+                Id = test.PublicId.ToString(),
+                UserId = user.PublicId.ToString(),
                 TestDate = test.TestDate,
                 INRValue = test.INRValue,
                 TargetINRMin = test.TargetINRMin,
@@ -313,8 +322,8 @@ public sealed class INRController : ControllerBase
                 UpdatedAt = test.UpdatedAt
             };
 
-            _logger.LogInformation("Created INR test {Id} for user {UserId}", test.Id, userId);
-            return CreatedAtAction(nameof(GetINRTest), new { id = test.Id }, response);
+            _logger.LogInformation("Created INR test {PublicId} for user {UserPublicId}", test.PublicId, userPublicId);
+            return CreatedAtAction(nameof(GetINRTest), new { publicId = test.PublicId }, response);
         }
         catch (Exception ex)
         {
@@ -326,24 +335,24 @@ public sealed class INRController : ControllerBase
     /// <summary>
     /// Updates an existing INR test.
     /// </summary>
-    /// <param name="id">The test ID to update.</param>
+    /// <param name="publicId">The test public ID to update.</param>
     /// <param name="request">Updated INR test data.</param>
     /// <returns>The updated INR test.</returns>
     /// <response code="200">INR test updated successfully.</response>
     /// <response code="400">Invalid request data.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">INR test not found.</response>
-    [HttpPut("{id}")]
+    [HttpPut("{publicId:guid}")]
     [ProducesResponseType(typeof(INRTestResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<INRTestResponse>> UpdateINRTest(string id, [FromBody] UpdateINRTestRequest request)
+    public async Task<ActionResult<INRTestResponse>> UpdateINRTest(Guid publicId, [FromBody] UpdateINRTestRequest request)
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 return Unauthorized("Invalid user authentication");
             }
@@ -355,11 +364,12 @@ public sealed class INRController : ControllerBase
             }
 
             var test = await _context.INRTests
-                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId && !t.IsDeleted);
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.PublicId == publicId && t.User.PublicId == userPublicId.Value && !t.IsDeleted);
 
             if (test == null)
             {
-                return NotFound($"INR test with ID {id} not found");
+                return NotFound($"INR test with ID {publicId} not found");
             }
 
             // Update the test properties (only if provided)
@@ -411,8 +421,8 @@ public sealed class INRController : ControllerBase
 
             var response = new INRTestResponse
             {
-                Id = test.Id,
-                UserId = test.UserId,
+                Id = test.PublicId.ToString(),
+                UserId = test.User.PublicId.ToString(),
                 TestDate = test.TestDate,
                 INRValue = test.INRValue,
                 TargetINRMin = test.TargetINRMin,
@@ -442,12 +452,12 @@ public sealed class INRController : ControllerBase
                 UpdatedAt = test.UpdatedAt
             };
 
-            _logger.LogInformation("Updated INR test {Id} for user {UserId}", id, userId);
+            _logger.LogInformation("Updated INR test {PublicId} for user {UserPublicId}", publicId, userPublicId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating INR test {Id}", id);
+            _logger.LogError(ex, "Error updating INR test {PublicId}", publicId);
             return StatusCode(500, "An error occurred while updating the INR test");
         }
     }
@@ -455,31 +465,32 @@ public sealed class INRController : ControllerBase
     /// <summary>
     /// Deletes an INR test (soft delete).
     /// </summary>
-    /// <param name="id">The test ID to delete.</param>
+    /// <param name="publicId">The test public ID to delete.</param>
     /// <returns>No content on success.</returns>
     /// <response code="204">INR test deleted successfully.</response>
     /// <response code="401">User is not authenticated.</response>
     /// <response code="404">INR test not found.</response>
-    [HttpDelete("{id}")]
+    [HttpDelete("{publicId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteINRTest(string id)
+    public async Task<IActionResult> DeleteINRTest(Guid publicId)
     {
         try
         {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
             {
                 return Unauthorized("Invalid user authentication");
             }
 
             var test = await _context.INRTests
-                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId && !t.IsDeleted);
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.PublicId == publicId && t.User.PublicId == userPublicId.Value && !t.IsDeleted);
 
             if (test == null)
             {
-                return NotFound($"INR test with ID {id} not found");
+                return NotFound($"INR test with ID {publicId} not found");
             }
 
             // Soft delete
@@ -488,22 +499,26 @@ public sealed class INRController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Deleted INR test {Id} for user {UserId}", id, userId);
+            _logger.LogInformation("Deleted INR test {PublicId} for user {UserPublicId}", publicId, userPublicId);
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting INR test {Id}", id);
+            _logger.LogError(ex, "Error deleting INR test {PublicId}", publicId);
             return StatusCode(500, "An error occurred while deleting the INR test");
         }
     }
 
     /// <summary>
-    /// Gets the current user ID from the JWT claims.
+    /// Gets the current user's public ID (GUID) from JWT claims.
+    /// ⚠️ SECURITY: JWT claims contain PublicId (GUID), never internal database Id.
     /// </summary>
-    /// <returns>The user ID or null if not found.</returns>
-    private string? GetCurrentUserId()
+    /// <returns>Current user's public GUID or null if not authenticated.</returns>
+    private Guid? GetCurrentUserPublicId()
     {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr))
+            return null;
+        return Guid.TryParse(userIdStr, out var guid) ? guid : null;
     }
 }

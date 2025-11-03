@@ -2,7 +2,7 @@
 // Licensed under MIT License. See LICENSE file in the project root.
 
 using Microsoft.EntityFrameworkCore;
-using BloodThinnerTracker.Api.Data;
+using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Api.Hubs;
 using BloodThinnerTracker.Shared.Models;
 
@@ -10,11 +10,11 @@ namespace BloodThinnerTracker.Api.Services;
 
 /// <summary>
 /// Background service for managing medical reminders and notifications.
-/// 
+///
 /// ⚠️ MEDICAL REMINDER SERVICE:
 /// This service monitors medication schedules and INR test schedules to send
 /// timely reminders to users for medication adherence and test compliance.
-/// 
+///
 /// IMPORTANT MEDICAL DISCLAIMER:
 /// This service provides supplementary reminders only. Users should not rely
 /// solely on automated reminders for critical medical decisions. Always
@@ -75,7 +75,7 @@ public class MedicalReminderService : BackgroundService
     private async Task ProcessMedicationReminders(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var notificationService = scope.ServiceProvider.GetRequiredService<IMedicalNotificationService>();
 
         var currentTime = DateTime.UtcNow;
@@ -85,8 +85,8 @@ public class MedicalReminderService : BackgroundService
         {
             // Find medications that need reminders
             var medicationsNeedingReminders = await dbContext.Medications
-                .Where(m => m.IsActive && 
-                           m.RemindersEnabled && 
+                .Where(m => m.IsActive &&
+                           m.RemindersEnabled &&
                            !m.IsDeleted &&
                            (m.EndDate == null || m.EndDate > currentTime))
                 .Include(m => m.User)
@@ -95,11 +95,11 @@ public class MedicalReminderService : BackgroundService
             foreach (var medication in medicationsNeedingReminders)
             {
                 var scheduledTimes = GetScheduledTimes(medication);
-                
+
                 foreach (var scheduledTime in scheduledTimes)
                 {
                     var reminderTime = scheduledTime.AddMinutes(-medication.ReminderMinutes);
-                    
+
                     // Check if we should send a reminder
                     if (ShouldSendReminder(currentTime, reminderTime, reminderWindow))
                     {
@@ -122,7 +122,7 @@ public class MedicalReminderService : BackgroundService
     private async Task ProcessINRReminders(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var notificationService = scope.ServiceProvider.GetRequiredService<IMedicalNotificationService>();
 
         var currentDate = DateTime.UtcNow.Date;
@@ -142,7 +142,7 @@ public class MedicalReminderService : BackgroundService
             foreach (var schedule in schedulesNeedingReminders)
             {
                 var reminderDate = schedule.ScheduledDate.AddDays(-schedule.ReminderDays);
-                
+
                 // Check if we should send a reminder (within the reminder window)
                 if (currentDate >= reminderDate && currentDate <= schedule.ScheduledDate)
                 {
@@ -164,7 +164,7 @@ public class MedicalReminderService : BackgroundService
     private async Task ProcessCriticalAlerts(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var notificationService = scope.ServiceProvider.GetRequiredService<IMedicalNotificationService>();
 
         var currentTime = DateTime.UtcNow;
@@ -281,8 +281,8 @@ public class MedicalReminderService : BackgroundService
     /// <param name="notificationService">Notification service.</param>
     /// <returns>A task that represents the asynchronous send operation.</returns>
     private async Task SendMedicationReminder(
-        Medication medication, 
-        DateTime scheduledTime, 
+        Medication medication,
+        DateTime scheduledTime,
         IMedicalNotificationService notificationService)
     {
         var reminder = new
@@ -301,10 +301,13 @@ public class MedicalReminderService : BackgroundService
             SafetyNote = "⚠️ Take exactly as prescribed. Contact your healthcare provider if you have concerns."
         };
 
-        await notificationService.SendMedicationReminderAsync(new List<string> { medication.UserId }, reminder);
-        
-        _logger.LogInformation("Sent medication reminder for {MedicationName} to user {UserId}", 
-            medication.Name, medication.UserId);
+        // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
+        await notificationService.SendMedicationReminderAsync(
+            new List<string> { medication.User.PublicId.ToString() },
+            reminder);
+
+        _logger.LogInformation("Sent medication reminder for {MedicationName} to user {UserPublicId}",
+            medication.Name, medication.User.PublicId);
     }
 
     /// <summary>
@@ -314,11 +317,11 @@ public class MedicalReminderService : BackgroundService
     /// <param name="notificationService">Notification service.</param>
     /// <returns>A task that represents the asynchronous send operation.</returns>
     private async Task SendINRTestReminder(
-        INRSchedule schedule, 
+        INRSchedule schedule,
         IMedicalNotificationService notificationService)
     {
         var daysUntilTest = (schedule.ScheduledDate - DateTime.UtcNow.Date).Days;
-        
+
         var reminder = new
         {
             Id = Guid.NewGuid().ToString(),
@@ -326,22 +329,25 @@ public class MedicalReminderService : BackgroundService
             ScheduleId = schedule.Id,
             ScheduledDate = schedule.ScheduledDate,
             DaysUntilTest = daysUntilTest,
-            TargetINRRange = schedule.TargetINRMin.HasValue && schedule.TargetINRMax.HasValue 
-                ? $"{schedule.TargetINRMin} - {schedule.TargetINRMax}" 
+            TargetINRRange = schedule.TargetINRMin.HasValue && schedule.TargetINRMax.HasValue
+                ? $"{schedule.TargetINRMin} - {schedule.TargetINRMax}"
                 : "As prescribed",
             PreferredLaboratory = schedule.PreferredLaboratory,
             Priority = daysUntilTest <= 1 ? "High" : "Normal",
-            Message = daysUntilTest == 0 
+            Message = daysUntilTest == 0
                 ? "Your INR test is scheduled for today"
                 : $"Your INR test is scheduled in {daysUntilTest} day(s)",
             Instructions = schedule.TestingInstructions,
             SafetyNote = "⚠️ Regular INR monitoring is essential for safe blood thinner therapy."
         };
 
-        await notificationService.SendINRReminderAsync(new List<string> { schedule.UserId }, reminder);
-        
-        _logger.LogInformation("Sent INR test reminder for schedule {ScheduleId} to user {UserId}", 
-            schedule.Id, schedule.UserId);
+        // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
+        await notificationService.SendINRReminderAsync(
+            new List<string> { schedule.User.PublicId.ToString() },
+            reminder);
+
+        _logger.LogInformation("Sent INR test reminder for schedule {SchedulePublicId} to user {UserPublicId}",
+            schedule.PublicId, schedule.User.PublicId);
     }
 
     /// <summary>
@@ -353,7 +359,7 @@ public class MedicalReminderService : BackgroundService
     /// <param name="window">Time window to check for missed medications.</param>
     /// <returns>A task that represents the asynchronous check operation.</returns>
     private async Task CheckMissedMedications(
-        ApplicationDbContext dbContext,
+        IApplicationDbContext dbContext,
         IMedicalNotificationService notificationService,
         DateTime currentTime,
         TimeSpan window)
@@ -364,9 +370,10 @@ public class MedicalReminderService : BackgroundService
         var missedMedications = await dbContext.Medications
             .Where(m => m.IsActive && !m.IsDeleted)
             .Where(m => !dbContext.MedicationLogs
-                .Any(log => log.MedicationId == m.Id && 
+                .Any(log => log.Medication.PublicId == m.PublicId &&
                            log.ScheduledTime >= cutoffTime &&
                            log.Status == MedicationLogStatus.Taken))
+            .Include(m => m.User)
             .ToListAsync();
 
         foreach (var medication in missedMedications)
@@ -375,14 +382,17 @@ public class MedicalReminderService : BackgroundService
             {
                 Id = Guid.NewGuid().ToString(),
                 Type = "CriticalMissedMedication",
-                MedicationId = medication.Id,
+                MedicationId = medication.PublicId.ToString(),
                 MedicationName = medication.Name,
                 Priority = "Critical",
                 Message = $"CRITICAL: You may have missed your {medication.Name}. Please take it now if still within the safe window.",
                 SafetyNote = "⚠️ CRITICAL: Contact your healthcare provider immediately if you're unsure about missed doses."
             };
 
-            await notificationService.SendCriticalAlertAsync(new List<string> { medication.UserId }, alert);
+            // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
+            await notificationService.SendCriticalAlertAsync(
+                new List<string> { medication.User.PublicId.ToString() },
+                alert);
         }
     }
 
@@ -394,7 +404,7 @@ public class MedicalReminderService : BackgroundService
     /// <param name="currentTime">Current time.</param>
     /// <returns>A task that represents the asynchronous check operation.</returns>
     private async Task CheckOverdueINRTests(
-        ApplicationDbContext dbContext,
+        IApplicationDbContext dbContext,
         IMedicalNotificationService notificationService,
         DateTime currentTime)
     {
@@ -403,24 +413,28 @@ public class MedicalReminderService : BackgroundService
                        s.ScheduledDate < currentTime.Date &&
                        s.CompletedDate == null &&
                        !s.IsDeleted)
+            .Include(s => s.User)
             .ToListAsync();
 
         foreach (var schedule in overdueSchedules)
         {
             var daysOverdue = (currentTime.Date - schedule.ScheduledDate).Days;
-            
+
             var alert = new
             {
                 Id = Guid.NewGuid().ToString(),
                 Type = "OverdueINRTest",
-                ScheduleId = schedule.Id,
+                ScheduleId = schedule.PublicId.ToString(),
                 DaysOverdue = daysOverdue,
                 Priority = daysOverdue >= 7 ? "Critical" : "High",
                 Message = $"Your INR test is {daysOverdue} day(s) overdue. Please schedule it immediately.",
                 SafetyNote = "⚠️ Overdue INR tests can compromise medication safety. Contact your healthcare provider."
             };
 
-            await notificationService.SendCriticalAlertAsync(new List<string> { schedule.UserId }, alert);
+            // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
+            await notificationService.SendCriticalAlertAsync(
+                new List<string> { schedule.User.PublicId.ToString() },
+                alert);
         }
     }
 
@@ -432,16 +446,17 @@ public class MedicalReminderService : BackgroundService
     /// <param name="currentTime">Current time.</param>
     /// <returns>A task that represents the asynchronous check operation.</returns>
     private async Task CheckDangerousINRValues(
-        ApplicationDbContext dbContext,
+        IApplicationDbContext dbContext,
         IMedicalNotificationService notificationService,
         DateTime currentTime)
     {
         var recentCutoff = currentTime.AddDays(-30); // Check last 30 days
-        
+
         var dangerousINRTests = await dbContext.INRTests
             .Where(t => t.TestDate >= recentCutoff &&
                        (t.INRValue < 0.8m || t.INRValue > 5.0m) && // Dangerous ranges
                        !t.IsDeleted)
+            .Include(t => t.User)
             .OrderByDescending(t => t.TestDate)
             .ToListAsync();
 
@@ -451,17 +466,20 @@ public class MedicalReminderService : BackgroundService
             {
                 Id = Guid.NewGuid().ToString(),
                 Type = "DangerousINRValue",
-                TestId = test.Id,
+                TestId = test.PublicId.ToString(),
                 INRValue = test.INRValue,
                 TestDate = test.TestDate,
                 Priority = "Critical",
-                Message = test.INRValue < 0.8m 
+                Message = test.INRValue < 0.8m
                     ? "CRITICAL: Your INR is dangerously low. Risk of blood clots."
                     : "CRITICAL: Your INR is dangerously high. Risk of bleeding.",
                 SafetyNote = "⚠️ EMERGENCY: Contact your healthcare provider or emergency services immediately."
             };
 
-            await notificationService.SendCriticalAlertAsync(new List<string> { test.UserId }, alert);
+            // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
+            await notificationService.SendCriticalAlertAsync(
+                new List<string> { test.User.PublicId.ToString() },
+                alert);
         }
     }
 }

@@ -68,8 +68,12 @@ public class INRService : IINRService
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, test);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<INRTest>()
+            
+            // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
+            var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize created test");
+            
+            return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
         {
@@ -84,8 +88,12 @@ public class INRService : IINRService
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{test.Id}", test);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<INRTest>()
+            
+            // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
+            var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize updated test");
+            
+            return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
         {
@@ -120,6 +128,49 @@ public class INRService : IINRService
             _logger.LogError(ex, "Error fetching last INR test");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Maps INRTestResponse from API (string IDs) to INRTest domain model (int IDs).
+    /// Note: Cannot convert GUID strings to int IDs, so they are set to 0.
+    /// The UI should use PublicId (GUID) for operations, not int Id.
+    /// </summary>
+    private static INRTest MapResponseToEntity(INRTestResponse response)
+    {
+        return new INRTest
+        {
+            // Note: Cannot parse GUID string to int, so set to 0
+            // The UI should use PublicId (GUID) for operations, not int Id
+            Id = 0,
+            UserId = 0,
+            TestDate = response.TestDate,
+            INRValue = response.INRValue,
+            TargetINRMin = response.TargetINRMin,
+            TargetINRMax = response.TargetINRMax,
+            ProthrombinTime = response.ProthrombinTime,
+            PartialThromboplastinTime = response.PartialThromboplastinTime,
+            Laboratory = response.Laboratory,
+            OrderedBy = response.OrderedBy,
+            TestMethod = response.TestMethod,
+            IsPointOfCare = response.IsPointOfCare,
+            WasFasting = response.WasFasting,
+            LastMedicationTime = response.LastMedicationTime,
+            MedicationsTaken = response.MedicationsTaken,
+            FoodsConsumed = response.FoodsConsumed,
+            HealthConditions = response.HealthConditions,
+            Status = response.Status,
+            RecommendedActions = response.RecommendedActions,
+            DosageChanges = response.DosageChanges,
+            NextTestDate = response.NextTestDate,
+            Notes = response.Notes,
+            ReviewedByProvider = response.ReviewedByProvider,
+            ReviewedBy = response.ReviewedBy,
+            ReviewedAt = response.ReviewedAt,
+            PatientNotified = response.PatientNotified,
+            NotificationMethod = response.NotificationMethod,
+            CreatedAt = response.CreatedAt,
+            UpdatedAt = response.UpdatedAt ?? DateTime.UtcNow
+        };
     }
 
     // Response model matching API contract

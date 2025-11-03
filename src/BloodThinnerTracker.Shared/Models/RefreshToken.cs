@@ -21,11 +21,11 @@ namespace BloodThinnerTracker.Shared.Models
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>
-        /// Gets or sets the user ID who owns this token.
+        /// Gets or sets the user ID who owns this token (internal foreign key).
+        /// ⚠️ SECURITY: This is the internal int FK for database efficiency.
         /// </summary>
         [Required]
-        [StringLength(36)]
-        public string UserId { get; set; } = string.Empty;
+        public int UserId { get; set; }
 
         /// <summary>
         /// Gets or sets the actual refresh token value (hashed).

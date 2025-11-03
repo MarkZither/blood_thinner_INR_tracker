@@ -257,12 +257,12 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                               Color="Color.Primary"
                                               Size="Size.Small"
-                                              OnClick="@(() => EditINRTest(test.Id))"
+                                              OnClick="@(() => EditINRTest(test.Id.ToString()))"
                                               title="Edit" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                               Color="Color.Error"
                                               Size="Size.Small"
-                                              OnClick="@(() => DeleteINRTest(test.Id))"
+                                              OnClick="@(() => DeleteINRTest(test.Id.ToString()))"
                                               title="Delete" />
                             </MudButtonGroup>
                         </MudTd>
@@ -348,8 +348,8 @@
                 // Map response to INRTest entities
                 inrTests = response.Select(r => new INRTest
                 {
-                    Id = r.Id,
-                    UserId = r.UserId,
+                    Id = int.TryParse(r.Id, out var id) ? id : 0,
+                    UserId = int.TryParse(r.UserId, out var userId) ? userId : 0,
                     TestDate = r.TestDate,
                     INRValue = r.INRValue,
                     TargetINRMin = r.TargetINRMin,
