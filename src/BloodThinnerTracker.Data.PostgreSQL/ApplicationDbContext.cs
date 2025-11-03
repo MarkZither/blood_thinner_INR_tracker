@@ -34,8 +34,17 @@ public class ApplicationDbContext : ApplicationDbContextBase
                 if (!string.IsNullOrEmpty(columnType) && columnType.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase))
                 {
                     // Extract the length from nvarchar(N) and convert to character varying(N)
-                    var length = columnType.Substring(8).Trim('(', ')');
-                    property.SetColumnType($"character varying({length})");
+                    var openParenIndex = columnType.IndexOf('(');
+                    var closeParenIndex = columnType.IndexOf(')', openParenIndex + 1);
+                    if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
+                    {
+                        var length = columnType.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+                        property.SetColumnType($"character varying({length})");
+                    }
+                    else
+                    {
+                        property.SetColumnType("character varying");
+                    }
                 }
             }
         }
