@@ -73,10 +73,60 @@ blood_thinner_INR_tracker/
 ### Key Entities
 
 - **User**: Authentication and preferences
-- **Medication**: Drug info and scheduling  
-- **MedicationLog**: Dose tracking with safety validations
+- **Medication**: Drug info and scheduling with pattern support
+- **MedicationDosagePattern**: Temporal variable-dosage patterns (e.g., "4mg, 4mg, 3mg" repeating)
+- **MedicationLog**: Dose tracking with variance detection (expected vs. actual)
 - **INRTest**: Blood test results and trends
 - **INRSchedule**: Configurable test reminders
+
+### Pattern Management
+
+**Temporal Pattern Tracking**:
+- **MedicationDosagePattern** entity stores variable-dosage schedules with date validity
+- Pattern sequences stored as JSON: `[4.0, 4.0, 3.0, 4.0, 3.0, 3.0]` (6-day cycle)
+- `StartDate` and `EndDate` (nullable) enable temporal queries for any historical date
+- Multiple patterns per medication allow tracking dosage adjustments over time
+
+**Pattern Calculation Pattern**:
+```csharp
+// Get expected dosage for any date
+public decimal? GetExpectedDosageForDate(DateTime targetDate)
+{
+    // Find active pattern on target date
+    var pattern = DosagePatterns
+        .Where(p => p.StartDate <= targetDate && 
+                   (p.EndDate == null || p.EndDate >= targetDate))
+        .OrderByDescending(p => p.StartDate)
+        .FirstOrDefault();
+    
+    if (pattern == null) return Dosage; // Fallback to fixed dosage
+    
+    // Calculate pattern position using modulo arithmetic (O(1) performance)
+    int daysSinceStart = (targetDate.Date - pattern.StartDate.Date).Days;
+    int patternDay = (daysSinceStart % pattern.PatternLength) + 1;
+    
+    return pattern.GetDosageForDay(patternDay);
+}
+```
+
+**Variance Tracking**:
+- **MedicationLog** enhanced with `ExpectedDosage`, `ActualDosage`, `PatternDayNumber`
+- Auto-populate expected dosage on log creation from active pattern
+- `HasVariance` computed property: `|ActualDosage - ExpectedDosage| > 0.01`
+- Enable variance reports for medication adherence tracking
+
+**MudBlazor Pattern Entry Components**:
+- **Simple Mode**: Single fixed dosage (existing behavior)
+- **Pattern Mode**: Comma-separated input with MudChipSet visualization ("4, 4, 3")
+- **Advanced Mode**: Day-by-day manual entry for complex patterns
+- Use `MudToggleGroup` for mode selection, avoid JavaScript interop
+
+**API Patterns**:
+- **POST** `/api/medications/{id}/patterns` - Create new pattern, optionally close previous
+- **GET** `/api/medications/{id}/patterns` - List pattern history (temporal tracking)
+- **GET** `/api/medications/{id}/patterns/active` - Get current active pattern
+- **GET** `/api/medications/{id}/schedule?days=28` - Calculate future dosage schedule
+- **GET** `/api/medication-logs/variance-report` - Analyze dosing accuracy
 
 ### Development Commands
 
