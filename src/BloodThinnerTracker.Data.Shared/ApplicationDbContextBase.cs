@@ -148,7 +148,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
         {
             ConfigureSecurityKeys(entity);
             entity.HasQueryFilter(e => !e.IsDeleted);
-            
+
             // Temporal index for pattern queries (most common: find active pattern for medication)
             entity.HasIndex(e => new { e.MedicationId, e.StartDate, e.EndDate })
                 .HasDatabaseName("IX_MedicationDosagePattern_Temporal");
@@ -163,7 +163,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
                 .WithMany(m => m.DosagePatterns)
                 .HasForeignKey(p => p.MedicationId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             // Configure JSON column for PatternSequence (provider-specific handling)
             // PostgreSQL will use JSONB, SQLite will use TEXT
             entity.Property(p => p.PatternSequence)
@@ -276,7 +276,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
                 t.HasCheckConstraint("CK_MedicationLog_TimeVariance", "\"TimeVarianceMinutes\" >= -1440 AND \"TimeVarianceMinutes\" <= 1440");
                 t.HasCheckConstraint("CK_MedicationLog_PatternDay", "\"PatternDayNumber\" IS NULL OR (\"PatternDayNumber\" >= 1 AND \"PatternDayNumber\" <= 365)");
             });
-            
+
             // Foreign key to MedicationDosagePattern (optional, SetNull on delete)
             entity.HasOne(log => log.DosagePattern)
                 .WithMany()

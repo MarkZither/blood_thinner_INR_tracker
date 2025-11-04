@@ -55,11 +55,13 @@ coverage/
 opencover.xml
 
 # Database
+
 *.db
 *.sqlite
 *.sqlite3
 *.db-wal
 *.db-shm
+!**/BloodThinnerTracker.Data.SQLite
 
 # Logs
 logs/

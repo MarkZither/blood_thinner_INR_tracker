@@ -10,12 +10,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 /// <remarks>
 /// ⚠️ MEDICAL DATA: This entity stores dosage patterns for blood thinner medications.
 /// Pattern calculation accuracy is critical for patient safety.
-/// 
+///
 /// Temporal Pattern Tracking:
 /// - Multiple patterns per medication allow tracking dosage adjustments over time
 /// - StartDate and EndDate (nullable) enable temporal queries for any historical date
 /// - Pattern sequences stored as JSON: [4.0, 4.0, 3.0, 4.0, 3.0, 3.0] (6-day cycle)
-/// 
+///
 /// Pattern Calculation:
 /// - Uses modulo arithmetic for O(1) performance regardless of pattern length
 /// - Day numbers are 1-based (Day 1, Day 2, etc.) for user-friendly display
@@ -44,14 +44,12 @@ public class MedicationDosagePattern : MedicalEntityBase
     /// - Must contain 1-365 dosages
     /// - Each dosage must be &gt;= 0 and &lt;= 100mg (validated in FluentValidation)
     /// - Empty patterns are invalid and will throw exceptions
-    /// 
+    ///
     /// Database Storage:
-    /// - PostgreSQL: JSONB column (indexed, queryable)
-    /// - SQLite: TEXT column with JSON string
-    /// - EF Core handles serialization/deserialization automatically
+    /// - Column type configured in database-specific ApplicationDbContext classes
+    /// - EF Core handles JSON serialization/deserialization automatically
     /// </remarks>
     [Required]
-    [Column(TypeName = "jsonb")] // PostgreSQL JSONB, SQLite will use TEXT
     public List<decimal> PatternSequence { get; set; } = new();
 
     /// <summary>
@@ -67,7 +65,7 @@ public class MedicationDosagePattern : MedicalEntityBase
     public DateTime StartDate { get; set; }
 
     /// <summary>
-    /// Gets or sets the date when this pattern ends (inclusive). 
+    /// Gets or sets the date when this pattern ends (inclusive).
     /// NULL indicates currently active pattern.
     /// </summary>
     /// <remarks>
@@ -134,8 +132,8 @@ public class MedicationDosagePattern : MedicalEntityBase
     /// - Displaying pattern summary in UI
     /// </remarks>
     [NotMapped]
-    public decimal AverageDosage => PatternSequence?.Count > 0 
-        ? PatternSequence.Average() 
+    public decimal AverageDosage => PatternSequence?.Count > 0
+        ? PatternSequence.Average()
         : 0;
 
     // Pattern Calculation Methods
@@ -149,14 +147,14 @@ public class MedicationDosagePattern : MedicalEntityBase
     /// <exception cref="ArgumentOutOfRangeException">Thrown if dayNumber &lt; 1.</exception>
     /// <remarks>
     /// ⚠️ ALGORITHM: Uses modulo arithmetic for O(1) performance.
-    /// 
+    ///
     /// Example: Pattern [4.0, 4.0, 3.0] (3-day cycle)
     /// - GetDosageForDay(1) → 4.0 (Day 1)
     /// - GetDosageForDay(2) → 4.0 (Day 2)
     /// - GetDosageForDay(3) → 3.0 (Day 3)
     /// - GetDosageForDay(4) → 4.0 (Day 1 again - pattern repeats)
     /// - GetDosageForDay(100) → 4.0 (100 mod 3 = 1, so Day 1)
-    /// 
+    ///
     /// Day numbers are 1-based for user-friendly display.
     /// Internally converts to 0-based array indexing.
     /// </remarks>
@@ -181,16 +179,16 @@ public class MedicationDosagePattern : MedicalEntityBase
     /// <returns>Dosage for that date, or null if date is outside pattern validity.</returns>
     /// <remarks>
     /// ⚠️ TEMPORAL LOGIC: Validates date is within [StartDate, EndDate] range.
-    /// 
+    ///
     /// Returns null if:
     /// - targetDate &lt; StartDate (pattern not yet active)
     /// - targetDate &gt; EndDate (pattern already closed)
-    /// 
+    ///
     /// Otherwise:
     /// 1. Calculate days since StartDate
     /// 2. Convert to pattern day number (1-based)
     /// 3. Return dosage for that day using GetDosageForDay()
-    /// 
+    ///
     /// Example: Pattern [4.0, 4.0, 3.0] starting 2025-11-01
     /// - GetDosageForDate(2025-11-01) → 4.0 (Day 1, 0 days since start)
     /// - GetDosageForDate(2025-11-02) → 4.0 (Day 2, 1 day since start)
@@ -208,7 +206,7 @@ public class MedicationDosagePattern : MedicalEntityBase
 
         // Calculate days since pattern start (0-based)
         int daysSinceStart = (targetDate.Date - StartDate.Date).Days;
-        
+
         // Convert to 1-based day number (Day 1, Day 2, etc.)
         int dayNumber = (daysSinceStart % PatternLength) + 1;
 
