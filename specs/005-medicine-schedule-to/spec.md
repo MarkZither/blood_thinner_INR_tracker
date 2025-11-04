@@ -1,60 +1,65 @@
-# Feature Specification: Complex Medication Dosage Patterns for INR Management# Feature Specification: [FEATURE NAME]
+# Feature Specification: Complex Medication Dosage Patterns for INR Management
 
 
 
-**Feature Branch**: `005-medicine-schedule-to`  **Feature Branch**: `[###-feature-name]`  
+**Feature Branch**: `005-medicine-schedule-to`
 
-**Created**: 2025-11-03  **Created**: [DATE]  
+**Created**: 2025-11-03
 
-**Status**: Draft  **Status**: Draft  
+**Status**: Draft
 
-**Input**: User description: "Medicine schedule to support complex patterns. The goal of blood thinners is to hit a specific INR, to achieve that the pattern of dosage is not always the same each day, for example my dosage had the pattern 4, 3, 3 but i was trending too low so now it is 4, 4, 3, 4, 3, 3, 4, 3, 4, 4, 4, 3, 3, 4, 3, 3 and will change again, so the schedule needs more flexibility for future planning, edit medication needs more fields to support changing it and log dose should be populated correctly based on that days medication dose"**Input**: User description: "$ARGUMENTS"
+**Input**: User description: "Medicine schedule to support complex patterns. The goal of blood thinners is to hit a specific INR, to achieve that the pattern of dosage is not always the same each day, for example my dosage had the pattern 4, 3, 3 but i was trending too low so now it is 4, 4, 3, 4, 3, 3, 4, 3, 4, 4, 4, 3, 3, 4, 3, 3 and will change again, so the schedule needs more flexibility for future planning, edit medication needs more fields to support changing it and log dose should be populated correctly based on that days medication dose"
+
+## Clarifications
+
+### Session 2025-01-04
+
+- Q: When a user changes a dosage pattern effective from a specific date, should the new pattern start at Day 1 of the new pattern regardless of where the old pattern was, continue from the same day number, or allow user to specify? → A: Start at Day 1 of the new pattern regardless of where the old pattern was
+
+- Q: Should users be allowed to backdate a pattern change (set effective date in the past), or should pattern changes only be effective from today forward? → A: Allow backdating to any past date with a confirmation prompt for dates more than 7 days in the past. This supports real-world scenarios where doctors call with prescription changes but users don't update the system immediately, while maintaining medical accuracy.
+
+- Q: When creating a NEW medication with a pattern, should users specify the pattern start date, or specify which day of the pattern they're currently on? → A: Implement BOTH approaches behind a feature flag for A/B testing. **Approach 1 (Date-based)**: User sets effective date, pattern starts at Day 1 on that date. **Approach 2 (Day-number-based)**: User specifies "Today is Day X of this pattern", system back-calculates start date. Default to Approach 2 initially, with system setting to switch between modes for UX research.
+
+## Terminology Glossary
+
+**Consistent terminology across all documentation, code, and UI:**
+
+- **Dosage Pattern**: The complete feature capability and user-facing terminology. Use in: Requirements (FR-XXX), User Stories, UI labels, user documentation, API endpoint names.
+- **Pattern**: Acceptable shorthand in code (entity names, variables, method names) when context is clear. Example: `MedicationDosagePattern` entity, `GetPatternForDate()` method.
+- **Pattern Sequence**: The ordered list of numeric dosage values (e.g., `[4.0, 4.0, 3.0]`). Use in: Technical documentation, code comments, data model descriptions.
+- **Pattern Cycle**: A complete iteration through the pattern sequence. Use in: UI display (e.g., "Day 3 of 6-day pattern, Cycle 5"), calculations, user help text.
+
+**Avoid**: "Schedule pattern", "pattern-based", "dosage schedule" (ambiguous), "pattern mode" (confusing with entry mode).
+
+## User Scenarios & Testing *(mandatory)
 
 
 
-## User Scenarios & Testing *(mandatory)*## User Scenarios & Testing *(mandatory)*
-
-
-
-### User Story 1 - Define Complex Dosage Pattern (Priority: P1)<!--
-
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
+### User Story 1 - Define Complex Dosage Pattern (Priority: P1)
 
 As a blood thinner user, I need to define a repeating pattern of different daily dosages (e.g., 4mg, 4mg, 3mg, 4mg, 3mg, 3mg) so that I can follow my healthcare provider's prescribed schedule to maintain my target INR range.  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
 
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
 
 **Why this priority**: This is the core capability required for managing variable-dosage blood thinner regimens. Without this, users cannot accurately track their prescribed medication schedule, which is critical for medication safety and INR control.  
 
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
 
 **Independent Test**: User can create or edit a medication with a custom dosage pattern (e.g., "4, 4, 3, 4, 3, 3") that repeats, view the pattern in the medication details, and verify the system shows the correct dosage for today and future dates based on the pattern cycle.  Think of each story as a standalone slice of functionality that can be:
 
-  - Developed independently
 
-**Acceptance Scenarios**:  - Tested independently
+**Acceptance Scenarios**:
 
-  - Deployed independently
 
 1. **Given** a user is editing a blood thinner medication requiring variable dosing, **When** they enter a dosage pattern "4, 4, 3" with a pattern unit of "mg", **Then** the system saves the pattern and displays it as "4mg, 4mg, 3mg repeating every 3 days"  - Demonstrated to users independently
 
--->
 
 2. **Given** a user has defined a dosage pattern "4, 4, 3, 4, 3, 3", **When** they view today's medication schedule on Day 1 of the pattern, **Then** the system displays "Today's dose: 4mg" and shows the next 6 days with correct dosages
-
-### User Story 1 - [Brief Title] (Priority: P1)
-
 3. **Given** a user is on Day 7 of a 6-day pattern "4, 4, 3, 4, 3, 3", **When** they view their medication schedule, **Then** the system correctly shows Day 7 as "4mg" (Day 1 of next cycle)
-
-[Describe this user journey in plain language]
 
 4. **Given** a user has a medication with a 16-day pattern, **When** they navigate to any future date, **Then** the system calculates and displays the correct dosage for that date based on the pattern position
 
-**Why this priority**: [Explain the value and why it has this priority level]
+5. **Given** a user creates a new medication with pattern "4, 4, 3" and the feature flag is set to "date-based mode", **When** they set the effective date to "Nov 1", **Then** the system starts the pattern at Day 1 on Nov 1, and today (Nov 4) shows Day 4 which wraps to Day 1 (4mg)
 
----
-
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+6. **Given** a user creates a new medication with pattern "4, 4, 3" and the feature flag is set to "day-number mode", **When** they specify "Today is Day 3 of this pattern", **Then** the system back-calculates that the pattern started Nov 2, and today (Nov 4) shows Day 3 (3mg)
 
 ### User Story 2 - Log Dose with Auto-Population (Priority: P1)
 
@@ -62,9 +67,7 @@ As a blood thinner user, I need to define a repeating pattern of different daily
 
 As a blood thinner user, when I log that I took my medication today, the system should automatically populate the dosage field with the correct amount for today based on my defined pattern, so I can quickly confirm I took the right dose without manual lookup.
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
-**Why this priority**: This is essential for accurate medication tracking and preventing dosage errors. Users need immediate confirmation they're taking the correct dose for that day in their pattern, reducing the risk of under- or over-dosing.2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+**Why this priority**: This is essential for accurate medication tracking and preventing dosage errors. Users need immediate confirmation they're taking the correct dose for that day in their pattern, reducing the risk of under- or over-dosing.
 
 
 
@@ -72,27 +75,20 @@ As a blood thinner user, when I log that I took my medication today, the system 
 
 
 
-**Acceptance Scenarios**:### User Story 2 - [Brief Title] (Priority: P2)
+1. **Given** a user has a medication with pattern "4, 3, 3" and today is Day 2 of the pattern, **When** they open the log dose screen, **Then** the dosage field is pre-filled with "3mg" and shows "Expected: 3mg (Day 2 of pattern)"
 
 
 
-1. **Given** a user has a medication with pattern "4, 3, 3" and today is Day 2 of the pattern, **When** they open the log dose screen, **Then** the dosage field is pre-filled with "3mg" and shows "Expected: 3mg (Day 2 of pattern)"[Describe this user journey in plain language]
+2. **Given** a user is pre-filling today's expected dose of "4mg", **When** they manually change it to "3mg" before saving, **Then** the system saves the log with "3mg" and flags it as "Dose adjusted from expected 4mg"
 
 
 
-2. **Given** a user is pre-filling today's expected dose of "4mg", **When** they manually change it to "3mg" before saving, **Then** the system saves the log with "3mg" and flags it as "Dose adjusted from expected 4mg"**Why this priority**: [Explain the value and why it has this priority level]
+3. **Given** a user logs a dose, **When** the log is saved, **Then** the system records the date, time, actual dosage taken, expected dosage from pattern, and any variance
 
 
 
-3. **Given** a user logs a dose, **When** the log is saved, **Then** the system records the date, time, actual dosage taken, expected dosage from pattern, and any variance**Independent Test**: [Describe how this can be tested independently]
+4. **Given** a user views their medication log history, **When** they see entries with dosage variances, **Then** entries are visually indicated (e.g., with a warning icon or highlight) showing "Expected: 4mg, Taken: 3mg"
 
-
-
-4. **Given** a user views their medication log history, **When** they see entries with dosage variances, **Then** entries are visually indicated (e.g., with a warning icon or highlight) showing "Expected: 4mg, Taken: 3mg"**Acceptance Scenarios**:
-
-
-
----1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
 
 
@@ -100,27 +96,24 @@ As a blood thinner user, when I log that I took my medication today, the system 
 
 
 
-As a blood thinner user whose INR levels require dosage adjustment, I need to update my medication's dosage pattern effective from a specific date, so that my future schedule reflects my healthcare provider's new prescription while preserving historical accuracy.### User Story 3 - [Brief Title] (Priority: P3)
+As a blood thinner user whose INR levels require dosage adjustment, I need to update my medication's dosage pattern effective from a specific date, so that my future schedule reflects my healthcare provider's new prescription while preserving historical accuracy.
 
 
 
-**Why this priority**: INR management requires frequent dosage adjustments based on blood test results. Users must be able to change their pattern when prescribed a new regimen, while maintaining accurate historical records for medical review.[Describe this user journey in plain language]
+**Why this priority**: INR management requires frequent dosage adjustments based on blood test results. Users must be able to change their pattern when prescribed a new regimen, while maintaining accurate historical records for medical review.
 
 
 
-**Independent Test**: User edits a medication's dosage pattern from "4, 3, 3" to "4, 4, 3, 4, 3, 3", sets the effective date to "Tomorrow", saves the change, and verifies that today's schedule still shows the old pattern while tomorrow and future dates show the new pattern.**Why this priority**: [Explain the value and why it has this priority level]
+**Independent Test**: User edits a medication's dosage pattern from "4, 3, 3" to "4, 4, 3, 4, 3, 3", sets the effective date to "Tomorrow", saves the change, and verifies that today's schedule still shows the old pattern while tomorrow and future dates show the new pattern.
 
 
 
-**Acceptance Scenarios**:**Independent Test**: [Describe how this can be tested independently]
+
+1. **Given** a user has an active medication with pattern "4, 3, 3", **When** they edit the pattern to "4, 4, 3, 4, 3, 3" effective tomorrow, **Then** the system saves the new pattern with tomorrow's date, keeps the old pattern for historical logs, and the new pattern starts at Day 1 (regardless of where the old pattern was in its cycle)
 
 
 
-1. **Given** a user has an active medication with pattern "4, 3, 3", **When** they edit the pattern to "4, 4, 3, 4, 3, 3" effective tomorrow, **Then** the system saves the new pattern with tomorrow's date and keeps the old pattern for historical logs**Acceptance Scenarios**:
-
-
-
-2. **Given** a user changes a dosage pattern, **When** they view the medication history, **Then** the system displays "Pattern changed on [date]: Old '4, 3, 3' → New '4, 4, 3, 4, 3, 3'"1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+2. **Given** a user changes a dosage pattern, **When** they view the medication history, **Then** the system displays "Pattern changed on [date]: Old '4, 3, 3' → New '4, 4, 3, 4, 3, 3'"
 
 
 
@@ -128,105 +121,86 @@ As a blood thinner user whose INR levels require dosage adjustment, I need to up
 
 
 
-4. **Given** a user sets a pattern change effective "Today", **When** they view today's expected dose, **Then** the system uses the new pattern starting from today[Add more user stories as needed, each with an assigned priority]
+4. **Given** a user sets a pattern change effective "Today", **When** they view today's expected dose, **Then** the system uses the new pattern starting from today
+
+5. **Given** a user received a new prescription 2 days ago but didn't update the app until today, **When** they set the pattern effective date to 2 days ago, **Then** the system accepts the backdated change and recalculates expected dosages for those past dates
+
+6. **Given** a user attempts to set a pattern effective date more than 7 days in the past, **When** they save the change, **Then** the system shows a confirmation prompt "This will change the pattern effective 10 days ago. This may affect historical logs. Continue?" before saving
 
 
 
----### Edge Cases
+### Edge Cases
 
 
 
-### User Story 4 - View Future Dosage Calendar (Priority: P2)<!--
+### User Story 4 - View Future Dosage Calendar (Priority: P2)
 
   ACTION REQUIRED: The content in this section represents placeholders.
 
 As a blood thinner user, I want to view a calendar showing my scheduled dosages for the next 2-4 weeks, so I can plan ahead, prepare medication organizers, and know what to expect when I get my next INR test.  Fill them out with the right edge cases.
 
--->
+
 
 **Why this priority**: Users need visibility into their upcoming medication schedule for planning purposes, preparing weekly pill organizers, and understanding their regimen before INR tests. This reduces anxiety and improves medication adherence.
 
-- What happens when [boundary condition]?
 
-**Independent Test**: User navigates to a medication's schedule view, sees a calendar or list showing the next 14-28 days with each day's expected dosage based on the pattern, and can identify which day of the pattern each date represents.- How does system handle [error scenario]?
-
-
-
-**Acceptance Scenarios**:## Requirements *(mandatory)*
+**Independent Test**: User navigates to a medication's schedule view, sees a calendar or list showing the next 14-28 days with each day's expected dosage based on the pattern, and can identify which day of the pattern each date represents.
 
 
 
-1. **Given** a user has a medication with a 6-day pattern, **When** they view the 14-day future schedule, **Then** the system displays each date with its dosage and indicates pattern day number (e.g., "Nov 3: 4mg (Day 1)", "Nov 4: 4mg (Day 2)", "Nov 5: 3mg (Day 3)")<!--
+## Requirements *(mandatory)*
 
-  ACTION REQUIRED: The content in this section represents placeholders.
 
-2. **Given** a user has an upcoming pattern change on Day 10, **When** they view the future schedule, **Then** the system clearly indicates "Pattern changes on Day 10" and shows the new pattern's dosages from that date forward  Fill them out with the right functional requirements.
+1. **Given** a user has a medication with a 6-day pattern, **When** they view the 14-day future schedule, **Then** the system displays each date with its dosage and indicates pattern day number (e.g., "Nov 3: 4mg (Day 1)", "Nov 4: 4mg (Day 2)", "Nov 5: 3mg (Day 3)")
 
--->
+2. **Given** a user has an upcoming pattern change on Day 10, **When** they view the future schedule, **Then** the system clearly indicates "Pattern changes on Day 10" and shows the new pattern's dosages from that date forward
+
 
 3. **Given** a user views the future schedule, **When** they select a specific date, **Then** the system shows detailed information: date, expected dosage, pattern day number, and any scheduled INR tests on that date
 
-### Functional Requirements
+
 
 4. **Given** a user has a long pattern (16 days), **When** they view a 28-day schedule, **Then** the system correctly calculates and displays dosages across multiple pattern cycles
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
 
----- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-
-### User Story 5 - Validate Pattern Entry (Priority: P3)- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+### User Story 5 - Validate Pattern Entry (Priority: P3)
 
 As a blood thinner user entering a dosage pattern, I need the system to validate my input and provide helpful feedback, so I can be confident the pattern is correct and will calculate properly.
 
-*Example of marking unclear requirements:*
 
 **Why this priority**: Pattern entry errors could lead to incorrect dosages being suggested. Validation ensures data integrity and prevents user errors, though the core functionality works without extensive validation.
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-
-**Independent Test**: User attempts various pattern inputs (valid, invalid, edge cases) and verifies the system accepts valid patterns, rejects invalid ones with clear error messages, and provides guidance on correct format.- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+**Independent Test**: User attempts various pattern inputs (valid, invalid, edge cases) and verifies the system accepts valid patterns, rejects invalid ones with clear error messages, and provides guidance on correct format.
 
 
 
-**Acceptance Scenarios**:### Key Entities *(include if feature involves data)*
 
+1. **Given** a user enters a pattern "4, 3, 3", **When** they save, **Then** the system validates it as a valid pattern and saves successfully
 
-
-1. **Given** a user enters a pattern "4, 3, 3", **When** they save, **Then** the system validates it as a valid pattern and saves successfully- **[Entity 1]**: [What it represents, key attributes without implementation]
-
-- **[Entity 2]**: [What it represents, relationships to other entities]
 
 2. **Given** a user enters a pattern "4, abc, 3", **When** they attempt to save, **Then** the system shows an error "Pattern contains invalid value 'abc'. Use numeric values only (e.g., 4, 3.5, 3)"
 
-## Success Criteria *(mandatory)*
 
 3. **Given** a user enters a pattern "4", **When** they save, **Then** the system asks "This pattern has only one dosage. Did you mean a fixed daily dose of 4mg instead of a pattern?"
 
-<!--
 
-4. **Given** a user enters a very long pattern (20+ values), **When** they save, **Then** the system warns "Long pattern detected (20 days). Please verify this is correct." and requires confirmation  ACTION REQUIRED: Define measurable success criteria.
-
-  These must be technology-agnostic and measurable.
-
-5. **Given** a user enters dosages outside the safe range for their medication type (e.g., 30mg Warfarin), **When** they save, **Then** the system warns "This dosage (30mg) is above the typical maximum (20mg). Confirm this is prescribed." per existing medication safety rules-->
+4. **Given** a user enters a very long pattern (20+ values), **When** they save, **Then** the system warns "Long pattern detected (20 days). Please verify this is correct." and requires confirmation 
 
 
 
----### Measurable Outcomes
+5. **Given** a user enters dosages outside the safe range for their medication type (e.g., 30mg Warfarin), **When** they save, **Then** the system warns "This dosage (30mg) is above the typical maximum (20mg). Confirm this is prescribed." per existing medication safety rules
 
 
 
-### Edge Cases- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
 
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 
-- **What happens when a user has no pattern defined (legacy medication)?** System defaults to a single fixed daily dose and allows user to optionally convert to a pattern-based schedule- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
+### Edge Cases
 
-- **What happens when a pattern is changed mid-cycle?** System resets to Day 1 of the new pattern starting from the effective date, ensuring clear transition- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **What happens when a user has no pattern defined (legacy medication)?** System defaults to a single fixed daily dose and allows user to optionally convert to a pattern-based schedule- 
+
+- **What happens when a pattern is changed mid-cycle?** The system resets to Day 1 of the new pattern starting from the effective date, regardless of where the old pattern was in its cycle. This ensures clear transition and matches how healthcare providers prescribe pattern changes (e.g., "Starting Monday, follow: 4, 4, 3").
+
+- **What happens when a user backdates a pattern change?** System allows backdating to any past date to support scenarios where prescription changes happened but weren't entered immediately. Expected dosages for logs on or after the backdated effective date are recalculated. A confirmation prompt appears for dates more than 7 days in the past to prevent accidental historical data changes.
 
 - **What happens when a user logs a dose for a past date with a different active pattern?** System uses the pattern that was active on that past date, not the current pattern
 - **What happens when a pattern has decimal dosages (e.g., 3.5mg)?** System supports decimal values with up to 2 decimal places for precision
@@ -239,6 +213,7 @@ As a blood thinner user entering a dosage pattern, I need the system to validate
 ### Functional Requirements
 
 - **FR-001**: System MUST allow users to define a medication dosage pattern as an ordered sequence of numeric values representing dosages for consecutive days (e.g., "4, 4, 3, 4, 3, 3")
+- **FR-001a**: System MUST support TWO pattern entry modes controlled by a feature flag for A/B testing: (1) Date-based mode where user specifies effective start date and pattern begins at Day 1, (2) Day-number mode where user specifies "Today is Day X" and system back-calculates start date. Default mode is day-number (mode 2).
 - **FR-002**: System MUST support dosage patterns of minimum length 2 and maximum length 365 days
 - **FR-003**: System MUST support dosage values with up to 2 decimal places (e.g., 3.5mg, 2.75mg)
 - **FR-004**: System MUST associate each dosage pattern with a dosage unit (mg, mcg, units, mL, etc.) from the medication's configured unit
@@ -248,16 +223,17 @@ As a blood thinner user entering a dosage pattern, I need the system to validate
 - **FR-008**: System MUST allow users to override the pre-filled dosage when logging a dose (for when actual dose differs from expected)
 - **FR-009**: System MUST record both the expected dosage (from pattern) and actual dosage (logged) for each dose log entry
 - **FR-010**: System MUST visually indicate dose log entries where actual dosage differs from expected dosage
-- **FR-011**: System MUST support modifying a medication's dosage pattern with an effective date for when the new pattern begins
+- **FR-011**: System MUST support modifying a medication's dosage pattern with an effective date for when the new pattern begins (including past dates for backdating), and the new pattern always starts at Day 1 (not continuing from the old pattern's day number). System MUST show a confirmation prompt when the effective date is more than 7 days in the past. If user cancels the confirmation dialog, the UI MUST prevent form submission; the API accepts any valid past date without rejection (confirmation is UI-only safety check).
+- **FR-011a**: Feature flag configuration for pattern entry mode MUST be stored at `appsettings.json` path `"Features:PatternEntryMode"` with enum values `"DateBased"` or `"DayNumber"` (default: `"DayNumber"`). Future feature will enable runtime user selection via settings screen.
 - **FR-012**: System MUST preserve historical dosage patterns when a pattern is changed, maintaining accurate records of what pattern was active on any past date
 - **FR-013**: System MUST use the historically active pattern (not current pattern) when displaying or editing past dose logs
 - **FR-014**: System MUST display a future dosage schedule showing expected dosages for the next 14-28 days based on the current or upcoming pattern
-- **FR-015**: System MUST indicate pattern change dates in the future schedule view when a pattern change is scheduled
-- **FR-016**: System MUST validate pattern input to ensure all values are numeric and within the medication's safe dosage range per existing safety rules
-- **FR-017**: System MUST support converting a fixed-dose medication to a pattern-based medication and vice versa
+- **FR-015**: System MUST indicate dosage pattern change dates in the future schedule view when a pattern change is scheduled
+- **FR-016**: System MUST validate dosage pattern input to ensure all values are numeric and within reasonable range (0.1-1000.0 per existing Medication entity validation). Comprehensive medication-specific safety rules (e.g., Warfarin >20mg warnings) are OUT OF SCOPE for this feature and will be addressed in a separate future feature for dedicated safety rules architecture.
+- **FR-017**: System MUST support converting a fixed-dose medication to a dosage pattern-based medication and vice versa
 - **FR-018**: System MUST handle the special case of frequency not being daily by applying the pattern only to scheduled medication days (e.g., for "Every other day" frequency, Day 1 of pattern applies to first scheduled day, Day 2 to second scheduled day, etc.)
 - **FR-019**: System MUST display pattern information in the medication details view, showing the complete pattern sequence and current position
-- **FR-020**: System MUST support exporting medication history including pattern changes for medical records and healthcare provider review
+- **FR-020**: OUT OF SCOPE - Export functionality will be addressed in a separate future feature
 
 ### Key Entities
 
@@ -287,15 +263,15 @@ As a blood thinner user entering a dosage pattern, I need the system to validate
 ### Measurable Outcomes
 
 - **SC-001**: Users can successfully define and save dosage patterns of various lengths (2-365 days) with validation feedback within 30 seconds
-- **SC-002**: The "Log Dose" screen pre-fills the correct expected dosage based on the active pattern with 100% accuracy for any date
+- **SC-002**: The "Log Dose" screen pre-fills the correct expected dosage based on the active dosage pattern with 100% accuracy for any date
 - **SC-003**: Users can modify an active dosage pattern and verify the change takes effect on the specified date within 10 seconds
-- **SC-004**: The system correctly calculates dosages for any date up to 2 years in the future without performance degradation (< 500ms response time)
-- **SC-005**: 95% of users successfully complete pattern entry on first attempt without validation errors (measured via successful saves vs. validation errors)
-- **SC-006**: Users can view a 14-day future schedule and identify the correct dosage for any specific date in under 15 seconds
-- **SC-007**: Historical dose logs maintain 100% accuracy of expected dosage calculations even after pattern changes (expected dosage uses historically active pattern, not current)
+- **SC-004**: The system correctly calculates dosages for a rolling 90-day window (sufficient for medication planning) without performance degradation (< 50ms response time for 90-day schedule generation)
+- **SC-005**: 95% of users successfully complete dosage pattern entry on first attempt without validation errors (measured via successful saves vs. validation errors)
+- **SC-006**: Users can view a 14-28 day future schedule and identify the correct dosage for any specific date in under 15 seconds
+- **SC-007**: Historical dose logs maintain 100% accuracy of expected dosage calculations even after dosage pattern changes (expected dosage uses historically active pattern, not current)
 - **SC-008**: Dose log entries with variance between expected and actual dosage are visually identifiable within 2 seconds of viewing the log list
-- **SC-009**: Users report 80%+ confidence in taking the correct daily dosage after implementing pattern-based scheduling (measured via user feedback survey)
-- **SC-010**: System handles pattern cycles correctly across multiple years without calculation drift (pattern day for any date matches manual calculation)
+- **SC-009**: Users report 80%+ confidence in taking the correct daily dosage after implementing dosage pattern-based scheduling (measured via user feedback survey)
+- **SC-010**: System handles dosage pattern cycles correctly across multiple years without calculation drift (pattern day for any date matches manual calculation)
 
 ## Assumptions *(documented)*
 
@@ -309,6 +285,7 @@ As a blood thinner user entering a dosage pattern, I need the system to validate
 - Users are responsible for following their prescribed pattern; the system provides scheduling support but does not replace medical advice
 - Pattern history is retained indefinitely for medical record purposes (soft delete only)
 - Most users will use the system's calendar view for reference, not memorize long patterns
+- The feature flag for pattern entry mode (date-based vs. day-number) can be toggled via system configuration for A/B testing and UX research
 
 ## Out of Scope *(clarified boundaries)*
 
@@ -320,6 +297,8 @@ As a blood thinner user entering a dosage pattern, I need the system to validate
 - **Healthcare provider portal integration**: Pattern changes are user-entered; no direct integration with EHR systems for automatic pattern updates
 - **Smart device integration**: No automatic dose reminders via smartwatches or IoT medication dispensers (existing reminder system continues to work)
 - **Insurance or prescription management**: Pattern-based dosing does not interact with refill tracking or prescription systems
+- **Export functionality**: Exporting medication history including dosage pattern changes will be addressed in a separate future feature (originally FR-020)
+- **Medication-specific safety validation**: Comprehensive safety rules system (e.g., Warfarin >20mg warnings, medication-specific dosage limits) requires dedicated architecture beyond this feature's scope. Current validation uses existing Medication entity range (0.1-1000.0). Future feature will implement robust safety rules engine with per-medication limits, interaction checking, and clinical decision support.
 
 ## Dependencies *(identified)*
 
