@@ -131,9 +131,9 @@ Based on plan.md, this feature enhances existing projects:
 
 ### Frontend Implementation for User Story 1
 
-- [ ] T022 [P] [US1] Create `PatternEntryMode` enum in `src/BloodThinnerTracker.Web/Models/PatternEntryMode.cs` (DateBased, DayNumberBased)
-- [ ] T023 [US1] Create `MedicationPatternService` interface in `src/BloodThinnerTracker.Web/Services/IMedicationPatternService.cs`
-- [ ] T024 [US1] Implement `MedicationPatternService` in `src/BloodThinnerTracker.Web/Services/MedicationPatternService.cs` (HttpClient-based API calls)
+- [x] T022 [P] [US1] Create `PatternEntryMode` enum in `src/BloodThinnerTracker.Web/Models/PatternEntryMode.cs` (DateBased, DayNumberBased) - ✅ 28 lines
+- [x] T023 [US1] Create `MedicationPatternService` interface in `src/BloodThinnerTracker.Web/Services/IMedicationPatternService.cs` - ✅ 64 lines with PatternHistoryResponse
+- [x] T024 [US1] Implement `MedicationPatternService` in `src/BloodThinnerTracker.Web/Services/MedicationPatternService.cs` (HttpClient-based API calls) - ✅ 172 lines with comprehensive logging
 - [ ] T025 [US1] Create `PatternEntryComponent.razor` in `src/BloodThinnerTracker.Web/Components/Medications/PatternEntryComponent.razor` with MudToggleGroup for mode selection
 - [ ] T026 [US1] Implement date-based mode UI in `PatternEntryComponent` (MudDatePicker for effective date, pattern starts Day 1)
 - [ ] T027 [US1] Implement day-number-based mode UI in `PatternEntryComponent` (MudNumericField for current day number, system back-calculates start date)

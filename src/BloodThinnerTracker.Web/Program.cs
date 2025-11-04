@@ -132,6 +132,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationService, BloodThinnerTracker.Web.Services.MedicationService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationLogService, BloodThinnerTracker.Web.Services.MedicationLogService>();
+builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationPatternService, BloodThinnerTracker.Web.Services.MedicationPatternService>();
 
 // Add HttpClient for API calls with authentication (T003-001)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
