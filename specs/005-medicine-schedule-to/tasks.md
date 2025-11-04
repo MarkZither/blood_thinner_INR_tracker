@@ -28,8 +28,8 @@ Based on plan.md, this feature enhances existing projects:
 
 **Purpose**: Feature flag configuration and database preparation
 
-- [ ] T001 Add feature flag configuration for pattern entry mode in `src/BloodThinnerTracker.Api/appsettings.json` at path `"Features:PatternEntryMode"` with enum values `"DateBased"` or `"DayNumber"` (default: `"DayNumber"`). Also add to `src/BloodThinnerTracker.Api/appsettings.Development.json`
-- [ ] T002 [P] Create migration baseline - document current schema state before pattern feature in `src/BloodThinnerTracker.Api/Migrations/`
+- [x] T001 Add feature flag configuration for pattern entry mode in `src/BloodThinnerTracker.Api/appsettings.json` at path `"Features:PatternEntryMode"` with enum values `"DateBased"` or `"DayNumber"` (default: `"DayNumber"`). Also add to `src/BloodThinnerTracker.Api/appsettings.Development.json`
+- [x] T002 [P] Create migration baseline - document current schema state before pattern feature in `src/BloodThinnerTracker.Api/Migrations/`
 
 ---
 
