@@ -121,11 +121,15 @@ You can and probably should do this with different models to benefit from differ
 
 Break it down into steps for realistic reviewing of the changes
 
+#### Phase 1
+
 > /speckit.implement tasks to complete ## Phase 1: Setup (Shared Infrastructure)
 Started at 13:56
 I'll follow the instructions in the speckit.implement.prompt.md file to implement Phase 1: Setup (Shared Infrastructure).
 Finished 14:09
 
+
+#### Phase 2
 > /speckit.implement tasks to complete Phase 2: Foundational (Blocking Prerequisites)
 Started at 14:14
 I'll follow the instructions in speckit.implement.prompt.md to implement Phase 2: Foundational (Blocking Prerequisites).
@@ -151,6 +155,16 @@ Estimate to Phase 2 completion: ~20 more minutes (DTOs + migration)
 
 Finished 16:55
 
+#### Phase 3 - User Story 1
+Started: 17:05
+
+backend finished: 17:28
+
+I went to walk the dog and had to have a discussion with copilot about doing all of the work because it was incorrectly quoting the spec and stating work was out of scope when it was quite clearly in scope.
+
+frontend finished: 19:00 at least as far as copilot was concerned, manual testing started at 19:00 to validate the work.
+
+Errors were made by copliot, so it was clear that unit tests were skipped over, the constitution was not honoured and the technical implementation could have been clearer, but a little guidance and it was corrected in less than an hour.
 
 ## The Question
 

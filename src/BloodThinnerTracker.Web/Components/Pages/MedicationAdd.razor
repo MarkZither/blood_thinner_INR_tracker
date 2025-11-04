@@ -2,10 +2,12 @@
 @using BloodThinnerTracker.Web.ViewModels
 @using BloodThinnerTracker.Web.Services
 @using BloodThinnerTracker.Web.Data
+@using BloodThinnerTracker.Web.Components.Medications
 @using BloodThinnerTracker.Shared.Models
 @using static BloodThinnerTracker.Shared.Models.MedicationType
 @using static BloodThinnerTracker.Shared.Models.MedicationFrequency
 @inject IMedicationService MedicationService
+@inject IMedicationPatternService PatternService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -76,7 +78,7 @@
                                 </MudText>
                             }
                         </MudItem>
-                        
+
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="medication.Name"
                                         Label="How You Know This Medication *"
@@ -109,6 +111,70 @@
                                 <MudSelectItem Value="@("mL")">mL (milliliters)</MudSelectItem>
                                 <MudSelectItem Value="@("units")">units</MudSelectItem>
                             </MudSelect>
+                        </MudItem>
+
+                        <!-- Dosage Pattern Toggle (Inline with Dosage) -->
+                        <MudItem xs="12">
+                            <MudDivider Class="my-2" />
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-1" />
+                                    Variable Dosage Pattern
+                                </MudText>
+                                <MudCheckBox @bind-Value="_enableDosagePattern"
+                                           Label="Enable pattern"
+                                           Color="Color.Primary"
+                                           Dense="true" />
+                            </MudStack>
+
+                            @if (!_enableDosagePattern)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                    Uses fixed daily dose above. Enable for varying doses (e.g., 4mg, 4mg, 3mg).
+                                </MudText>
+                            }
+
+                            @if (_enableDosagePattern)
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                                    Define a repeating dosage pattern. You can also add this later.
+                                </MudAlert>
+
+                                <MudTextField @bind-Value="_patternInput"
+                                            Label="Dosage Pattern"
+                                            Placeholder="Enter dosages separated by commas (e.g., 4, 4, 3 or 4.5, 3.5)"
+                                            Variant="Variant.Outlined"
+                                            Lines="2"
+                                            Class="mt-2"
+                                            HelperText="Enter the dosages for each day of your pattern cycle"
+                                            OnBlur="ValidateAndParsePattern" />
+
+                                @if (_parsedPattern != null && _parsedPattern.Count > 0)
+                                {
+                                    <MudText Typo="Typo.subtitle2" Class="mt-2">Pattern Preview:</MudText>
+                                    <MudChipSet T="string">
+                                        @for (int i = 0; i < _parsedPattern.Count; i++)
+                                        {
+                                            var dosage = _parsedPattern[i];
+                                            var dayNumber = i + 1;
+                                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+                                                Day @dayNumber: @dosage @medication.DosageUnit
+                                            </MudChip>
+                                        }
+                                    </MudChipSet>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Info">
+                                        Pattern repeats every @_parsedPattern.Count days |
+                                        Average: @(_parsedPattern.Average().ToString("F2"))@medication.DosageUnit
+                                    </MudText>
+                                }
+
+                                @if (!string.IsNullOrEmpty(_patternValidationError))
+                                {
+                                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">@_patternValidationError</MudAlert>
+                                }
+                            }
+                            <MudDivider Class="my-2" />
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
@@ -452,6 +518,65 @@
     private MedicationViewModel medication = new();
     private MedicationSuggestion? selectedMedication;
     private bool isLoading = false;
+    private bool _enableDosagePattern = false;
+    private string _patternInput = string.Empty;
+    private List<decimal> _parsedPattern = new();
+    private string? _patternValidationError;
+    private CreateDosagePatternRequest? _pendingPatternRequest;
+
+    private void ValidateAndParsePattern()
+    {
+        _patternValidationError = null;
+        _parsedPattern.Clear();
+        _pendingPatternRequest = null;
+
+        if (string.IsNullOrWhiteSpace(_patternInput))
+        {
+            return;
+        }
+
+        var parts = _patternInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length == 0)
+        {
+            _patternValidationError = "Pattern must contain at least one dosage value";
+            return;
+        }
+
+        if (parts.Length > 365)
+        {
+            _patternValidationError = "Pattern cannot exceed 365 days";
+            return;
+        }
+
+        foreach (var part in parts)
+        {
+            if (!decimal.TryParse(part, out var dosage))
+            {
+                _patternValidationError = $"Invalid dosage value: '{part}'. Please use numeric values only.";
+                return;
+            }
+
+            if (dosage < 0.1m || dosage > 1000m)
+            {
+                _patternValidationError = $"Dosage {dosage} is out of range (0.1-1000)";
+                return;
+            }
+
+            _parsedPattern.Add(dosage);
+        }
+
+        // Create the pending pattern request
+        if (_parsedPattern.Count > 0)
+        {
+            _pendingPatternRequest = new CreateDosagePatternRequest
+            {
+                PatternSequence = _parsedPattern,
+                StartDate = medication.StartDate ?? DateTime.Today,
+                ClosePreviousPattern = false // First pattern for new medication
+            };
+        }
+    }
 
     private async Task<IEnumerable<MedicationSuggestion>> SearchMedications(string value, CancellationToken token)
     {
@@ -472,7 +597,7 @@
             medication.BrandName = selectedMedication.BrandNames;
             medication.Form = selectedMedication.Form;
             medication.Indication = selectedMedication.Indication;
-            
+
             // For the display name, suggest the most user-friendly option:
             // - For well-known generics like "Warfarin" or "Aspirin", use the generic name
             // - For medications better known by brand (like Sintrom), suggest the brand name
@@ -480,7 +605,7 @@
             medication.Name = GetSuggestedDisplayName(selectedMedication);
         }
     }
-    
+
     private string GetSuggestedDisplayName(MedicationSuggestion suggestion)
     {
         // Medications commonly referred to by generic name
@@ -488,21 +613,21 @@
         {
             "Warfarin", "Aspirin", "Heparin", "Clopidogrel"
         };
-        
+
         // If the generic name is well-known, suggest it
         if (wellKnownGenerics.Contains(suggestion.GenericName))
         {
             return suggestion.GenericName;
         }
-        
+
         // For medications with a single well-known brand name, suggest the brand
         // (e.g., "Sintrom" is more commonly used than "Acenocoumarol")
-        if (!suggestion.BrandNames.Contains(",") && 
+        if (!suggestion.BrandNames.Contains(",") &&
             !suggestion.BrandNames.Equals("Various", StringComparison.OrdinalIgnoreCase))
         {
             return suggestion.BrandNames;
         }
-        
+
         // Default to generic name for medical accuracy
         return suggestion.GenericName;
     }
@@ -541,6 +666,23 @@
 
         try
         {
+            // Validate pattern if enabled
+            if (_enableDosagePattern)
+            {
+                ValidateAndParsePattern();
+                if (!string.IsNullOrEmpty(_patternValidationError))
+                {
+                    Snackbar.Add(_patternValidationError, Severity.Error);
+                    return;
+                }
+
+                if (_parsedPattern.Count == 0 && !string.IsNullOrWhiteSpace(_patternInput))
+                {
+                    Snackbar.Add("Please enter a valid dosage pattern or disable the pattern option", Severity.Error);
+                    return;
+                }
+            }
+
             // Custom validation
             if (!medication.AreScheduledTimesValid())
             {
@@ -632,6 +774,31 @@
 
             if (result != null)
             {
+                // If pattern was defined, create it now that medication exists
+                if (_enableDosagePattern && _pendingPatternRequest != null)
+                {
+                    try
+                    {
+                        var patternResult = await PatternService.CreatePatternAsync(result.PublicId, _pendingPatternRequest);
+                        if (patternResult != null)
+                        {
+                            Snackbar.Add($"Medication and dosage pattern created successfully!", Severity.Success);
+                        }
+                        else
+                        {
+                            Snackbar.Add($"Medication created, but pattern save failed. You can add it later from the edit page.", Severity.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add($"Medication created, but pattern error: {ex.Message}. Add pattern later from edit page.", Severity.Warning);
+                    }
+                }
+                else
+                {
+                    Snackbar.Add("Medication created successfully!", Severity.Success);
+                }
+
                 Navigation.NavigateTo("/medications");
             }
         }

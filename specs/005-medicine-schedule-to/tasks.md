@@ -134,15 +134,21 @@ Based on plan.md, this feature enhances existing projects:
 - [x] T022 [P] [US1] Create `PatternEntryMode` enum in `src/BloodThinnerTracker.Web/Models/PatternEntryMode.cs` (DateBased, DayNumberBased) - ✅ 28 lines
 - [x] T023 [US1] Create `MedicationPatternService` interface in `src/BloodThinnerTracker.Web/Services/IMedicationPatternService.cs` - ✅ 64 lines with PatternHistoryResponse
 - [x] T024 [US1] Implement `MedicationPatternService` in `src/BloodThinnerTracker.Web/Services/MedicationPatternService.cs` (HttpClient-based API calls) - ✅ 172 lines with comprehensive logging
-- [ ] T025 [US1] Create `PatternEntryComponent.razor` in `src/BloodThinnerTracker.Web/Components/Medications/PatternEntryComponent.razor` with MudToggleGroup for mode selection
-- [ ] T026 [US1] Implement date-based mode UI in `PatternEntryComponent` (MudDatePicker for effective date, pattern starts Day 1)
-- [ ] T027 [US1] Implement day-number-based mode UI in `PatternEntryComponent` (MudNumericField for current day number, system back-calculates start date)
-- [ ] T028 [US1] Add feature flag logic to `PatternEntryComponent` to read pattern entry mode from `appsettings.json` path `"Features:PatternEntryMode"` (values: `"DateBased"` or `"DayNumber"`)
-- [ ] T029 [US1] Add MudChipSet for visual pattern display in `PatternEntryComponent` (e.g., chips showing "4mg", "4mg", "3mg")
-- [ ] T030 [US1] Enhance Medications.razor page to include pattern entry section in `src/BloodThinnerTracker.Web/Components/Pages/Medications.razor`
-- [ ] T031 [US1] Add pattern display to medication details view showing complete sequence and current position
+- [x] T025 [US1] Create `PatternEntryComponent.razor` in `src/BloodThinnerTracker.Web/Components/Medications/PatternEntryComponent.razor` with MudToggleGroup for mode selection - ✅ 341 lines
+- [x] T026 [US1] Implement date-based mode UI in `PatternEntryComponent` (MudDatePicker for effective date, pattern starts Day 1) - ✅ Integrated in PatternEntryComponent
+- [x] T027 [US1] Implement day-number-based mode UI in `PatternEntryComponent` (MudNumericField for current day number, system back-calculates start date) - ✅ Integrated in PatternEntryComponent
+- [x] T028 [US1] Add feature flag logic to `PatternEntryComponent` to read pattern entry mode from `appsettings.json` path `"Features:PatternEntryMode"` (values: `"DateBased"` or `"DayNumber"`) - ✅ Implemented in OnInitialized
+- [x] T029 [US1] Add MudChipSet for visual pattern display in `PatternEntryComponent` (e.g., chips showing "4mg", "4mg", "3mg") - ✅ Pattern preview with MudChipSet
+- [x] T030 [US1] Enhance Medications.razor page to include pattern entry section in `src/BloodThinnerTracker.Web/Components/Pages/Medications.razor` - ✅ Added PatternDisplayComponent and dialog integration
+- [x] T031 [US1] Add pattern display to medication details view showing complete sequence and current position - ✅ PatternDisplayComponent created (187 lines), integrated into MedicationEdit.razor
+- [x] T032 [US1] **BONUS** Add inline pattern entry to MedicationAdd.razor for creating medications with initial patterns - ✅ Inline pattern input with validation (~60 lines added to MedicationAdd.razor)
 
-**Checkpoint**: At this point, User Story 1 should be fully functional - users can define patterns and see them displayed
+**Checkpoint**: At this point, User Story 1 is FULLY FUNCTIONAL (MVP COMPLETE) - users can:
+- **CREATE** medications with patterns (MedicationAdd.razor - inline pattern entry)
+- **EDIT** medication patterns (MedicationEdit.razor - PatternDisplayComponent integration)  
+- **MANAGE** patterns from list view (Medications.razor - dialog-based pattern management)
+- **VIEW** pattern details with current day highlighting and statistics (PatternDisplayComponent)
+- Pattern entry supports **both** date-based and day-number modes via feature flag
 
 ---
 

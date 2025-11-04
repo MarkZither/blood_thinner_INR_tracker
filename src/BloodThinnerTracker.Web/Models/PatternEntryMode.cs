@@ -7,7 +7,7 @@ namespace BloodThinnerTracker.Web.Models;
 /// This enum supports two different user workflows for pattern entry:
 /// - DateBased: User specifies the effective date, pattern starts at Day 1 on that date
 /// - DayNumberBased: User specifies "Today is Day X", system back-calculates start date
-/// 
+///
 /// The active mode is configured via feature flag in appsettings.json at "Features:PatternEntryMode".
 /// Default mode is DayNumber for easier user experience (no date selection required).
 /// </remarks>

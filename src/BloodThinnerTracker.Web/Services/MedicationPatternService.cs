@@ -9,7 +9,7 @@ using System.Net.Http.Json;
 /// <remarks>
 /// This service uses HttpClient to communicate with the BloodThinnerTracker.Api backend.
 /// All requests include JWT authentication tokens automatically via configured HttpClient.
-/// 
+///
 /// Error handling:
 /// - 401 Unauthorized: User not authenticated (redirects to login)
 /// - 403 Forbidden: User doesn't own the medication
@@ -31,26 +31,26 @@ public class MedicationPatternService : IMedicationPatternService
 
     /// <inheritdoc />
     public async Task<DosagePatternResponse?> CreatePatternAsync(
-        int medicationId,
+        Guid medicationPublicId,
         CreateDosagePatternRequest request)
     {
         try
         {
             _logger.LogInformation(
-                "Creating dosage pattern for medication {MedicationId}, pattern length {Length}",
-                medicationId, request.PatternSequence.Count);
+                "Creating dosage pattern for medication {MedicationPublicId}, pattern length {Length}",
+                medicationPublicId, request.PatternSequence.Count);
 
             var response = await _httpClient.PostAsJsonAsync(
-                $"api/medications/{medicationId}/patterns",
+                $"api/medications/{medicationPublicId}/patterns",
                 request);
 
             if (response.IsSuccessStatusCode)
             {
                 var pattern = await response.Content.ReadFromJsonAsync<DosagePatternResponse>();
-                
+
                 _logger.LogInformation(
-                    "Successfully created pattern {PatternId} for medication {MedicationId}",
-                    pattern?.Id, medicationId);
+                    "Successfully created pattern {PatternId} for medication {MedicationPublicId}",
+                    pattern?.Id, medicationPublicId);
 
                 return pattern;
             }
@@ -58,8 +58,8 @@ public class MedicationPatternService : IMedicationPatternService
             // Log error details
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning(
-                "Failed to create pattern for medication {MedicationId}. Status: {StatusCode}, Error: {Error}",
-                medicationId, response.StatusCode, errorContent);
+                "Failed to create pattern for medication {MedicationPublicId}. Status: {StatusCode}, Error: {Error}",
+                medicationPublicId, response.StatusCode, errorContent);
 
             response.EnsureSuccessStatusCode(); // Throw exception with details
             return null;
@@ -67,31 +67,31 @@ public class MedicationPatternService : IMedicationPatternService
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Error creating dosage pattern for medication {MedicationId}",
-                medicationId);
+                "Error creating dosage pattern for medication {MedicationPublicId}",
+                medicationPublicId);
             throw;
         }
     }
 
     /// <inheritdoc />
-    public async Task<DosagePatternResponse?> GetActivePatternAsync(int medicationId)
+    public async Task<DosagePatternResponse?> GetActivePatternAsync(Guid medicationPublicId)
     {
         try
         {
             _logger.LogDebug(
-                "Fetching active pattern for medication {MedicationId}",
-                medicationId);
+                "Fetching active pattern for medication {MedicationPublicId}",
+                medicationPublicId);
 
             var response = await _httpClient.GetAsync(
-                $"api/medications/{medicationId}/patterns/active");
+                $"api/medications/{medicationPublicId}/patterns/active");
 
             if (response.IsSuccessStatusCode)
             {
                 var pattern = await response.Content.ReadFromJsonAsync<DosagePatternResponse>();
-                
+
                 _logger.LogDebug(
-                    "Retrieved active pattern {PatternId} for medication {MedicationId}",
-                    pattern?.Id, medicationId);
+                    "Retrieved active pattern {PatternId} for medication {MedicationPublicId}",
+                    pattern?.Id, medicationPublicId);
 
                 return pattern;
             }
@@ -100,16 +100,16 @@ public class MedicationPatternService : IMedicationPatternService
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogDebug(
-                    "No active pattern found for medication {MedicationId}",
-                    medicationId);
+                    "No active pattern found for medication {MedicationPublicId}",
+                    medicationPublicId);
                 return null;
             }
 
             // Log unexpected errors
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning(
-                "Unexpected error fetching active pattern for medication {MedicationId}. Status: {StatusCode}, Error: {Error}",
-                medicationId, response.StatusCode, errorContent);
+                "Unexpected error fetching active pattern for medication {MedicationPublicId}. Status: {StatusCode}, Error: {Error}",
+                medicationPublicId, response.StatusCode, errorContent);
 
             response.EnsureSuccessStatusCode();
             return null;
@@ -117,15 +117,15 @@ public class MedicationPatternService : IMedicationPatternService
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Error fetching active pattern for medication {MedicationId}",
-                medicationId);
+                "Error fetching active pattern for medication {MedicationPublicId}",
+                medicationPublicId);
             throw;
         }
     }
 
     /// <inheritdoc />
     public async Task<PatternHistoryResponse?> GetPatternHistoryAsync(
-        int medicationId,
+        Guid medicationPublicId,
         bool activeOnly = false,
         int limit = 10,
         int offset = 0)
@@ -137,19 +137,19 @@ public class MedicationPatternService : IMedicationPatternService
             offset = Math.Max(offset, 0);
 
             _logger.LogDebug(
-                "Fetching pattern history for medication {MedicationId}, activeOnly={ActiveOnly}, limit={Limit}, offset={Offset}",
-                medicationId, activeOnly, limit, offset);
+                "Fetching pattern history for medication {MedicationPublicId}, activeOnly={ActiveOnly}, limit={Limit}, offset={Offset}",
+                medicationPublicId, activeOnly, limit, offset);
 
             var response = await _httpClient.GetAsync(
-                $"api/medications/{medicationId}/patterns?activeOnly={activeOnly}&limit={limit}&offset={offset}");
+                $"api/medications/{medicationPublicId}/patterns?activeOnly={activeOnly}&limit={limit}&offset={offset}");
 
             if (response.IsSuccessStatusCode)
             {
                 var history = await response.Content.ReadFromJsonAsync<PatternHistoryResponse>();
-                
+
                 _logger.LogDebug(
-                    "Retrieved {Count} patterns for medication {MedicationId}",
-                    history?.Patterns.Count ?? 0, medicationId);
+                    "Retrieved {Count} patterns for medication {MedicationPublicId}",
+                    history?.Patterns.Count ?? 0, medicationPublicId);
 
                 return history;
             }
@@ -157,8 +157,8 @@ public class MedicationPatternService : IMedicationPatternService
             // Log error details
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogWarning(
-                "Failed to fetch pattern history for medication {MedicationId}. Status: {StatusCode}, Error: {Error}",
-                medicationId, response.StatusCode, errorContent);
+                "Failed to fetch pattern history for medication {MedicationPublicId}. Status: {StatusCode}, Error: {Error}",
+                medicationPublicId, response.StatusCode, errorContent);
 
             response.EnsureSuccessStatusCode();
             return null;
@@ -166,8 +166,8 @@ public class MedicationPatternService : IMedicationPatternService
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Error fetching pattern history for medication {MedicationId}",
-                medicationId);
+                "Error fetching pattern history for medication {MedicationPublicId}",
+                medicationPublicId);
             throw;
         }
     }

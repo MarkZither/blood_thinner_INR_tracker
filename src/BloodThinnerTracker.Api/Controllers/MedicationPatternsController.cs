@@ -19,7 +19,7 @@ using System.Security.Claims;
 /// </remarks>
 [Authorize]
 [ApiController]
-[Route("api/medications/{medicationId}/patterns")]
+[Route("api/medications/{medicationPublicId}/patterns")]
 [Produces("application/json")]
 public class MedicationPatternsController : ControllerBase
 {
@@ -41,7 +41,7 @@ public class MedicationPatternsController : ControllerBase
     /// Creates a new dosage pattern for a medication.
     /// Optionally closes the previous active pattern by setting its EndDate.
     /// </summary>
-    /// <param name="medicationId">ID of the medication to add pattern to</param>
+    /// <param name="medicationPublicId">Public ID (GUID) of the medication to add pattern to</param>
     /// <param name="request">Pattern details including sequence, dates, and notes</param>
     /// <returns>The created dosage pattern</returns>
     /// <response code="201">Pattern created successfully</response>
@@ -54,7 +54,7 @@ public class MedicationPatternsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DosagePatternResponse>> CreatePattern(
-        int medicationId,
+        Guid medicationPublicId,
         [FromBody] CreateDosagePatternRequest request)
     {
         // Validate request
@@ -81,11 +81,11 @@ public class MedicationPatternsController : ControllerBase
             });
         }
 
-        // Verify medication exists and user has access
+        // Verify medication exists and user has access using PublicId
         var medication = await _context.Medications
             .Include(m => m.User)
             .Include(m => m.DosagePatterns)
-            .FirstOrDefaultAsync(m => m.Id == medicationId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
+            .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
 
         if (medication == null)
         {
@@ -93,7 +93,7 @@ public class MedicationPatternsController : ControllerBase
             {
                 Status = StatusCodes.Status404NotFound,
                 Title = "Medication not found",
-                Detail = $"Medication with ID {medicationId} does not exist or you don't have access."
+                Detail = $"Medication with Public ID {medicationPublicId} does not exist or you don't have access."
             });
         }
 
@@ -147,14 +147,15 @@ public class MedicationPatternsController : ControllerBase
 
                 _logger.LogInformation(
                     "Closed previous pattern {PatternId} for medication {MedicationId}, EndDate set to {EndDate}",
-                    activePattern.Id, medicationId, activePattern.EndDate);
+                    activePattern.Id, medication.Id, activePattern.EndDate);
             }
         }
 
         // Create new pattern
         var newPattern = new MedicationDosagePattern
         {
-            MedicationId = medicationId,
+            UserId = medication.User.Id, // Required by MedicalEntityBase - use internal int ID
+            MedicationId = medication.Id,
             PatternSequence = request.PatternSequence,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
@@ -168,12 +169,12 @@ public class MedicationPatternsController : ControllerBase
 
         _logger.LogInformation(
             "Created dosage pattern {PatternId} for medication {MedicationId}, pattern length {Length}, start date {StartDate}",
-            newPattern.Id, medicationId, newPattern.PatternLength, newPattern.StartDate);
+            newPattern.Id, medication.Id, newPattern.PatternLength, newPattern.StartDate);
 
         var response = MapToResponse(newPattern);
         return CreatedAtAction(
             nameof(GetActivePattern),
-            new { medicationId },
+            new { medicationPublicId },
             response);
     }
 
@@ -181,7 +182,7 @@ public class MedicationPatternsController : ControllerBase
     /// Retrieves the currently active dosage pattern for a medication.
     /// Active pattern is defined as EndDate = NULL.
     /// </summary>
-    /// <param name="medicationId">ID of the medication</param>
+    /// <param name="medicationPublicId">Public ID (GUID) of the medication</param>
     /// <returns>The active dosage pattern, or 404 if no active pattern exists</returns>
     /// <response code="200">Active pattern found</response>
     /// <response code="403">User doesn't have access to this medication</response>
@@ -190,7 +191,7 @@ public class MedicationPatternsController : ControllerBase
     [ProducesResponseType(typeof(DosagePatternResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DosagePatternResponse>> GetActivePattern(int medicationId)
+    public async Task<ActionResult<DosagePatternResponse>> GetActivePattern(Guid medicationPublicId)
     {
         var userPublicId = GetCurrentUserPublicId();
         if (userPublicId == null)
@@ -199,24 +200,24 @@ public class MedicationPatternsController : ControllerBase
             return Unauthorized();
         }
 
-        // Verify medication exists and user has access
-        var medicationExists = await _context.Medications
+        // Verify medication exists and user has access using PublicId
+        var medication = await _context.Medications
             .Include(m => m.User)
-            .AnyAsync(m => m.Id == medicationId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
+            .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
 
-        if (!medicationExists)
+        if (medication == null)
         {
             return NotFound(new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
                 Title = "Medication not found",
-                Detail = $"Medication with ID {medicationId} does not exist or you don't have access."
+                Detail = $"Medication with Public ID {medicationPublicId} does not exist or you don't have access."
             });
         }
 
-        // Find active pattern (EndDate = NULL)
+        // Find active pattern (EndDate = NULL) using medication's internal ID
         var activePattern = await _context.MedicationDosagePatterns
-            .Where(p => p.MedicationId == medicationId && p.EndDate == null)
+            .Where(p => p.MedicationId == medication.Id && p.EndDate == null)
             .OrderByDescending(p => p.StartDate)
             .FirstOrDefaultAsync();
 
@@ -226,7 +227,7 @@ public class MedicationPatternsController : ControllerBase
             {
                 Status = StatusCodes.Status404NotFound,
                 Title = "No active pattern",
-                Detail = $"No active dosage pattern found for medication {medicationId}. The medication may be using a fixed dosage."
+                Detail = $"No active dosage pattern found for medication Public ID {medicationPublicId}. The medication may be using a fixed dosage."
             });
         }
 
@@ -238,7 +239,7 @@ public class MedicationPatternsController : ControllerBase
     /// Retrieves dosage pattern history for a medication.
     /// Returns patterns ordered by start date (newest first).
     /// </summary>
-    /// <param name="medicationId">ID of the medication</param>
+    /// <param name="medicationPublicId">Public ID (GUID) of the medication</param>
     /// <param name="activeOnly">If true, returns only patterns where EndDate is null</param>
     /// <param name="limit">Number of patterns to return (default: 10, max: 100)</param>
     /// <param name="offset">Pagination offset (default: 0)</param>
@@ -251,7 +252,7 @@ public class MedicationPatternsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatternHistoryResponse>> GetPatternHistory(
-        int medicationId,
+        Guid medicationPublicId,
         [FromQuery] bool activeOnly = false,
         [FromQuery] int limit = 10,
         [FromQuery] int offset = 0)
@@ -263,18 +264,18 @@ public class MedicationPatternsController : ControllerBase
             return Unauthorized();
         }
 
-        // Verify medication exists and user has access
-        var medicationExists = await _context.Medications
+        // Verify medication exists and user has access using PublicId
+        var medication = await _context.Medications
             .Include(m => m.User)
-            .AnyAsync(m => m.Id == medicationId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
+            .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.User.PublicId == userPublicId.Value && !m.IsDeleted);
 
-        if (!medicationExists)
+        if (medication == null)
         {
             return NotFound(new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
                 Title = "Medication not found",
-                Detail = $"Medication with ID {medicationId} does not exist or you don't have access."
+                Detail = $"Medication with Public ID {medicationPublicId} does not exist or you don't have access."
             });
         }
 
@@ -282,9 +283,9 @@ public class MedicationPatternsController : ControllerBase
         limit = Math.Clamp(limit, 1, 100);
         offset = Math.Max(offset, 0);
 
-        // Build query
+        // Build query using medication's internal ID
         var query = _context.MedicationDosagePatterns
-            .Where(p => p.MedicationId == medicationId);
+            .Where(p => p.MedicationId == medication.Id);
 
         if (activeOnly)
         {
@@ -303,7 +304,7 @@ public class MedicationPatternsController : ControllerBase
 
         var response = new PatternHistoryResponse
         {
-            MedicationId = medicationId,
+            MedicationId = medication.Id, // Internal ID for response compatibility
             TotalCount = totalCount,
             Limit = limit,
             Offset = offset,

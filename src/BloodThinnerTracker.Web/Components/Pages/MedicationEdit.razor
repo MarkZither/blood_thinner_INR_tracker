@@ -4,6 +4,7 @@
 @using BloodThinnerTracker.Web.ViewModels
 @using BloodThinnerTracker.Web.Services
 @using BloodThinnerTracker.Web.Data
+@using BloodThinnerTracker.Web.Components.Medications
 @using BloodThinnerTracker.Shared.Models
 @using static BloodThinnerTracker.Shared.Models.MedicationType
 @using static BloodThinnerTracker.Shared.Models.MedicationFrequency
@@ -86,14 +87,14 @@
                                     }
                                 </MudSelect>
                             </MudItem>
-                            
+
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_medication.GenericName"
                                             Label="Generic Name"
                                             MaxLength="100"
                                             HelperText="Optional - medical/scientific name" />
                             </MudItem>
-                            
+
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_medication.BrandName"
                                             Label="Brand Name(s)"
@@ -137,6 +138,22 @@
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
+
+                    <!-- Dosage Pattern Management Section -->
+                    @if (_medication != null && _medication.PublicId != Guid.Empty)
+                    {
+                        <MudPaper Elevation="1" Class="pa-4 mb-4">
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Pattern" Size="Size.Small" Class="mr-2" />
+                                Dosage Pattern Management
+                            </MudText>
+
+                            <PatternDisplayComponent
+                                MedicationId="_medication.PublicId"
+                                ShowEditButton="true"
+                                OnViewHistory="@(() => Navigation.NavigateTo($"/medications/{Id}/pattern-history"))" />
+                        </MudPaper>
+                    }
 
                     <!-- Validation Summary -->
                     <ValidationSummary />
