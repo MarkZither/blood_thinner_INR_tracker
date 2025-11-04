@@ -121,12 +121,12 @@ Based on plan.md, this feature enhances existing projects:
 
 ### Backend Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Implement dosage pattern calculation logic: Consider creating a service layer (`DosagePatternCalculationService`) vs entity methods across `MedicationDosagePattern` and `Medication`. Implement: (1) `GetDosageForDay(int dayNumber)` using modulo arithmetic, (2) `GetDosageForDate(DateTime targetDate)` for date-based lookup, (3) `GetExpectedDosageForDate(DateTime targetDate)` to find active pattern and calculate dosage. Location: `src/BloodThinnerTracker.Api/Services/DosagePatternCalculationService.cs` OR entity methods in `src/BloodThinnerTracker.Shared/Models/MedicationDosagePattern.cs` and `src/BloodThinnerTracker.Shared/Models/Medication.cs`. Design decision required during implementation.
-- [ ] T016 [US1] Create `MedicationPatternsController` in `src/BloodThinnerTracker.Api/Controllers/MedicationPatternsController.cs` with authentication attribute
-- [ ] T017 [US1] Implement POST /api/medications/{id}/patterns endpoint (create new dosage pattern with optional previous pattern closure)
-- [ ] T018 [US1] Implement GET /api/medications/{id}/patterns/active endpoint (retrieve currently active dosage pattern)
-- [ ] T019 [US1] Add FluentValidation rules for `CreateDosagePatternRequest` in `src/BloodThinnerTracker.Api/Validators/CreateDosagePatternRequestValidator.cs`
-- [ ] T020 [US1] Implement dosage pattern overlap detection logic in controller (prevent conflicting active patterns)
+- [x] T013 [P] [US1] ✅ COMPLETE (Phase 2): Dosage pattern calculation logic implemented in entity methods: `MedicationDosagePattern.GetDosageForDay()`, `MedicationDosagePattern.GetDosageForDate()`, `Medication.GetExpectedDosageForDate()` using modulo arithmetic for O(1) performance
+- [x] T016 [US1] Create `MedicationPatternsController` in `src/BloodThinnerTracker.Api/Controllers/MedicationPatternsController.cs` with authentication attribute - ✅ 365 lines, 3 endpoints (POST, GET active, GET history)
+- [x] T017 [US1] Implement POST /api/medications/{id}/patterns endpoint (create new dosage pattern with optional previous pattern closure) - ✅ Includes FluentValidation, medication-specific rules, overlap detection
+- [x] T018 [US1] Implement GET /api/medications/{id}/patterns/active endpoint (retrieve currently active dosage pattern) - ✅ Returns pattern with EndDate = NULL
+- [x] T019 [US1] Add FluentValidation rules for `CreateDosagePatternRequest` in `src/BloodThinnerTracker.Api/Validators/CreateDosagePatternRequestValidator.cs` - ✅ 98 lines, pattern validation, Warfarin-specific rules
+- [x] T020 [US1] Implement dosage pattern overlap detection logic in controller (prevent conflicting active patterns) - ✅ Integrated in POST endpoint with closePreviousPattern flag
 - [ ] T021 [US1] OUT OF SCOPE: Medication-specific dosage validation will be addressed in a separate future feature for comprehensive safety rules system. Current Medication.cs validation (Warfarin >20mg warning) is insufficient for pattern-based dosing and requires dedicated safety rules architecture.
 
 ### Frontend Implementation for User Story 1

@@ -153,16 +153,16 @@ public class DosagePatternResponse
     public string DisplayPattern { get; set; } = string.Empty;
 
     /// <summary>
-    /// UTC timestamp when this pattern was created.
+    /// Timestamp when this pattern was created (UTC).
     /// </summary>
     [Required]
-    public DateTime CreatedDate { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// UTC timestamp when this pattern was last modified.
+    /// Timestamp when this pattern was last modified (UTC).
     /// </summary>
     [Required]
-    public DateTime ModifiedDate { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     // ==========================================
     // EXTENDED FIELDS (Active Pattern Endpoint)
