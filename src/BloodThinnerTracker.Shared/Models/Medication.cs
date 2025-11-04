@@ -261,6 +261,50 @@ public class Medication : MedicalEntityBase
         public virtual ICollection<MedicationLog> MedicationLogs { get; set; } = new List<MedicationLog>();
 
         /// <summary>
+        /// Gets or sets the dosage patterns for this medication.
+        /// Multiple patterns enable temporal tracking of pattern changes over time.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ PATTERN-BASED DOSING: Collection of variable-dosage schedules with temporal validity.
+        /// - Empty collection = medication uses single fixed Dosage property (backward compatible)
+        /// - One or more patterns = medication uses pattern-based dosing (Dosage property becomes fallback)
+        /// - Patterns are ordered by StartDate for historical tracking
+        /// - Only one pattern should have EndDate = NULL (active pattern)
+        /// </remarks>
+        public virtual ICollection<MedicationDosagePattern> DosagePatterns { get; set; } 
+            = new List<MedicationDosagePattern>();
+
+        // Computed Properties for Pattern Support
+
+        /// <summary>
+        /// Gets the currently active dosage pattern (where EndDate is NULL).
+        /// Returns null if no patterns exist or all patterns are historical.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ ACTIVE PATTERN LOOKUP: Most recent pattern with NULL EndDate.
+        /// - Multiple active patterns should be prevented by validation
+        /// - If multiple exist, returns most recent by StartDate
+        /// - Used for "Edit Pattern" and "View Current Schedule" features
+        /// </remarks>
+        [NotMapped]
+        public MedicationDosagePattern? ActivePattern => DosagePatterns?
+            .Where(p => p.EndDate == null)
+            .OrderByDescending(p => p.StartDate)
+            .FirstOrDefault();
+
+        /// <summary>
+        /// Gets a value indicating whether this medication uses pattern-based dosing.
+        /// True if any patterns exist, false if using single fixed dosage.
+        /// </summary>
+        /// <remarks>
+        /// Used for UI conditional rendering:
+        /// - If true: Show pattern display, schedule view, variance tracking
+        /// - If false: Show single dosage field (legacy mode)
+        /// </remarks>
+        [NotMapped]
+        public bool HasPatternSchedule => DosagePatterns?.Any() ?? false;
+
+        /// <summary>
         /// Check if medication is currently valid (within date range).
         /// </summary>
         /// <returns>True if medication is currently valid.</returns>
@@ -319,6 +363,142 @@ public class Medication : MedicalEntityBase
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the expected dosage for a specific date, considering active patterns.
+        /// Falls back to single Dosage property if no patterns exist (backward compatibility).
+        /// </summary>
+        /// <param name="targetDate">Date to calculate dosage for.</param>
+        /// <returns>Expected dosage, or null if no pattern/dosage is defined for that date.</returns>
+        /// <remarks>
+        /// ⚠️ PATTERN-AWARE DOSAGE CALCULATION: Core method for all dosage lookups.
+        /// 
+        /// Algorithm:
+        /// 1. Find pattern active on targetDate (StartDate &lt;= targetDate &lt;= EndDate)
+        /// 2. If pattern found, calculate dosage using pattern's GetDosageForDate()
+        /// 3. If no pattern, fallback to single Dosage property (legacy mode)
+        /// 4. Respect medication's StartDate/EndDate/IsActive constraints
+        /// 
+        /// Used by:
+        /// - LogDose page (auto-populate expected dosage)
+        /// - MedicationLog variance calculations
+        /// - Schedule view (generate future dosages)
+        /// - Historical log corrections
+        /// 
+        /// Example: Medication with pattern [4.0, 4.0, 3.0] starting 2025-11-01
+        /// - GetExpectedDosageForDate(2025-11-01) → 4.0
+        /// - GetExpectedDosageForDate(2025-11-03) → 3.0
+        /// - GetExpectedDosageForDate(2025-11-04) → 4.0 (pattern repeats)
+        /// </remarks>
+        public decimal? GetExpectedDosageForDate(DateTime targetDate)
+        {
+            // Find the pattern that was active on the target date
+            var activePattern = GetPatternForDate(targetDate);
+
+            if (activePattern != null)
+            {
+                return activePattern.GetDosageForDate(targetDate);
+            }
+
+            // Fallback to single fixed dosage (backward compatibility)
+            if (StartDate.Date <= targetDate.Date && 
+                (!EndDate.HasValue || EndDate.Value.Date >= targetDate.Date) &&
+                IsActive)
+            {
+                return Dosage;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the pattern that was active on a specific date (historical query).
+        /// Enables accurate historical dosage calculations for past medication logs.
+        /// </summary>
+        /// <param name="targetDate">Date to find active pattern for.</param>
+        /// <returns>The pattern active on that date, or null if none found.</returns>
+        /// <remarks>
+        /// ⚠️ TEMPORAL QUERY: Critical for historical accuracy per FR-013.
+        /// 
+        /// Returns the pattern where:
+        /// - StartDate &lt;= targetDate &lt;= EndDate (or EndDate is NULL)
+        /// - If multiple patterns match (shouldn't happen), returns most recent by StartDate
+        /// 
+        /// Used by:
+        /// - GetExpectedDosageForDate() for dosage calculation
+        /// - MedicationLog corrections (recalculate ExpectedDosage when viewing past logs)
+        /// - Pattern history display
+        /// - Variance reports (compare actual vs expected using historical patterns)
+        /// </remarks>
+        public MedicationDosagePattern? GetPatternForDate(DateTime targetDate)
+        {
+            return DosagePatterns?
+                .Where(p => p.StartDate.Date <= targetDate.Date && 
+                           (p.EndDate == null || p.EndDate.Value.Date >= targetDate.Date))
+                .OrderByDescending(p => p.StartDate)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Generates a future dosage schedule for display in Schedule view.
+        /// </summary>
+        /// <param name="startDate">Starting date for schedule (typically today).</param>
+        /// <param name="days">Number of days to generate (typically 7-28).</param>
+        /// <returns>List of date/dosage/pattern-day tuples for UI rendering.</returns>
+        /// <remarks>
+        /// ⚠️ SCHEDULE GENERATION: Used by Schedule page (User Story 4).
+        /// 
+        /// For each date in range:
+        /// 1. Calculate expected dosage using GetExpectedDosageForDate()
+        /// 2. Identify which pattern is active (if any)
+        /// 3. Calculate pattern day number (1-based) and cycle length
+        /// 4. Mark pattern change dates (new pattern StartDate)
+        /// 
+        /// Returns entries with:
+        /// - Date: The scheduled date
+        /// - Dosage: Expected dosage amount
+        /// - PatternDay: Day number in pattern (e.g., "Day 2 of 6")
+        /// - IsPatternChange: True if this date starts a new pattern
+        /// 
+        /// UI can use this to:
+        /// - Display daily dosages in calendar/list view
+        /// - Highlight pattern changes
+        /// - Show "Day X of Y" indicators
+        /// - Enable "Copy Schedule" feature
+        /// </remarks>
+        public List<DosageScheduleEntry> GetFutureSchedule(DateTime startDate, int days)
+        {
+            var schedule = new List<DosageScheduleEntry>();
+
+            for (int i = 0; i < days; i++)
+            {
+                var date = startDate.Date.AddDays(i);
+                var dosage = GetExpectedDosageForDate(date);
+                var pattern = GetPatternForDate(date);
+
+                if (dosage.HasValue)
+                {
+                    int? patternDay = null;
+                    if (pattern != null && pattern.PatternLength > 0)
+                    {
+                        int daysSinceStart = (date - pattern.StartDate.Date).Days;
+                        patternDay = (daysSinceStart % pattern.PatternLength) + 1;
+                    }
+
+                    schedule.Add(new DosageScheduleEntry
+                    {
+                        Date = date,
+                        Dosage = dosage.Value,
+                        DosageUnit = DosageUnit,
+                        PatternDay = patternDay,
+                        PatternLength = pattern?.PatternLength,
+                        IsPatternChange = i > 0 && pattern?.StartDate.Date == date
+                    });
+                }
+            }
+
+            return schedule;
         }
 
         /// <summary>
@@ -443,5 +623,70 @@ public class Medication : MedicalEntityBase
         /// Custom schedule (see CustomFrequency field).
         /// </summary>
         Custom = 99
+    }
+
+    /// <summary>
+    /// Represents a single day in a medication dosage schedule.
+    /// Used for displaying future/past dosage schedules in UI.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ DTO FOR SCHEDULE DISPLAY: Lightweight object for schedule view rendering.
+    /// 
+    /// Used by:
+    /// - Schedule page (User Story 4)
+    /// - Medication details schedule preview
+    /// - Pattern comparison views
+    /// 
+    /// Example entry:
+    /// - Date: 2025-11-04
+    /// - Dosage: 4.0
+    /// - DosageUnit: "mg"
+    /// - PatternDay: 2
+    /// - PatternLength: 6
+    /// - IsPatternChange: false
+    /// - DisplayText: "4mg (Day 2/6)"
+    /// </remarks>
+    public class DosageScheduleEntry
+    {
+        /// <summary>
+        /// Gets or sets the date for this schedule entry.
+        /// </summary>
+        public DateTime Date { get; set; }
+
+        /// <summary>
+        /// Gets or sets the dosage amount for this date.
+        /// </summary>
+        public decimal Dosage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the dosage unit (e.g., "mg", "mcg").
+        /// </summary>
+        public string DosageUnit { get; set; } = "mg";
+
+        /// <summary>
+        /// Gets or sets the day number within the pattern cycle (1-based).
+        /// Null if medication doesn't use patterns.
+        /// </summary>
+        public int? PatternDay { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total length of the pattern cycle.
+        /// Null if medication doesn't use patterns.
+        /// </summary>
+        public int? PatternLength { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this date starts a new pattern.
+        /// Used to highlight pattern changes in UI.
+        /// </summary>
+        public bool IsPatternChange { get; set; }
+
+        /// <summary>
+        /// Gets a formatted display string for UI rendering.
+        /// Example: "4mg (Day 2/6)" or "4mg" if no pattern.
+        /// </summary>
+        public string DisplayText => PatternDay.HasValue 
+            ? $"{Dosage:0.##}{DosageUnit} (Day {PatternDay}/{PatternLength})"
+            : $"{Dosage:0.##}{DosageUnit}";
     }
 }

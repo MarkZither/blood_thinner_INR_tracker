@@ -39,11 +39,11 @@ Based on plan.md, this feature enhances existing projects:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create `MedicationDosagePattern` entity in `src/BloodThinnerTracker.Shared/Models/MedicationDosagePattern.cs` per data-model.md specification
-- [ ] T004 Enhance `Medication` entity with pattern navigation properties in `src/BloodThinnerTracker.Shared/Models/Medication.cs`
-- [ ] T005 Enhance `MedicationLog` entity with variance tracking fields in `src/BloodThinnerTracker.Shared/Models/MedicationLog.cs`
-- [ ] T006 Configure EF Core JSON column mapping for `PatternSequence` in `src/BloodThinnerTracker.Api/Data/BloodTrackerContext.cs` (PostgreSQL JSONB, SQLite JSON)
-- [ ] T007 Add temporal index on `MedicationDosagePattern` (MedicationId, StartDate, EndDate) in DbContext configuration
+- [x] T003 Create `MedicationDosagePattern` entity in `src/BloodThinnerTracker.Shared/Models/MedicationDosagePattern.cs` per data-model.md specification
+- [x] T004 Enhance `Medication` entity with pattern navigation properties in `src/BloodThinnerTracker.Shared/Models/Medication.cs`
+- [x] T005 Enhance `MedicationLog` entity with variance tracking fields in `src/BloodThinnerTracker.Shared/Models/MedicationLog.cs`
+- [x] T006 Configure EF Core JSON column mapping for `PatternSequence` in `src/BloodThinnerTracker.Api/Data/BloodTrackerContext.cs` (PostgreSQL JSONB, SQLite JSON)
+- [x] T007 Add temporal index on `MedicationDosagePattern` (MedicationId, StartDate, EndDate) in DbContext configuration
 - [ ] T008 Create EF Core migration for new `MedicationDosagePatterns` table and entity enhancements using `dotnet ef migrations add AddDosagePatterns`
 - [ ] T009 Apply migration to development database using `dotnet ef database update`
 - [ ] T010 [P] Create `CreateDosagePatternRequest` DTO in `src/BloodThinnerTracker.Shared/Models/DTOs/CreateDosagePatternRequest.cs`
