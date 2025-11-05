@@ -331,7 +331,7 @@
             // T077: Safety warning for out-of-range dosages
             var maxDosage = _parsedPattern.Max();
             var minDosage = _parsedPattern.Min();
-            
+
             if (maxDosage > 20.0m)
             {
                 var confirmed = await DialogService.ShowMessageBox(
