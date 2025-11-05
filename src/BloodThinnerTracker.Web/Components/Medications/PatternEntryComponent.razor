@@ -285,6 +285,74 @@
                 return;
             }
 
+            // T075: Single-value pattern confirmation
+            if (_parsedPattern.Count == 1)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Single-Value Pattern Detected",
+                    $"You entered only one dosage value ({_parsedPattern[0]}mg). " +
+                    "Did you mean to use a fixed daily dose instead of a repeating pattern? " +
+                    "A pattern with one value will repeat the same dose every day.",
+                    yesText: "Continue with Pattern",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled single-value pattern creation for medication {MedicationId}", MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogInformation("User confirmed single-value pattern creation for medication {MedicationId}", MedicationId);
+            }
+
+            // T076: Long pattern confirmation
+            if (_parsedPattern.Count > 20)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Long Pattern Detected",
+                    $"Your pattern is {_parsedPattern.Count} days long, which is unusually long. " +
+                    "Most dosage patterns are 7-20 days. Please verify this is correct before continuing.",
+                    yesText: "Continue with Pattern",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled long pattern creation ({Length} days) for medication {MedicationId}",
+                        _parsedPattern.Count, MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogInformation("User confirmed long pattern creation ({Length} days) for medication {MedicationId}",
+                    _parsedPattern.Count, MedicationId);
+            }
+
+            // T077: Safety warning for out-of-range dosages
+            var maxDosage = _parsedPattern.Max();
+            var minDosage = _parsedPattern.Min();
+            
+            if (maxDosage > 20.0m)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "⚠️ High Dosage Warning",
+                    $"Your pattern contains a dosage of {maxDosage}mg, which exceeds typical maximum dosages for most blood thinners. " +
+                    "For Warfarin, the usual maximum is 20mg per day. Please verify this dosage with your healthcare provider before continuing.",
+                    yesText: "I Understand, Continue",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled pattern with high dosage ({MaxDosage}mg) for medication {MedicationId}",
+                        maxDosage, MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogWarning("User confirmed pattern with high dosage ({MaxDosage}mg) for medication {MedicationId}",
+                    maxDosage, MedicationId);
+            }
+
             DateTime startDate;
             if (_selectedMode == PatternEntryMode.DateBased)
             {
