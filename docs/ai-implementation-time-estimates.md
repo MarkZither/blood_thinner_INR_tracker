@@ -157,7 +157,7 @@ Finished 16:55
 
 #### Phase 3 - User Story 1
 Started: 17:05
-
+> /speckit.implement Phase 3: User Story 1 - Define Complex Dosage Pattern (Priority: P1) 🎯 MVP
 backend finished: 17:28
 
 I went to walk the dog and had to have a discussion with copilot about doing all of the work because it was incorrectly quoting the spec and stating work was out of scope when it was quite clearly in scope.
@@ -165,6 +165,32 @@ I went to walk the dog and had to have a discussion with copilot about doing all
 frontend finished: 19:00 at least as far as copilot was concerned, manual testing started at 19:00 to validate the work.
 
 Errors were made by copliot, so it was clear that unit tests were skipped over, the constitution was not honoured and the technical implementation could have been clearer, but a little guidance and it was corrected in less than an hour.
+
+#### Phase 4: User Story 2 - Log Dose with Auto-Population (Priority: P1)
+
+> /speckit.implement Phase 4: User Story 2 - Log Dose with Auto-Population
+Start: 9:07
+
+> Perfect! I can see that the spec wants query parameters includeVariance and varianceThreshold to filter logs. Since variance fields are now always included, I need to add optional filtering. Let me implement T036:
+
+MedicationLogsController.cs+6-2
+Now add the filtering logic:
+
+MedicationLogsController.cs+17-0
+Excellent! Now let me update the tasks progress and mark tasks.md in the spec directory:
+
+Completed (4/11) T035: Add variance metadata to GET response
+
+Perfect! Backend tasks T032-T036 are now complete. Let me build the API project to verify there are no compilation errors:
+
+Backend Complete: 9:50
+Frontend Complete: 10:00
+
+Break to go do my rehabilitation, manual verification will begin after lunch.
+
+### Importance of context 
+I kept this feature small and focused to try and ensure that Copilot remained in the context of the speckit commands at all times and avoid going off on tangents.
+As mentioned in the previous post, when you run a command like `/speckit.implement` it turns that into a prompt which in turn executes scripts like `.\.specify\scripts\powershell\check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks` as part of that it establishes the active feature by looking at the branch name and locates the docs in the FEATURE_DIR, in this instance `{"FEATURE_DIR":"C:\\Source\\github\\blood_thinner_INR_tracker\\specs\\005-medicine-schedule-to","AVAILABLE_DOCS":["research.md","data-model.md","contracts/","quickstart.md","tasks.md"]}`
 
 ## The Question
 

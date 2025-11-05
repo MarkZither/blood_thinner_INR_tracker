@@ -6,6 +6,7 @@
 @using BloodThinnerTracker.Shared.Models
 @inject IMedicationService MedicationService
 @inject IMedicationLogService MedicationLogService
+@inject IMedicationPatternService PatternService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -52,6 +53,26 @@
                         }
                     </MudCardContent>
                 </MudCard>
+
+                @* Expected Dosage from Pattern (T037, T038, T039) *@
+                @if (_expectedDosage.HasValue)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-1" />
+                            Pattern-Based Dosing
+                        </MudText>
+                        <MudText Typo="Typo.body1">
+                            <strong>Expected dosage today: @_expectedDosage.Value @_medication.DosageUnit</strong>
+                        </MudText>
+                        @if (_patternDayNumber.HasValue)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                                Day @_patternDayNumber.Value of your dosage pattern
+                            </MudText>
+                        }
+                    </MudAlert>
+                }
 
                 @* Safety Warnings *@
                 @if (_safetyWarnings.Any())
@@ -251,7 +272,7 @@
     private bool _saving = false;
     private bool _showTimeVariance = false;
     private bool _isFutureTime = false;
-    
+
     private bool _actualDateError = false;
     private string _actualDateErrorText = string.Empty;
     private bool _actualTimeError = false;
@@ -262,10 +283,15 @@
     private DateTime? _actualDate = DateTime.Today;
     private TimeSpan? _actualTime = DateTime.Now.TimeOfDay;
 
+    // T037, T038, T039: Expected dosage from pattern
+    private decimal? _expectedDosage;
+    private int? _patternDayNumber;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadMedication();
         await LoadRecentLogs();
+        await LoadExpectedDosage(); // T037: Fetch expected dosage on page load
         _loading = false;
     }
 
@@ -284,6 +310,54 @@
         var fromDate = DateTime.Today.AddDays(-7);
         var logs = await MedicationLogService.GetMedicationLogsAsync(Id, fromDate);
         _recentLogs = logs ?? new List<MedicationLogDto>();
+    }
+
+    // T037: Load expected dosage from active pattern
+    private async Task LoadExpectedDosage()
+    {
+        if (_medication == null) return;
+
+        try
+        {
+            // T037: Fetch active pattern from API
+            if (Guid.TryParse(Id, out var medicationGuid))
+            {
+                var activePattern = await PatternService.GetActivePatternAsync(medicationGuid);
+
+                if (activePattern != null && activePattern.PatternSequence.Any())
+                {
+                    // Calculate expected dosage for today
+                    var today = DateTime.Today;
+                    int daysSinceStart = (today - activePattern.StartDate.Date).Days;
+                    int patternIndex = daysSinceStart % activePattern.PatternSequence.Count;
+
+                    _expectedDosage = activePattern.PatternSequence[patternIndex];
+                    _patternDayNumber = (daysSinceStart % activePattern.PatternSequence.Count) + 1; // T039: 1-based day number
+                }
+                else
+                {
+                    // No active pattern - use medication's fixed dosage
+                    _expectedDosage = _medication.Dosage;
+                }
+
+                // T038: Pre-populate dosage field with expected dosage
+                if (_expectedDosage.HasValue)
+                {
+                    _viewModel.ActualDosage = _expectedDosage.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the page load
+            Console.WriteLine($"Error loading expected dosage: {ex.Message}");
+            // Fallback to fixed dosage
+            _expectedDosage = _medication.Dosage;
+            if (_expectedDosage.HasValue)
+            {
+                _viewModel.ActualDosage = _expectedDosage.Value;
+            }
+        }
     }
 
     private async Task CheckSafetyWarnings()
@@ -355,7 +429,7 @@
         if (_actualDate.HasValue && _actualTime.HasValue)
         {
             var actualDateTime = _actualDate.Value.Date + _actualTime.Value;
-            
+
             if (actualDateTime > DateTime.Now)
             {
                 _isFutureTime = true;

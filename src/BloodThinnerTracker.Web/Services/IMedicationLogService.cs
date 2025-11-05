@@ -1,7 +1,7 @@
 /*
  * BloodThinnerTracker.Web - Medication Log Service Interface
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * Service interface for medication dose logging and adherence tracking operations.
  * Provides methods for recording when medications are taken and viewing medication history.
  */
@@ -25,8 +25,8 @@ public interface IMedicationLogService
     /// <param name="status">Optional status filter.</param>
     /// <returns>List of medication logs.</returns>
     Task<List<MedicationLogDto>?> GetMedicationLogsAsync(
-        string medicationId, 
-        DateTime? fromDate = null, 
+        string medicationId,
+        DateTime? fromDate = null,
         DateTime? toDate = null,
         MedicationLogStatus? status = null);
 
@@ -95,4 +95,37 @@ public sealed class MedicationLogDto
     public string? FoodDetails { get; set; }
     public int TimeVarianceMinutes { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Variance tracking fields (T035)
+    /// <summary>
+    /// Expected dosage from the active pattern on ScheduledTime date.
+    /// NULL if no pattern was active.
+    /// </summary>
+    public decimal? ExpectedDosage { get; set; }
+
+    /// <summary>
+    /// Position in the dosage pattern cycle (1-based).
+    /// Example: Day 3 of a 6-day pattern.
+    /// NULL if no pattern was active.
+    /// </summary>
+    public int? PatternDayNumber { get; set; }
+
+    /// <summary>
+    /// Indicates whether actual dosage differs from expected dosage (variance > 0.01mg).
+    /// </summary>
+    public bool HasVariance { get; set; }
+
+    /// <summary>
+    /// Variance amount (actual - expected).
+    /// Positive = took more than expected, negative = took less.
+    /// NULL if no expected dosage is set.
+    /// </summary>
+    public decimal? VarianceAmount { get; set; }
+
+    /// <summary>
+    /// Variance percentage ((actual - expected) / expected * 100).
+    /// Example: -25% means took 25% less than expected.
+    /// NULL if no expected dosage or expected dosage is 0.
+    /// </summary>
+    public decimal? VariancePercentage { get; set; }
 }

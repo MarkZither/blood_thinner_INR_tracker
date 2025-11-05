@@ -163,22 +163,22 @@ Based on plan.md, this feature enhances existing projects:
 
 ### Backend Implementation for User Story 2
 
-- [ ] T032 [P] [US2] Add `CalculateExpectedDosage()` helper method in `MedicationLogsController` in `src/BloodThinnerTracker.Api/Controllers/MedicationLogsController.cs` (calls Medication.GetExpectedDosageForDate)
-- [ ] T033 [US2] Enhance POST /api/medication-logs endpoint to auto-populate `ExpectedDosage` and `PatternDayNumber` fields before saving
-- [ ] T034 [US2] Implement `HasVariance` computed property in `MedicationLog` entity (compares ActualDosage vs ExpectedDosage)
-- [ ] T035 [US2] Add variance metadata to GET /api/medication-logs response (varianceAmount, variancePercentage per medication-log-api.md)
-- [ ] T036 [US2] Implement query parameter support for `includeVariance` filter in GET /api/medication-logs endpoint
+- [x] T032 [P] [US2] ✅ COMPLETE: Add `CalculateExpectedDosage()` helper method in `MedicationLogsController` - **Already exists as SetExpectedDosageFromMedication() in MedicationLog.cs**
+- [x] T033 [US2] ✅ COMPLETE: Enhance POST /api/medication-logs endpoint to auto-populate `ExpectedDosage` and `PatternDayNumber` fields before saving - **Now calls medicationLog.SetExpectedDosageFromMedication(medication)** in MedicationLogsController.cs
+- [x] T034 [US2] ✅ COMPLETE: Implement `HasVariance` computed property in `MedicationLog` entity - **Already exists with VarianceAmount and VariancePercentage computed properties** in MedicationLog.cs
+- [x] T035 [US2] ✅ COMPLETE: Add variance metadata to GET /api/medication-logs response - **Enhanced MedicationLogResponse DTO** with ExpectedDosage, PatternDayNumber, HasVariance, VarianceAmount, VariancePercentage fields
+- [x] T036 [US2] ✅ COMPLETE: Implement query parameter support for `includeVariance` filter in GET /api/medication-logs endpoint - **Added includeVariance and varianceThreshold query parameters** to GetMedicationLogs endpoint
 
 ### Frontend Implementation for User Story 2
 
-- [ ] T037 [US2] Enhance `LogDose.razor` page to fetch expected dosage on load in `src/BloodThinnerTracker.Web/Components/Pages/LogDose.razor`
-- [ ] T038 [US2] Pre-populate dosage field in `LogDose.razor` with expected dosage from active pattern
-- [ ] T039 [US2] Add pattern day indicator text in `LogDose.razor` (e.g., "Expected: 4mg (Day 2 of pattern)")
-- [ ] T040 [US2] Create `VarianceIndicator.razor` component in `src/BloodThinnerTracker.Web/Components/Medications/VarianceIndicator.razor` (shows warning icon/color when variance detected)
-- [ ] T041 [US2] Enhance MedicationLogs.razor to display variance indicators per log entry in `src/BloodThinnerTracker.Web/Components/Pages/MedicationLogs.razor`
-- [ ] T042 [US2] Add variance tooltip/details in MedicationLogs.razor (e.g., "Expected: 4mg, Taken: 3mg, Diff: -1mg")
+- [x] T037 [US2] ✅ COMPLETE: Enhance `MedicationLog.razor` page (was LogDose.razor) to fetch expected dosage on load - **Now calls PatternService.GetActivePatternAsync() on initialization**
+- [x] T038 [US2] ✅ COMPLETE: Pre-populate dosage field in `MedicationLog.razor` with expected dosage from active pattern - **Dosage field auto-populated in LoadExpectedDosage() method**
+- [x] T039 [US2] ✅ COMPLETE: Add pattern day indicator text in `MedicationLog.razor` - **Shows "Expected dosage today: Xmg (Day Y of your dosage pattern)" in MudAlert**
+- [x] T040 [US2] ✅ COMPLETE: Create `VarianceIndicator.razor` component in `src/BloodThinnerTracker.Web/Components/Medications/VarianceIndicator.razor` - **Component with color-coded MudChips, icons, and detailed tooltips**
+- [x] T041 [US2] ✅ COMPLETE: Enhance MedicationHistory.razor to display variance indicators per log entry - **Added Variance column to medication logs table with VarianceIndicator component**
+- [x] T042 [US2] ✅ COMPLETE: Add variance tooltip/details in MedicationHistory.razor - **VarianceIndicator shows "Expected: 4mg, Taken: 3mg, Diff: -1mg (25%)" in tooltip**
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - patterns are defined and logs track variance
+**Checkpoint**: ✅ **User Stories 1 AND 2 are now fully functional** - patterns are defined, logs auto-populate expected dosage, variance is tracked and displayed
 
 ---
 

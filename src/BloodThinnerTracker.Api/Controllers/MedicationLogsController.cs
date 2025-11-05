@@ -60,10 +60,12 @@ public sealed class MedicationLogsController : ControllerBase
     /// <summary>
     /// Gets medication logs for a specific medication.
     /// </summary>
-    /// <param name="medicationId">Medication ID.</param>
+    /// <param name="medicationPublicId">Medication PublicId (GUID).</param>
     /// <param name="fromDate">Optional start date filter.</param>
     /// <param name="toDate">Optional end date filter.</param>
     /// <param name="status">Optional status filter.</param>
+    /// <param name="includeVariance">Optional: If true, returns only logs with variance (actualDosage != expectedDosage).</param>
+    /// <param name="varianceThreshold">Optional: Minimum absolute variance amount to include (e.g., 0.5 returns |actualDosage - expectedDosage| >= 0.5).</param>
     /// <returns>List of medication logs.</returns>
     /// <response code="200">Medication logs retrieved successfully.</response>
     /// <response code="401">User is not authenticated.</response>
@@ -76,7 +78,9 @@ public sealed class MedicationLogsController : ControllerBase
         Guid medicationPublicId,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
-        [FromQuery] MedicationLogStatus? status = null)
+        [FromQuery] MedicationLogStatus? status = null,
+        [FromQuery] bool? includeVariance = null,
+        [FromQuery] decimal? varianceThreshold = null)
     {
         Guid? userPublicId = null;
         try
@@ -112,6 +116,23 @@ public sealed class MedicationLogsController : ControllerBase
             if (status.HasValue)
                 query = query.Where(ml => ml.Status == status.Value);
 
+            // T036: Variance filtering
+            if (includeVariance.HasValue && includeVariance.Value)
+            {
+                // Filter to only logs with variance (HasVariance = true)
+                query = query.Where(ml => ml.ExpectedDosage.HasValue &&
+                                         ml.ActualDosage.HasValue &&
+                                         Math.Abs(ml.ActualDosage.Value - ml.ExpectedDosage.Value) > 0.01m);
+            }
+
+            if (varianceThreshold.HasValue && varianceThreshold.Value > 0)
+            {
+                // Filter to logs where absolute variance >= threshold
+                query = query.Where(ml => ml.ExpectedDosage.HasValue &&
+                                         ml.ActualDosage.HasValue &&
+                                         Math.Abs(ml.ActualDosage.Value - ml.ExpectedDosage.Value) >= varianceThreshold.Value);
+            }
+
             var logs = await query
                 .OrderByDescending(ml => ml.ScheduledTime)
                 .Select(ml => new MedicationLogResponse
@@ -130,7 +151,13 @@ public sealed class MedicationLogsController : ControllerBase
                     TakenWithFood = ml.TakenWithFood,
                     FoodDetails = ml.FoodDetails,
                     TimeVarianceMinutes = ml.TimeVarianceMinutes,
-                    CreatedAt = ml.CreatedAt
+                    CreatedAt = ml.CreatedAt,
+                    // Variance tracking fields (T035)
+                    ExpectedDosage = ml.ExpectedDosage,
+                    PatternDayNumber = ml.PatternDayNumber,
+                    HasVariance = ml.HasVariance,
+                    VarianceAmount = ml.VarianceAmount,
+                    VariancePercentage = ml.VariancePercentage
                 })
                 .ToListAsync();
 
@@ -192,7 +219,13 @@ public sealed class MedicationLogsController : ControllerBase
                     TakenWithFood = ml.TakenWithFood,
                     FoodDetails = ml.FoodDetails,
                     TimeVarianceMinutes = ml.TimeVarianceMinutes,
-                    CreatedAt = ml.CreatedAt
+                    CreatedAt = ml.CreatedAt,
+                    // Variance tracking fields (T035)
+                    ExpectedDosage = ml.ExpectedDosage,
+                    PatternDayNumber = ml.PatternDayNumber,
+                    HasVariance = ml.HasVariance,
+                    VarianceAmount = ml.VarianceAmount,
+                    VariancePercentage = ml.VariancePercentage
                 })
                 .FirstOrDefaultAsync();
 
@@ -261,8 +294,10 @@ public sealed class MedicationLogsController : ControllerBase
                 return Unauthorized("User not found");
             }
 
-            // Get medication and verify ownership - need internal ID for FK
+            // Get medication with patterns and verify ownership - need internal ID for FK
+            // Include DosagePatterns navigation property for auto-population of expected dosage
             var medication = await _context.Medications
+                .Include(m => m.DosagePatterns.Where(p => !p.IsDeleted))
                 .FirstOrDefaultAsync(m => m.PublicId == medicationPublicId && m.UserId == user.Id && !m.IsDeleted);
 
             if (medication == null)
@@ -305,6 +340,12 @@ public sealed class MedicationLogsController : ControllerBase
                 UpdatedAt = DateTime.UtcNow
             };
 
+            // ⚠️ PATTERN AUTO-POPULATION (T033): Set expected dosage from active pattern
+            // This enables variance tracking and adherence monitoring per FR-009, FR-010
+            medicationLog.SetExpectedDosageFromMedication(medication);
+            _logger.LogInformation("Auto-populated expected dosage: {ExpectedDosage} (PatternDay: {PatternDay}) for medication {MedicationPublicId}",
+                medicationLog.ExpectedDosage, medicationLog.PatternDayNumber, medicationPublicId);
+
             _context.MedicationLogs.Add(medicationLog);
             await _context.SaveChangesAsync();
 
@@ -324,7 +365,13 @@ public sealed class MedicationLogsController : ControllerBase
                 TakenWithFood = medicationLog.TakenWithFood,
                 FoodDetails = medicationLog.FoodDetails,
                 TimeVarianceMinutes = medicationLog.TimeVarianceMinutes,
-                CreatedAt = medicationLog.CreatedAt
+                CreatedAt = medicationLog.CreatedAt,
+                // Variance tracking fields (T035)
+                ExpectedDosage = medicationLog.ExpectedDosage,
+                PatternDayNumber = medicationLog.PatternDayNumber,
+                HasVariance = medicationLog.HasVariance,
+                VarianceAmount = medicationLog.VarianceAmount,
+                VariancePercentage = medicationLog.VariancePercentage
             };
 
             _logger.LogInformation("Medication dose logged successfully: {LogPublicId} for medication {MedicationPublicId}, user {UserPublicId}",
@@ -436,7 +483,13 @@ public sealed class MedicationLogsController : ControllerBase
                 TakenWithFood = existingLog.TakenWithFood,
                 FoodDetails = existingLog.FoodDetails,
                 TimeVarianceMinutes = existingLog.TimeVarianceMinutes,
-                CreatedAt = existingLog.CreatedAt
+                CreatedAt = existingLog.CreatedAt,
+                // Variance tracking fields (T035)
+                ExpectedDosage = existingLog.ExpectedDosage,
+                PatternDayNumber = existingLog.PatternDayNumber,
+                HasVariance = existingLog.HasVariance,
+                VarianceAmount = existingLog.VarianceAmount,
+                VariancePercentage = existingLog.VariancePercentage
             };
 
             _logger.LogInformation("Medication log updated successfully: {LogPublicId} for user {UserPublicId}", publicId, userPublicId);
@@ -642,6 +695,39 @@ public sealed class MedicationLogResponse
     public string? FoodDetails { get; set; }
     public int TimeVarianceMinutes { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Variance tracking fields (T035)
+    /// <summary>
+    /// Expected dosage from the active pattern on ScheduledTime date.
+    /// NULL if no pattern was active.
+    /// </summary>
+    public decimal? ExpectedDosage { get; set; }
+
+    /// <summary>
+    /// Position in the dosage pattern cycle (1-based).
+    /// Example: Day 3 of a 6-day pattern.
+    /// NULL if no pattern was active.
+    /// </summary>
+    public int? PatternDayNumber { get; set; }
+
+    /// <summary>
+    /// Indicates whether actual dosage differs from expected dosage (variance > 0.01mg).
+    /// </summary>
+    public bool HasVariance { get; set; }
+
+    /// <summary>
+    /// Variance amount (actual - expected).
+    /// Positive = took more than expected, negative = took less.
+    /// NULL if no expected dosage is set.
+    /// </summary>
+    public decimal? VarianceAmount { get; set; }
+
+    /// <summary>
+    /// Variance percentage ((actual - expected) / expected * 100).
+    /// Example: -25% means took 25% less than expected.
+    /// NULL if no expected dosage or expected dosage is 0.
+    /// </summary>
+    public decimal? VariancePercentage { get; set; }
 }
 
 /// <summary>
