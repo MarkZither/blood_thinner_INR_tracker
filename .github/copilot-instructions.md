@@ -148,21 +148,36 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### Git Commit Guidelines
 
-**CRITICAL: Keep commit messages concise to avoid terminal crashes**
+**⚠️ CRITICAL: Keep commit messages SHORT to avoid terminal buffer overflow crashes ⚠️**
+
+**The Problem**: PowerShell terminal buffer has limited height. Long commit messages (>15 lines) cause:
+- Exception: "The value must be greater than or equal to zero and less than the console's buffer size"
+- Terminal hangs/crashes requiring recovery
+- Lost work if commit fails silently
+
+**The Solution**: ALWAYS use concise commit format:
 
 - **Summary line**: Max 72 characters, imperative mood
-- **Body**: Max 10-15 lines total, use bullet points
+- **Body**: Max 5-8 lines TOTAL, use bullet points
 - **Format**: `feat/fix/docs/refactor: <summary>`
-- **Example**:
+- **Example** (GOOD ✅):
   ```
-  feat(ui): Migrate Dashboard and Medications to MudBlazor
+  feat(phase8): Add API docs and user guide
   
-  - Convert Bootstrap/FontAwesome to Material Design components
-  - Implement reactive property pattern for filtering
-  - Remove all legacy CSS framework dependencies
+  - Created 3 API documentation files (patterns, schedule, logs)
+  - Created comprehensive user guide for dosage patterns
+  - Verified logging and test coverage complete
+  - Phase 8: 5/9 tasks complete (4 deferred)
   ```
-- **Never**: Include full file contents, detailed method signatures, or exhaustive change lists
-- **Focus**: High-level summary of what changed and why
+- **NEVER DO** (BAD ❌):
+  - Include full file contents
+  - List every endpoint/method modified
+  - Detailed validation rules
+  - Multi-paragraph explanations
+  - Backend/Frontend section headers with task lists
+  - More than 8 lines total
+- **Focus**: High-level "what" and "why", NOT the "how"
+- **Details belong**: In PR description, not commit message
 
 ### Common Patterns
 

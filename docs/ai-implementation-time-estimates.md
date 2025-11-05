@@ -220,6 +220,13 @@ Great! The DTOs already exist from Phase 2. Now let me create the MedicationSche
 Started: 16:23
 Finished: 17:03
 
+#### Phase 8: Polish & Cross-Cutting Concerns
+
+> /speckit.implement Complete all tasks for Phase 8: Polish & Cross-Cutting Concerns
+
+Started: 17:14
+Finished: 17:30
+
 ### Importance of context 
 I kept this feature small and focused to try and ensure that Copilot remained in the context of the speckit commands at all times and avoid going off on tangents.
 As mentioned in the previous post, when you run a command like `/speckit.implement` it turns that into a prompt which in turn executes scripts like `.\.specify\scripts\powershell\check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks` as part of that it establishes the active feature by looking at the branch name and locates the docs in the FEATURE_DIR, in this instance `{"FEATURE_DIR":"C:\\Source\\github\\blood_thinner_INR_tracker\\specs\\005-medicine-schedule-to","AVAILABLE_DOCS":["research.md","data-model.md","contracts/","quickstart.md","tasks.md"]}`
