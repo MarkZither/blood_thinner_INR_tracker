@@ -4,6 +4,7 @@
 @using MudBlazor
 @inject IMedicationPatternService PatternService
 @inject IConfiguration Configuration
+@inject IDialogService DialogService
 @inject ILogger<PatternEntryComponent> Logger
 
 <MudCard>
@@ -292,6 +293,29 @@
             else
             {
                 startDate = GetCalculatedStartDate();
+            }
+
+            // T051: Backdating confirmation for changes >7 days in the past (FR-011)
+            var daysDifference = (DateTime.Today - startDate.Date).Days;
+            if (daysDifference > 7)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Confirm Backdated Pattern",
+                    $"The pattern start date is {daysDifference} days in the past ({startDate:MMM dd, yyyy}). " +
+                    "This will affect historical medication logs. Are you sure you want to continue?",
+                    yesText: "Yes, Continue",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled backdated pattern creation for medication {MedicationId} (start date: {StartDate})",
+                        MedicationId, startDate);
+                    _isSaving = false;
+                    return; // User cancelled - prevent form submission
+                }
+
+                Logger.LogInformation("User confirmed backdated pattern creation for medication {MedicationId} ({DaysDiff} days in past)",
+                    MedicationId, daysDifference);
             }
 
             var request = new CreateDosagePatternRequest

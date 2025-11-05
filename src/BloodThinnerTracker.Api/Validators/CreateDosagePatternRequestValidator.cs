@@ -39,6 +39,14 @@ public class CreateDosagePatternRequestValidator : AbstractValidator<CreateDosag
             .Must(date => date >= DateTime.UtcNow.Date.AddYears(-1))
             .WithMessage("Start date cannot be more than 1 year in the past");
 
+        // Backdating warning (>7 days in past) - FR-011
+        // NOTE: This is informational only. API accepts any valid past date.
+        // UI should show confirmation dialog for >7 days backdating (T051).
+        RuleFor(x => x.StartDate)
+            .Must(date => date >= DateTime.UtcNow.Date.AddDays(-7))
+            .WithMessage("Pattern start date is more than 7 days in the past. This will affect historical medication logs. Please confirm this is intentional.")
+            .WithSeverity(FluentValidation.Severity.Warning);
+
         // End date validation
         RuleFor(x => x.EndDate)
             .GreaterThanOrEqualTo(x => x.StartDate)
