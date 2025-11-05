@@ -110,6 +110,7 @@
                                         <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
                                             <MudMenuItem OnClick="() => EditMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
                                             <MudMenuItem OnClick="() => ViewHistory(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
+                                            <MudMenuItem OnClick="() => ViewSchedule(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.CalendarMonth">View Schedule</MudMenuItem>
                                             <MudDivider />
                                             <MudMenuItem OnClick="() => DeactivateMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Pause" IconColor="Color.Error">
                                                 <MudText Color="Color.Error">Deactivate</MudText>
@@ -449,6 +450,11 @@
     private void ViewHistory(string medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/history");
+    }
+
+    private void ViewSchedule(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/schedule");
     }
 
     private void LogDose(string medicationId)

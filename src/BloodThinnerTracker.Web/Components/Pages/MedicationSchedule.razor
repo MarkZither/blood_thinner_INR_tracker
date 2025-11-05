@@ -1,0 +1,225 @@
+@page "/medications/{Id:guid}/schedule"
+@using MudBlazor
+@using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Services
+@inject IMedicationScheduleService ScheduleService
+@inject IMedicationService MedicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Dosage Schedule</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudText Typo="Typo.body1" Class="mt-2">Loading schedule...</MudText>
+    }
+    else if (_schedule == null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            <strong>Schedule Not Available</strong>
+            <br />
+            Unable to load dosage schedule. This medication may not have an active dosage pattern.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Href="/medications"
+                   Class="mt-4">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        @* Header with medication info *@
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4">@_schedule.MedicationName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Dosage Schedule: @_schedule.StartDate.ToString("MMM dd, yyyy") - @_schedule.EndDate.ToString("MMM dd, yyyy")
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           Href="/medications">
+                    Back
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @* Medical Safety Warning *@
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            <strong>⚠️ Medical Safety Notice</strong>
+            <br />
+            This schedule shows calculated projections based on your current dosage pattern.
+            Always verify the correct dose with your healthcare provider before taking medication.
+        </MudAlert>
+
+        @* Pattern Info *@
+        <MudCard Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Active Dosage Pattern</MudText>
+                <MudStack Row="true" Spacing="2">
+                    @foreach (var dose in _schedule.CurrentPattern.PatternSequence)
+                    {
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Text">@dose @_schedule.DosageUnit</MudChip>
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                    @_schedule.CurrentPattern.PatternLength-day repeating cycle • Started @_schedule.CurrentPattern.StartDate.ToString("MMM dd, yyyy")
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+
+        @* Date Range Selector (T064) *@
+        <MudPaper Elevation="1" Class="pa-3 mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudText Typo="Typo.subtitle1">View:</MudText>
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                    <MudButton OnClick="() => LoadSchedule(14)"
+                               Variant="@(_selectedDays == 14 ? Variant.Filled : Variant.Outlined)">
+                        14 Days
+                    </MudButton>
+                    <MudButton OnClick="() => LoadSchedule(21)"
+                               Variant="@(_selectedDays == 21 ? Variant.Filled : Variant.Outlined)">
+                        21 Days
+                    </MudButton>
+                    <MudButton OnClick="() => LoadSchedule(28)"
+                               Variant="@(_selectedDays == 28 ? Variant.Filled : Variant.Outlined)">
+                        28 Days
+                    </MudButton>
+                </MudButtonGroup>
+            </MudStack>
+        </MudPaper>
+
+        @* Summary Statistics Card (T065) *@
+        <MudCard Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Schedule Summary</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudSimpleTable Dense="true" Hover="true">
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Period Dosage:</strong></td>
+                            <td>@_schedule.Summary.TotalDosage @_schedule.DosageUnit</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Average Daily Dosage:</strong></td>
+                            <td>@_schedule.Summary.AverageDailyDosage @_schedule.DosageUnit</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dosage Range:</strong></td>
+                            <td>@_schedule.Summary.MinDosage - @_schedule.Summary.MaxDosage @_schedule.DosageUnit</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pattern Cycles:</strong></td>
+                            <td>@_schedule.Summary.PatternCycles complete/partial cycles</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudCardContent>
+        </MudCard>
+
+        @* Schedule Table (T062) *@
+        <MudTable Items="_schedule.Schedule"
+                  Dense="true"
+                  Hover="true"
+                  Striped="true"
+                  FixedHeader="true"
+                  Height="500px"
+                  Elevation="2">
+            <HeaderContent>
+                <MudTh>Date</MudTh>
+                <MudTh>Day</MudTh>
+                <MudTh>Dosage</MudTh>
+                <MudTh>Pattern Day</MudTh>
+                <MudTh>Notes</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Date">
+                    <strong>@context.Date.ToString("MMM dd, yyyy")</strong>
+                </MudTd>
+                <MudTd DataLabel="Day">
+                    @context.DayOfWeek
+                </MudTd>
+                <MudTd DataLabel="Dosage">
+                    <MudText Typo="Typo.body1" Style="font-weight: 600; font-size: 1.1rem;">
+                        @context.Dosage @_schedule.DosageUnit
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="Pattern Day">
+                    Day @context.PatternDay of @context.PatternLength
+                </MudTd>
+                <MudTd DataLabel="Notes">
+                    @* Pattern Change Indicator (T063) *@
+                    @if (context.IsPatternChange)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Warning"
+                                 Icon="@Icons.Material.Filled.Info"
+                                 Size="Size.Small"
+                                 Variant="Variant.Filled">
+                            Pattern Change
+                        </MudChip>
+                        @if (!string.IsNullOrEmpty(context.PatternChangeNote))
+                        {
+                            <MudText Typo="Typo.caption" Class="mt-1">
+                                @context.PatternChangeNote
+                            </MudText>
+                        }
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private MedicationScheduleResponse? _schedule;
+    private bool _isLoading = true;
+    private int _selectedDays = 14;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSchedule(_selectedDays);
+    }
+
+    private async Task LoadSchedule(int days)
+    {
+        _isLoading = true;
+        _selectedDays = days;
+        StateHasChanged();
+
+        try
+        {
+            _schedule = await ScheduleService.GetScheduleAsync(
+                Id,
+                startDate: DateTime.Today,
+                days: days,
+                includePatternChanges: true);
+
+            if (_schedule == null)
+            {
+                Snackbar.Add("Unable to load dosage schedule", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading schedule: {ex.Message}", Severity.Error);
+            _schedule = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

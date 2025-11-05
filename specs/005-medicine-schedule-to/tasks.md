@@ -212,35 +212,44 @@ Based on plan.md, this feature enhances existing projects:
 
 ---
 
-## Phase 6: User Story 4 - View Future Dosage Calendar (Priority: P2)
+## Phase 6: User Story 4 - View Future Dosage Schedule (Priority: P2) ✅ COMPLETE
 
-**Goal**: Display calendar/list view of upcoming dosages for 14-28 days based on active pattern
+**Goal**: Display table/list view of upcoming dosages for 14-28 days based on active pattern
 
-**Independent Test**: User navigates to a medication's schedule view, sees a calendar or list showing the next 14-28 days with each day's expected dosage based on the pattern, and can identify which day of the pattern each date represents.
+**Independent Test**: User navigates to a medication's schedule view, sees a table showing the next 14-28 days with each day's expected dosage based on the pattern, and can identify which day of the pattern each date represents.
+
+**Note**: Implemented as **table/list view** (T062), not calendar grid visualization (T066 skipped as optional).
 
 **Mapped Entities**: MedicationDosagePattern (calculation), Medication (schedule generation)  
 **Mapped Endpoints**: GET /api/medications/{id}/schedule
 
-### Backend Implementation for User Story 4
+### Backend Implementation for User Story 4 ✅
 
-- [ ] T054 [P] [US4] Create `MedicationScheduleController` in `src/BloodThinnerTracker.Api/Controllers/MedicationScheduleController.cs`
-- [ ] T055 [US4] Implement GET /api/medications/{id}/schedule endpoint with query parameters (startDate, days, includePatternChanges) per medication-schedule-api.md
-- [ ] T056 [US4] Implement schedule calculation logic (loop through requested days, call GetExpectedDosageForDate for each)
-- [ ] T057 [US4] Add pattern change detection in schedule response (identify dates where pattern transitions occur)
-- [ ] T058 [US4] Calculate summary statistics (totalDosage, averageDailyDosage, min/max, pattern cycles) in response
+- [x] T054 [P] [US4] Create `MedicationScheduleController` in `src/BloodThinnerTracker.Api/Controllers/MedicationScheduleController.cs` - 210 lines with authentication, validation, error handling
+- [x] T055 [US4] Implement GET /api/medications/{id}/schedule endpoint with query parameters (startDate, days, includePatternChanges) per medication-schedule-api.md - Supports 1-365 days, optional startDate, pattern change detection toggle
+- [x] T056 [US4] Implement schedule calculation logic (loop through requested days, call GetExpectedDosageForDate for each) - O(n) algorithm for n days, handles both pattern and fixed dosages
+- [x] T057 [US4] Add pattern change detection in schedule response (identify dates where pattern transitions occur) - Compares pattern IDs day-to-day, includes PatternChangeNote
+- [x] T058 [US4] Calculate summary statistics (totalDosage, averageDailyDosage, min/max, pattern cycles) in response - All statistics calculated and included in ScheduleSummary
 
-### Frontend Implementation for User Story 4
+### Frontend Implementation for User Story 4 ✅
 
-- [ ] T059 [US4] Create `MedicationScheduleService` interface in `src/BloodThinnerTracker.Web/Services/IMedicationScheduleService.cs`
-- [ ] T060 [US4] Implement `MedicationScheduleService` in `src/BloodThinnerTracker.Web/Services/MedicationScheduleService.cs`
-- [ ] T061 [US4] Create `MedicationSchedule.razor` page in `src/BloodThinnerTracker.Web/Components/Pages/MedicationSchedule.razor`
-- [ ] T062 [US4] Implement list view mode in `MedicationSchedule.razor` using MudTable (date, day of week, dosage, pattern day number)
-- [ ] T063 [US4] Add pattern change indicators in schedule list (e.g., MudChip or MudAlert showing "Pattern changes on Day 10")
-- [ ] T064 [US4] Implement date range selector in `MedicationSchedule.razor` (14/21/28 days) using MudButtonGroup
-- [ ] T065 [US4] Add summary card in `MedicationSchedule.razor` displaying total dosage, average, min/max (MudCard with statistics)
-- [ ] T066 [US4] Optional: Implement calendar view mode using MudDataGrid or third-party calendar component (if time allows)
+- [x] T059 [US4] Create `MedicationScheduleService` interface in `src/BloodThinnerTracker.Web/Services/IMedicationScheduleService.cs` - Interface with GetScheduleAsync method
+- [x] T060 [US4] Implement `MedicationScheduleService` in `src/BloodThinnerTracker.Web/Services/MedicationScheduleService.cs` - HTTP client calling schedule endpoint with logging
+- [x] T061 [US4] Create `MedicationSchedule.razor` page in `src/BloodThinnerTracker.Web/Components/Pages/MedicationSchedule.razor` - Full-featured page with MudBlazor components
+- [x] T062 [US4] Implement list view mode in `MedicationSchedule.razor` using MudTable (date, day of week, dosage, pattern day number) - Fixed header, 500px height, striped rows
+- [x] T063 [US4] Add pattern change indicators in schedule list (e.g., MudChip or MudAlert showing "Pattern changes on Day 10") - MudChip with warning color + PatternChangeNote display
+- [x] T064 [US4] Implement date range selector in `MedicationSchedule.razor` (14/21/28 days) using MudButtonGroup - Three buttons, active state highlighting
+- [x] T065 [US4] Add summary card in `MedicationSchedule.razor` displaying total dosage, average, min/max (MudCard with statistics) - MudSimpleTable with 4 summary rows
+- [x] T066 [US4] Optional: Implement calendar view mode using MudDataGrid or third-party calendar component (if time allows) - **SKIPPED** (P3 priority, list view sufficient for MVP)
 
-**Checkpoint**: Users can now view comprehensive future dosage schedules
+**Additional Implementation Details**:
+- Medical safety warning banner on schedule page
+- Active pattern display with MudChip visualization
+- Navigation link added to Medications page menu (View Schedule)
+- Service registered in Program.cs DI container
+- Build Status: Both API and Web projects build successfully
+
+**Checkpoint**: Users can now view comprehensive future dosage schedules ✅
 
 ---
 
