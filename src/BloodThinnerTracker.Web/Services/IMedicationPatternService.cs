@@ -63,4 +63,14 @@ public class PatternHistoryResponse
     public int Limit { get; set; }
     public int Offset { get; set; }
     public List<DosagePatternResponse> Patterns { get; set; } = new();
+
+    /// <summary>
+    /// Total number of patterns (including active and historical)
+    /// </summary>
+    public int TotalPatterns => TotalCount;
+
+    /// <summary>
+    /// Number of currently active patterns (EndDate is null)
+    /// </summary>
+    public int ActivePatterns => Patterns.Count(p => p.EndDate == null);
 }
