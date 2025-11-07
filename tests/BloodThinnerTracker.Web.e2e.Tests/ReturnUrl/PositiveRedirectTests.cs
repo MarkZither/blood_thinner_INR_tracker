@@ -8,8 +8,8 @@ namespace BloodThinnerTracker.Web.e2e.Tests.ReturnUrl
 {
     public class PositiveRedirectTests
     {
-    [Fact(Skip = "Playwright e2e deferred: run only in e2e feature branch or locally when enabled")]
-    public async Task UnauthenticatedRequestShouldReturnToOriginalPageAfterLogin()
+        [Fact(Skip = "Playwright e2e deferred: run only in e2e feature branch or locally when enabled")]
+        public async Task UnauthenticatedRequestShouldReturnToOriginalPageAfterLogin()
         {
             // Arrange: start Playwright and open a browser
             using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
