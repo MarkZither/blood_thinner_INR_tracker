@@ -1,5 +1,4 @@
 using System.Net;
-using System.Web;
 
 namespace BloodThinnerTracker.Web.Services;
 
@@ -16,8 +15,8 @@ public static class ReturnUrlValidator
         string decoded;
         try
         {
-            // Use HttpUtility to decode percent-encoding
-            decoded = HttpUtility.UrlDecode(raw);
+            // Use WebUtility to decode percent-encoding
+            decoded = WebUtility.UrlDecode(raw);
         }
         catch
         {
@@ -48,7 +47,7 @@ public static class ReturnUrlValidator
             // If second decode yields leading '/' or '//' or scheme, reject
             try
             {
-                var second = HttpUtility.UrlDecode(decoded);
+                var second = WebUtility.UrlDecode(decoded);
                 if (second.StartsWith("//"))
                     return new ReturnUrlValidationResult(false, null, "double-encoded");
                 var idx = second.IndexOf(':');
