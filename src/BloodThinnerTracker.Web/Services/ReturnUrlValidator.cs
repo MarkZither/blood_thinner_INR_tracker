@@ -46,8 +46,8 @@ public static class ReturnUrlValidator
         if (decoded.IndexOf('%') >= 0)
         {
             // If second decode yields leading '/' or '//' or scheme, reject
-            // HttpUtility.UrlDecode is safe and doesn't throw for malformed input
-            var second = HttpUtility.UrlDecode(decoded);
+            // WebUtility.UrlDecode is safe and doesn't throw for malformed input
+            var second = WebUtility.UrlDecode(decoded);
             if (second.StartsWith("//"))
                 return new ReturnUrlValidationResult(false, null, "double-encoded");
             var idx = second.IndexOf(':');
