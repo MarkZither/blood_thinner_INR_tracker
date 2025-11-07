@@ -53,8 +53,8 @@ public static class ReturnUrlValidator
             var idx = second.IndexOf(':');
             if (idx > 0)
             {
-                var second = WebUtility.UrlDecode(decoded);
-                if (second.StartsWith("//"))
+                var firstSlash = second.IndexOf('/');
+                if (firstSlash == -1 || idx < firstSlash)
                     return new ReturnUrlValidationResult(false, null, "double-encoded");
             }
         }
