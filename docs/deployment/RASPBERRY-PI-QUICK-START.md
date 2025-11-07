@@ -2,6 +2,8 @@
 
 ## One-Command Deployment
 
+### From Linux/macOS
+
 ```bash
 # Make script executable (first time only)
 chmod +x tools/deploy-to-pi.sh
@@ -18,6 +20,25 @@ chmod +x tools/deploy-to-pi.sh
 # Single-file deployment
 ./tools/deploy-to-pi.sh --single-file
 ```
+
+### From Windows (PowerShell)
+
+```powershell
+# Deploy API only
+.\tools\deploy-to-pi.ps1
+
+# Deploy API + Web UI
+.\tools\deploy-to-pi.ps1 -Web
+
+# Custom host
+.\tools\deploy-to-pi.ps1 -Host 192.168.1.100 -User pi
+
+# Single-file deployment
+.\tools\deploy-to-pi.ps1 -SingleFile
+```
+
+**Note**: Windows requires OpenSSH Client installed. Enable via:
+`Settings > Apps > Optional Features > Add OpenSSH Client`
 
 ## Prerequisites
 

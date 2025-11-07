@@ -57,11 +57,41 @@ sudo chown $USER:$USER /var/lib/bloodtracker
 
 **On your development machine** (not the Raspberry Pi):
 
+#### Option A: Automated Deployment Script (Recommended)
+
+**Linux/macOS:**
 ```bash
 # Clone repository
 git clone https://github.com/MarkZither/blood_thinner_INR_tracker.git
 cd blood_thinner_INR_tracker
 
+# Make script executable
+chmod +x tools/deploy-to-pi.sh
+
+# Deploy (builds and transfers automatically)
+./tools/deploy-to-pi.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+# Clone repository
+git clone https://github.com/MarkZither/blood_thinner_INR_tracker.git
+cd blood_thinner_INR_tracker
+
+# Deploy (builds and transfers automatically)
+.\tools\deploy-to-pi.ps1
+```
+
+**Note for Windows**: Requires OpenSSH Client. Enable via:
+`Settings > Apps > Optional Features > Add OpenSSH Client`
+
+The automated script handles all steps (2-18) automatically. Skip to "Verify Deployment" if using this option.
+
+#### Option B: Manual Build and Deploy
+
+If you prefer manual control or the automated script doesn't work:
+
+```bash
 # Publish API as self-contained for Linux ARM64 (Raspberry Pi 4/5)
 dotnet publish src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj \
   --configuration Release \

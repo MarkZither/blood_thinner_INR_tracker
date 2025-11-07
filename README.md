@@ -145,8 +145,14 @@ dotnet test
 
 Deploy to Raspberry Pi for **internal/home use** with one command:
 
+**Linux/macOS:**
 ```bash
 ./tools/deploy-to-pi.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+.\tools\deploy-to-pi.ps1
 ```
 
 **Features:**
