@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 
 namespace BloodThinnerTracker.Web.Services;
@@ -18,7 +19,7 @@ public static class ReturnUrlValidator
             // Use WebUtility to decode percent-encoding
             decoded = WebUtility.UrlDecode(raw);
         }
-        catch
+        catch (ArgumentException)
         {
             return new ReturnUrlValidationResult(false, null, "malformed");
         }
@@ -58,7 +59,7 @@ public static class ReturnUrlValidator
                         return new ReturnUrlValidationResult(false, null, "double-encoded");
                 }
             }
-            catch
+            catch (ArgumentException)
             {
                 return new ReturnUrlValidationResult(false, null, "double-encoded");
             }
