@@ -52,9 +52,18 @@ Use your JWT token in Scalar, cURL, or Postman to test API endpoints.
 
 ## Documentation
 
+### Getting Started
 - **Quick Start**: [docs/QUICK_START_OAUTH.md](docs/QUICK_START_OAUTH.md) - Get JWT token in 30 seconds
 - **OAuth Testing**: [docs/OAUTH_TESTING_GUIDE.md](docs/OAUTH_TESTING_GUIDE.md) - Comprehensive OAuth setup
 - **Authentication**: [docs/AUTHENTICATION_TESTING_GUIDE.md](docs/AUTHENTICATION_TESTING_GUIDE.md) - Testing guide
+
+### Architecture & Planning
+- **PWA & WebAssembly**: [docs/PWA_WEBASSEMBLY_QUICK_REFERENCE.md](docs/PWA_WEBASSEMBLY_QUICK_REFERENCE.md) - Quick reference for PWA/WASM support
+  - [Investigation](docs/PWA_WEBASSEMBLY_INVESTIGATION.md) - Research and architecture analysis
+  - [Implementation Guide](docs/PWA_WEBASSEMBLY_IMPLEMENTATION_GUIDE.md) - Step-by-step instructions
+  - [Comparison](docs/PWA_WEBASSEMBLY_COMPARISON.md) - Decision matrix and options
+
+### Reference
 - **API Reference**: http://localhost:5000/scalar/v1 (when API is running)
 - **Task Specifications**: [specs/feature/blood-thinner-medication-tracker/](specs/feature/blood-thinner-medication-tracker/)
 
