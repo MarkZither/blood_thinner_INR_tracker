@@ -1,5 +1,4 @@
 using System.Net;
-using System.Web;
 
 namespace BloodThinnerTracker.Web.Services;
 
@@ -12,8 +11,17 @@ public static class ReturnUrlValidator
         if (string.IsNullOrWhiteSpace(raw))
             return new ReturnUrlValidationResult(false, null, "missing");
 
-        // Decode once - HttpUtility.UrlDecode is safe and doesn't throw for malformed input
-        var decoded = HttpUtility.UrlDecode(raw);
+        // Decode once
+        string decoded;
+        try
+        {
+            // Use WebUtility to decode percent-encoding
+            decoded = WebUtility.UrlDecode(raw);
+        }
+        catch
+        {
+            return new ReturnUrlValidationResult(false, null, "malformed");
+        }
 
         if (string.IsNullOrWhiteSpace(decoded))
             return new ReturnUrlValidationResult(false, null, "malformed");
@@ -44,8 +52,8 @@ public static class ReturnUrlValidator
             var idx = second.IndexOf(':');
             if (idx > 0)
             {
-                var fs = second.IndexOf('/');
-                if (fs == -1 || idx < fs)
+                var second = WebUtility.UrlDecode(decoded);
+                if (second.StartsWith("//"))
                     return new ReturnUrlValidationResult(false, null, "double-encoded");
             }
         }

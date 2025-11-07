@@ -154,9 +154,17 @@
                     Logger.LogInformation("OAuth complete: Restored returnUrl from auth properties: {Return}", _restoredReturnFromProperties);
                 }
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException ex)
             {
-                Logger.LogWarning(ex, "OAuth complete: Error reading returnUrl from auth properties");
+                Logger.LogWarning(ex, "OAuth complete: KeyNotFoundException reading returnUrl from auth properties");
+            }
+            catch (NullReferenceException ex)
+            {
+                Logger.LogWarning(ex, "OAuth complete: NullReferenceException reading returnUrl from auth properties");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Logger.LogWarning(ex, "OAuth complete: InvalidOperationException reading returnUrl from auth properties");
             }
         }
         catch (Exception ex)
@@ -237,53 +245,53 @@
                             authResponse.RefreshToken,
                             _authenticatedPrincipal);
 
-                                    // Determine redirect target.
-                                    // Prefer the returnUrl that was stored in AuthenticationProperties.Items during the Challenge
-                                    var restoredReturn = _restoredReturnFromProperties;
+                        // Determine redirect target.
+                        // Prefer the returnUrl that was stored in AuthenticationProperties.Items during the Challenge
+                        var restoredReturn = _restoredReturnFromProperties;
 
-                                    string chosenSource = "none";
-                                    string redirectTarget = "/dashboard";
+                        string chosenSource = "none";
+                        string redirectTarget = "/dashboard";
 
-                                    if (!string.IsNullOrEmpty(restoredReturn))
-                                    {
-                                        // Validate restored return
-                                        var vr = ReturnUrlValidator.Validate(restoredReturn);
-                                        if (vr.IsValid)
-                                        {
-                                            redirectTarget = vr.Normalized!;
-                                            chosenSource = "auth-properties";
-                                        }
-                                        else
-                                        {
-                                            Logger.LogWarning("OAuth complete: Restored returnUrl invalid: {Reason}", vr.ValidationResultCode);
-                                            restoredReturn = null;
-                                        }
-                                    }
+                        if (!string.IsNullOrEmpty(restoredReturn))
+                        {
+                            // Validate restored return
+                            var vr = ReturnUrlValidator.Validate(restoredReturn);
+                            if (vr.IsValid)
+                            {
+                                redirectTarget = vr.Normalized!;
+                                chosenSource = "auth-properties";
+                            }
+                            else
+                            {
+                                Logger.LogWarning("OAuth complete: Restored returnUrl invalid: {Reason}", vr.ValidationResultCode);
+                                restoredReturn = null;
+                            }
+                        }
 
-                                    if (string.IsNullOrEmpty(restoredReturn))
-                                    {
-                                        // Fall back to querystring ReturnUrl (already bound to ReturnUrl param) if present
-                                        if (!string.IsNullOrEmpty(ReturnUrl))
-                                        {
-                                            var vr2 = ReturnUrlValidator.Validate(ReturnUrl);
-                                            if (vr2.IsValid)
-                                            {
-                                                redirectTarget = vr2.Normalized!;
-                                                chosenSource = "query-param";
-                                            }
-                                            else
-                                            {
-                                                Logger.LogWarning("OAuth complete: Query returnUrl invalid: {Reason}", vr2.ValidationResultCode);
-                                                redirectTarget = "/dashboard";
-                                                chosenSource = "fallback";
-                                            }
-                                        }
-                                        else
-                                        {
-                                            redirectTarget = "/dashboard";
-                                            chosenSource = "fallback";
-                                        }
-                                    }
+                        if (string.IsNullOrEmpty(restoredReturn))
+                        {
+                            // Fall back to querystring ReturnUrl (already bound to ReturnUrl param) if present
+                            if (!string.IsNullOrEmpty(ReturnUrl))
+                            {
+                                var vr2 = ReturnUrlValidator.Validate(ReturnUrl);
+                                if (vr2.IsValid)
+                                {
+                                    redirectTarget = vr2.Normalized!;
+                                    chosenSource = "query-param";
+                                }
+                                else
+                                {
+                                    Logger.LogWarning("OAuth complete: Query returnUrl invalid: {Reason}", vr2.ValidationResultCode);
+                                    redirectTarget = "/dashboard";
+                                    chosenSource = "fallback";
+                                }
+                            }
+                            else
+                            {
+                                redirectTarget = "/dashboard";
+                                chosenSource = "fallback";
+                            }
+                        }
 
                                     Logger.LogInformation("OAuth complete: Authentication complete, redirecting to {Target} (source={Source})...", redirectTarget, chosenSource);
 
