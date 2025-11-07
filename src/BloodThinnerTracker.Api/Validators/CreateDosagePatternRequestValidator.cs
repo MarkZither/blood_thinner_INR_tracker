@@ -61,7 +61,8 @@ public class CreateDosagePatternRequestValidator : AbstractValidator<CreateDosag
         // Single-value pattern warning (informational)
         RuleFor(x => x.PatternSequence)
             .Must(seq => seq == null || seq.Count != 1)
-            .WithMessage("Pattern contains only one dosage value. Consider using a fixed daily dose instead of a pattern.");
+            .WithMessage("Pattern contains only one dosage value. Consider using a fixed daily dose instead of a pattern.")
+            .WithSeverity(FluentValidation.Severity.Warning);
 
         // Long pattern warning (informational)
         RuleFor(x => x.PatternSequence)
