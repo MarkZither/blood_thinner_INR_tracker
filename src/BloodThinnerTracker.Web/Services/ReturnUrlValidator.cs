@@ -19,7 +19,7 @@ public static class ReturnUrlValidator
             // Use HttpUtility to decode percent-encoding
             decoded = HttpUtility.UrlDecode(raw);
         }
-        catch
+        catch (ArgumentException)
         {
             return new ReturnUrlValidationResult(false, null, "malformed");
         }
@@ -59,7 +59,7 @@ public static class ReturnUrlValidator
                         return new ReturnUrlValidationResult(false, null, "double-encoded");
                 }
             }
-            catch
+            catch (ArgumentException)
             {
                 return new ReturnUrlValidationResult(false, null, "double-encoded");
             }
