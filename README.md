@@ -139,6 +139,37 @@ dotnet test
 
 ---
 
+## Deployment
+
+### Raspberry Pi (Internal Use)
+
+Deploy to Raspberry Pi for **internal/home use** with one command:
+
+```bash
+./tools/deploy-to-pi.sh
+```
+
+**Features:**
+- ✅ Bare metal (no Docker)
+- ✅ Self-contained .NET
+- ✅ SQLite database (persisted)
+- ✅ Systemd service (auto-start)
+- ✅ Tailscale/LAN access
+
+**Documentation:**
+- [Full Guide](docs/deployment/RASPBERRY-PI-INTERNAL.md)
+- [Quick Start](docs/deployment/RASPBERRY-PI-QUICK-START.md)
+- [Troubleshooting](docs/deployment/RASPBERRY-PI-TROUBLESHOOTING.md)
+
+### Cloud Deployment
+
+For production cloud deployment, see:
+- [Azure Container Apps](AZURE-DEPLOYMENT.md)
+- [Docker Compose](docker-compose.yml)
+- [General Deployment Guide](docs/deployment/README.md)
+
+---
+
 ## Features
 
 ### ✅ Implemented

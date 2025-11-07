@@ -1,0 +1,103 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning",
+      "BloodThinnerTracker": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=/var/lib/bloodtracker/bloodtracker.db;Cache=Shared;Journal Mode=WAL;Synchronous=NORMAL;",
+    "PostgreSQLConnection": "Host=localhost;Database=bloodtracker;Username=bloodtracker_user;Password=CHANGE_ME;SSL Mode=Prefer;",
+    "SqlServerConnection": "Server=localhost;Database=bloodtracker;User Id=bloodtracker_user;Password=CHANGE_ME;Encrypt=True;"
+  },
+  "Database": {
+    "Provider": "SQLite",
+    "EncryptionKey": "",
+    "PostgreSQL": {
+      "Server": "localhost",
+      "Port": "5432",
+      "Database": "bloodtracker_production",
+      "Username": "bloodtracker_user",
+      "Password": "CHANGE_ME"
+    },
+    "SqlServer": {
+      "Server": "localhost",
+      "Database": "bloodtracker_production",
+      "Username": "bloodtracker_user",
+      "Password": "CHANGE_ME"
+    }
+  },
+  "Urls": "http://0.0.0.0:5234",
+  "MedicalApplication": {
+    "Name": "Blood Thinner Medication & INR Tracker",
+    "Version": "1.0.0",
+    "ComplianceLevel": "InternalUseOnly",
+    "DataRetentionDays": 2555,
+    "AuditLogRetentionDays": 3650,
+    "RequireEncryption": true,
+    "EnableAuditLogging": true,
+    "MedicalDisclaimer": "⚠️ This software is for informational purposes only and should not replace professional medical advice. Always consult with your healthcare provider regarding your medication schedule."
+  },
+  "Security": {
+    "RequireHttps": false,
+    "EnableDataProtection": true,
+    "KeyRotationDays": 90,
+    "RequireAuthentication": false,
+    "EnableCors": true,
+    "AllowedOrigins": [
+      "http://localhost:5235",
+      "http://raspberrypi:5235",
+      "http://raspberrypi.local:5235"
+    ]
+  },
+  "Authentication": {
+    "Jwt": {
+      "SecretKey": "CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_256_BITS_LONG_FOR_PRODUCTION_USE",
+      "Issuer": "BloodThinnerTracker.Api",
+      "Audience": "BloodThinnerTracker.Clients",
+      "AccessTokenExpirationMinutes": 15,
+      "RefreshTokenExpirationDays": 7,
+      "RequireHttpsMetadata": false
+    },
+    "AzureAd": {
+      "Instance": "https://login.microsoftonline.com/",
+      "TenantId": "",
+      "ClientId": "",
+      "ClientSecret": "",
+      "CallbackPath": "/signin-oidc",
+      "Scopes": ["openid", "profile", "email"]
+    },
+    "Google": {
+      "ClientId": "",
+      "ClientSecret": "",
+      "CallbackPath": "/signin-google",
+      "Scopes": ["openid", "profile", "email"]
+    },
+    "MedicalSecurity": {
+      "RequireMfa": false,
+      "MaxFailedLoginAttempts": 3,
+      "LockoutDurationMinutes": 30,
+      "RequirePasswordComplexity": true,
+      "MinPasswordLength": 12,
+      "SessionTimeoutMinutes": 30,
+      "RequireDeviceRegistration": false,
+      "EnableAuditLogging": true
+    }
+  },
+  "Features": {
+    "PatternEntryMode": "DayNumber"
+  },
+  "HealthChecks": {
+    "Database": {
+      "Enabled": true,
+      "TimeoutSeconds": 30
+    },
+    "Memory": {
+      "Enabled": true,
+      "ThresholdMB": 1024
+    }
+  }
+}

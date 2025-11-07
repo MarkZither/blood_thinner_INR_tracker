@@ -1,0 +1,13 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Urls": "http://0.0.0.0:5235",
+  "ApiBaseUrl": "http://localhost:5234",
+  "DetailedErrors": false,
+  "HostingEnvironment": "Production"
+}
