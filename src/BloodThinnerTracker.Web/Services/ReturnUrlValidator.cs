@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using System.Web;
 
 namespace BloodThinnerTracker.Web.Services;
@@ -13,21 +12,8 @@ public static class ReturnUrlValidator
         if (string.IsNullOrWhiteSpace(raw))
             return new ReturnUrlValidationResult(false, null, "missing");
 
-        // Decode once
-        string decoded;
-        try
-        {
-            // Use HttpUtility to decode percent-encoding
-            decoded = HttpUtility.UrlDecode(raw);
-        }
-        catch (ArgumentException)
-        {
-            return new ReturnUrlValidationResult(false, null, "malformed");
-        }
-        catch (DecoderFallbackException)
-        {
-            return new ReturnUrlValidationResult(false, null, "malformed");
-        }
+        // Decode once - HttpUtility.UrlDecode is safe and doesn't throw for malformed input
+        var decoded = HttpUtility.UrlDecode(raw);
 
         if (string.IsNullOrWhiteSpace(decoded))
             return new ReturnUrlValidationResult(false, null, "malformed");
@@ -51,26 +37,16 @@ public static class ReturnUrlValidator
         if (decoded.IndexOf('%') >= 0)
         {
             // If second decode yields leading '/' or '//' or scheme, reject
-            try
+            // HttpUtility.UrlDecode is safe and doesn't throw for malformed input
+            var second = HttpUtility.UrlDecode(decoded);
+            if (second.StartsWith("//"))
+                return new ReturnUrlValidationResult(false, null, "double-encoded");
+            var idx = second.IndexOf(':');
+            if (idx > 0)
             {
-                var second = HttpUtility.UrlDecode(decoded);
-                if (second.StartsWith("//"))
+                var fs = second.IndexOf('/');
+                if (fs == -1 || idx < fs)
                     return new ReturnUrlValidationResult(false, null, "double-encoded");
-                var idx = second.IndexOf(':');
-                if (idx > 0)
-                {
-                    var fs = second.IndexOf('/');
-                    if (fs == -1 || idx < fs)
-                        return new ReturnUrlValidationResult(false, null, "double-encoded");
-                }
-            }
-            catch (ArgumentException)
-            {
-                return new ReturnUrlValidationResult(false, null, "double-encoded");
-            }
-            catch (DecoderFallbackException)
-            {
-                return new ReturnUrlValidationResult(false, null, "double-encoded");
             }
         }
 
