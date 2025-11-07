@@ -34,7 +34,7 @@ namespace BloodThinnerTracker.Web.Tests.Components
             Services.AddSingleton(dialogMock.Object);
 
             // HttpClient used by pages can be a default one (won't be called in NotAuthorized)
-            Services.AddSingleton(new HttpClient { BaseAddress = new System.Uri("https://localhost/") });
+            Services.AddSingleton<HttpClient>(sp => new HttpClient { BaseAddress = new System.Uri("https://localhost/") });
         }
 
         [Theory]
