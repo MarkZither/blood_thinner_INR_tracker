@@ -33,8 +33,15 @@ public class AuthController : Controller
     [HttpGet]
     public IActionResult LoginMicrosoft(string? returnUrl = null)
     {
-        // Normalize and validate the returnUrl as a safety step (caller may pass null)
-        var safeReturn = string.IsNullOrWhiteSpace(returnUrl) ? "/dashboard" : returnUrl;
+        // Validate the returnUrl using ReturnUrlValidator to prevent malicious URLs
+        var validationResult = ReturnUrlValidator.Validate(returnUrl);
+        var safeReturn = validationResult.IsValid ? validationResult.Normalized! : "/dashboard";
+
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning("LoginMicrosoft: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}", 
+                validationResult.ValidationResultCode, returnUrl ?? "(null)");
+        }
 
         // Encode once for inclusion in the local RedirectUri query string
         var encodedReturn = Uri.EscapeDataString(safeReturn);
@@ -67,16 +74,36 @@ public class AuthController : Controller
     [HttpGet]
     public IActionResult LoginGoogle(string? returnUrl = null)
     {
+        // Validate the returnUrl using ReturnUrlValidator to prevent malicious URLs
+        var validationResult = ReturnUrlValidator.Validate(returnUrl);
+        var safeReturn = validationResult.IsValid ? validationResult.Normalized! : "/dashboard";
+
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning("LoginGoogle: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}", 
+                validationResult.ValidationResultCode, returnUrl ?? "(null)");
+        }
+
+        // Encode once for inclusion in the local RedirectUri query string
+        var encodedReturn = Uri.EscapeDataString(safeReturn);
+
+        // The OAuth middleware will round-trip AuthenticationProperties via the provider 'state'.
+        // Use a local callback that includes the encoded returnUrl so the app can redirect there
+        // after the external provider completes.
+        var redirectAfterExternal = Url.Content($"~/oauth-complete?returnUrl={encodedReturn}");
+
         var properties = new AuthenticationProperties
         {
-            RedirectUri = returnUrl ?? "/dashboard",
+            RedirectUri = redirectAfterExternal,
             Items =
             {
-                { "scheme", GoogleDefaults.AuthenticationScheme }
+                { "scheme", GoogleDefaults.AuthenticationScheme },
+                // Store the raw/safe return URL as an item so it can also be retrieved from properties.Items
+                { "returnUrl", safeReturn }
             }
         };
 
-        _logger.LogInformation("Initiating Google OAuth challenge. ReturnUrl: {ReturnUrl}", returnUrl);
+        _logger.LogInformation("Initiating Google OAuth challenge. ReturnUrl: {ReturnUrl} RedirectUri: {RedirectUri}", safeReturn, redirectAfterExternal);
 
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
