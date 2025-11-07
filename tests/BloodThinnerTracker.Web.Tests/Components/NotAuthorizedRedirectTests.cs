@@ -37,11 +37,11 @@ namespace BloodThinnerTracker.Web.Tests.Components
             Services.AddSingleton(new HttpClient { BaseAddress = new System.Uri("https://localhost/") });
         }
 
-    [Theory]
-    [InlineData("/inr", typeof(BloodThinnerTracker.Web.Components.Pages.INRTracking))]
-    [InlineData("/medications", typeof(BloodThinnerTracker.Web.Components.Pages.Medications))]
-    [InlineData("/profile", typeof(BloodThinnerTracker.Web.Components.Pages.Profile))]
-    [InlineData("/", typeof(BloodThinnerTracker.Web.Components.Pages.Dashboard))]
+        [Theory]
+        [InlineData("/inr", typeof(BloodThinnerTracker.Web.Components.Pages.INRTracking))]
+        [InlineData("/medications", typeof(BloodThinnerTracker.Web.Components.Pages.Medications))]
+        [InlineData("/profile", typeof(BloodThinnerTracker.Web.Components.Pages.Profile))]
+        [InlineData("/", typeof(BloodThinnerTracker.Web.Components.Pages.Dashboard))]
         public void NotAuthorized_RedirectsToLogin_WithEncodedRelativeReturnUrl(string initialUri, System.Type componentType)
         {
             // Arrange: start from an absolute URI that would normally be the current page
