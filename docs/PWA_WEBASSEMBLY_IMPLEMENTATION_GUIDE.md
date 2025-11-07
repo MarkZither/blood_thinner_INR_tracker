@@ -262,7 +262,11 @@ public class ClientAuthenticationStateProvider : AuthenticationStateProvider
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
 
-            // Check if token is expired
+            // SECURITY NOTE: Token should be validated server-side before storage.
+            // Client-side validation is for UX only (checking expiry).
+            // Signature verification happens server-side during API calls.
+            
+            // Check if token is expired (client-side expiry check)
             var expiry = await _localStorage.GetItemAsync<DateTime?>(TokenExpiryKey);
             if (expiry.HasValue && expiry.Value < DateTime.UtcNow)
             {
@@ -368,10 +372,18 @@ public class ClientAuthenticationStateProvider : AuthenticationStateProvider
 
     /// <summary>
     /// Parse claims from JWT token.
+    /// SECURITY NOTE: This is a simplified example for demonstration.
+    /// In production, use System.IdentityModel.Tokens.Jwt for proper validation.
+    /// This implementation only decodes the payload without signature verification.
+    /// The token should be validated server-side before being stored client-side.
     /// </summary>
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
     {
         var claims = new List<Claim>();
+        
+        // SECURITY: In production, validate the token signature here
+        // using JwtSecurityTokenHandler and TokenValidationParameters
+        
         var payload = jwt.Split('.')[1];
         
         // Add padding if necessary
@@ -605,6 +617,9 @@ const CACHE_NAME = 'blazor-offline-cache-v1';
 const DATA_CACHE_NAME = 'blazor-data-cache-v1';
 
 // Resources to cache on install
+// NOTE: In production, use Blazor's ServiceWorkerAssetsManifest for automatic
+// asset discovery. This hardcoded list is for demonstration purposes.
+// The build process generates 'service-worker-assets.js' with all assets.
 const PRECACHE_URLS = [
     '/',
     '/index.html',

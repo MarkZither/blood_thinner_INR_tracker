@@ -440,7 +440,7 @@ This document compares different architectural approaches for adding PWA and Web
 | Option 3 | $10,000 | $3,000 | $4,000 | $17,000 |
 | Option 4 | $800 | $200 | $500 | $1,500 |
 
-*Based on $100/hour developer rate*
+*Based on $100/hour developer rate. Actual costs vary by location, experience level, and team composition. These are example calculations for comparison purposes only.*
 
 ### Business Value (Medical App Context)
 
