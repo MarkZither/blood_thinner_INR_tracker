@@ -1,0 +1,220 @@
+@page "/medications/{Id:guid}/pattern-history"
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Shared.Models
+@inject IMedicationService MedicationService
+@inject IMedicationPatternService PatternService
+@inject NavigationManager Navigation
+@inject ILogger<PatternHistory> Logger
+
+<PageTitle>Dosage Pattern History</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_medication == null)
+    {
+        <MudAlert Severity="Severity.Error">
+            Medication not found or you don't have access to it.
+        </MudAlert>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Navigation.NavigateTo("/medications"))">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <!-- Header -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h5">@_medication.Name</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Dosage Pattern History</MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/edit"))">
+                        Back to Medication
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Active Pattern Section -->
+            @if (_activePattern != null)
+            {
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h6">Current Active Pattern</MudText>
+                            <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Active</MudChip>
+                        </MudStack>
+
+                        <MudDivider />
+
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2"><strong>Pattern:</strong></MudText>
+                            <MudChipSet T="string">
+                                @foreach (var dosage in _activePattern.PatternSequence)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Medium">
+                                        @dosage @_medication.DosageUnit
+                                    </MudChip>
+                                }
+                            </MudChipSet>
+
+                            <MudText Typo="Typo.body2" Class="mt-2">
+                                <strong>Started:</strong> @_activePattern.StartDate.ToShortDateString()
+                            </MudText>
+
+                            <MudText Typo="Typo.body2">
+                                <strong>Cycle Length:</strong> @_activePattern.PatternLength days
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(_activePattern.Notes))
+                            {
+                                <MudText Typo="Typo.body2">
+                                    <strong>Notes:</strong> @_activePattern.Notes
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <!-- Historical Patterns Section -->
+            @if (_patternHistory != null && _patternHistory.Patterns.Any(p => p.EndDate.HasValue))
+            {
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Historical Patterns</MudText>
+                        <MudDivider />
+
+                        <MudStack Spacing="3">
+                            @foreach (var pattern in _patternHistory.Patterns.Where(p => p.EndDate.HasValue).OrderByDescending(p => p.StartDate))
+                            {
+                                <MudCard Elevation="0" Outlined="true">
+                                    <MudCardContent>
+                                        <MudStack Spacing="2">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                <MudText Typo="Typo.subtitle1">
+                                                    @pattern.StartDate.ToShortDateString() - @pattern.EndDate!.Value.ToShortDateString()
+                                                </MudText>
+                                                <MudChip T="string" Color="Color.Default" Size="Size.Small">
+                                                    @((pattern.EndDate!.Value - pattern.StartDate).Days + 1) days
+                                                </MudChip>
+                                            </MudStack>
+
+                                            <MudChipSet T="string">
+                                                @foreach (var dosage in pattern.PatternSequence)
+                                                {
+                                                    <MudChip T="string" Color="Color.Default" Size="Size.Small">
+                                                        @dosage @_medication.DosageUnit
+                                                    </MudChip>
+                                                }
+                                            </MudChipSet>
+
+                                            @if (!string.IsNullOrWhiteSpace(pattern.Notes))
+                                            {
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    @pattern.Notes
+                                                </MudText>
+                                            }
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+            else if (_patternHistory != null && !_patternHistory.Patterns.Any(p => p.EndDate.HasValue))
+            {
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudAlert Severity="Severity.Info">
+                        No historical patterns found. This medication has only had its current pattern.
+                    </MudAlert>
+                </MudPaper>
+            }
+
+            <!-- Summary Statistics -->
+            @if (_patternHistory != null && _patternHistory.TotalPatterns > 0)
+            {
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Summary</MudText>
+                        <MudDivider />
+
+                        <MudGrid>
+                            <MudItem xs="6" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Patterns</MudText>
+                                <MudText Typo="Typo.h6">@_patternHistory.TotalPatterns</MudText>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Active Patterns</MudText>
+                                <MudText Typo="Typo.h6">@_patternHistory.ActivePatterns</MudText>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Historical Patterns</MudText>
+                                <MudText Typo="Typo.h6">@(_patternHistory.TotalPatterns - _patternHistory.ActivePatterns)</MudText>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">First Pattern</MudText>
+                                <MudText Typo="Typo.h6">
+                                    @_patternHistory.Patterns.OrderBy(p => p.StartDate).FirstOrDefault()?.StartDate.ToShortDateString()
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Medication? _medication;
+    private DosagePatternResponse? _activePattern;
+    private PatternHistoryResponse? _patternHistory;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _isLoading = true;
+
+            // Load medication details
+            _medication = await MedicationService.GetMedicationByIdAsync(Id.ToString());
+
+            if (_medication != null)
+            {
+                // Load active pattern
+                _activePattern = await PatternService.GetActivePatternAsync(Id);
+
+                // Load pattern history
+                _patternHistory = await PatternService.GetPatternHistoryAsync(
+                    medicationPublicId: Id,
+                    activeOnly: false,
+                    limit: 100,
+                    offset: 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading pattern history for medication {MedicationId}", Id);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

@@ -73,10 +73,60 @@ blood_thinner_INR_tracker/
 ### Key Entities
 
 - **User**: Authentication and preferences
-- **Medication**: Drug info and scheduling  
-- **MedicationLog**: Dose tracking with safety validations
+- **Medication**: Drug info and scheduling with pattern support
+- **MedicationDosagePattern**: Temporal variable-dosage patterns (e.g., "4mg, 4mg, 3mg" repeating)
+- **MedicationLog**: Dose tracking with variance detection (expected vs. actual)
 - **INRTest**: Blood test results and trends
 - **INRSchedule**: Configurable test reminders
+
+### Pattern Management
+
+**Temporal Pattern Tracking**:
+- **MedicationDosagePattern** entity stores variable-dosage schedules with date validity
+- Pattern sequences stored as JSON: `[4.0, 4.0, 3.0, 4.0, 3.0, 3.0]` (6-day cycle)
+- `StartDate` and `EndDate` (nullable) enable temporal queries for any historical date
+- Multiple patterns per medication allow tracking dosage adjustments over time
+
+**Pattern Calculation Pattern**:
+```csharp
+// Get expected dosage for any date
+public decimal? GetExpectedDosageForDate(DateTime targetDate)
+{
+    // Find active pattern on target date
+    var pattern = DosagePatterns
+        .Where(p => p.StartDate <= targetDate && 
+                   (p.EndDate == null || p.EndDate >= targetDate))
+        .OrderByDescending(p => p.StartDate)
+        .FirstOrDefault();
+    
+    if (pattern == null) return Dosage; // Fallback to fixed dosage
+    
+    // Calculate pattern position using modulo arithmetic (O(1) performance)
+    int daysSinceStart = (targetDate.Date - pattern.StartDate.Date).Days;
+    int patternDay = (daysSinceStart % pattern.PatternLength) + 1;
+    
+    return pattern.GetDosageForDay(patternDay);
+}
+```
+
+**Variance Tracking**:
+- **MedicationLog** enhanced with `ExpectedDosage`, `ActualDosage`, `PatternDayNumber`
+- Auto-populate expected dosage on log creation from active pattern
+- `HasVariance` computed property: `|ActualDosage - ExpectedDosage| > 0.01`
+- Enable variance reports for medication adherence tracking
+
+**MudBlazor Pattern Entry Components**:
+- **Simple Mode**: Single fixed dosage (existing behavior)
+- **Pattern Mode**: Comma-separated input with MudChipSet visualization ("4, 4, 3")
+- **Advanced Mode**: Day-by-day manual entry for complex patterns
+- Use `MudToggleGroup` for mode selection, avoid JavaScript interop
+
+**API Patterns**:
+- **POST** `/api/medications/{id}/patterns` - Create new pattern, optionally close previous
+- **GET** `/api/medications/{id}/patterns` - List pattern history (temporal tracking)
+- **GET** `/api/medications/{id}/patterns/active` - Get current active pattern
+- **GET** `/api/medications/{id}/schedule?days=28` - Calculate future dosage schedule
+- **GET** `/api/medication-logs/variance-report` - Analyze dosing accuracy
 
 ### Development Commands
 
@@ -98,21 +148,36 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### Git Commit Guidelines
 
-**CRITICAL: Keep commit messages concise to avoid terminal crashes**
+**⚠️ CRITICAL: Keep commit messages SHORT to avoid terminal buffer overflow crashes ⚠️**
+
+**The Problem**: PowerShell terminal buffer has limited height. Long commit messages (>15 lines) cause:
+- Exception: "The value must be greater than or equal to zero and less than the console's buffer size"
+- Terminal hangs/crashes requiring recovery
+- Lost work if commit fails silently
+
+**The Solution**: ALWAYS use concise commit format:
 
 - **Summary line**: Max 72 characters, imperative mood
-- **Body**: Max 10-15 lines total, use bullet points
+- **Body**: Max 5-8 lines TOTAL, use bullet points
 - **Format**: `feat/fix/docs/refactor: <summary>`
-- **Example**:
+- **Example** (GOOD ✅):
   ```
-  feat(ui): Migrate Dashboard and Medications to MudBlazor
+  feat(phase8): Add API docs and user guide
   
-  - Convert Bootstrap/FontAwesome to Material Design components
-  - Implement reactive property pattern for filtering
-  - Remove all legacy CSS framework dependencies
+  - Created 3 API documentation files (patterns, schedule, logs)
+  - Created comprehensive user guide for dosage patterns
+  - Verified logging and test coverage complete
+  - Phase 8: 5/9 tasks complete (4 deferred)
   ```
-- **Never**: Include full file contents, detailed method signatures, or exhaustive change lists
-- **Focus**: High-level summary of what changed and why
+- **NEVER DO** (BAD ❌):
+  - Include full file contents
+  - List every endpoint/method modified
+  - Detailed validation rules
+  - Multi-paragraph explanations
+  - Backend/Frontend section headers with task lists
+  - More than 8 lines total
+- **Focus**: High-level "what" and "why", NOT the "how"
+- **Details belong**: In PR description, not commit message
 
 ### Common Patterns
 

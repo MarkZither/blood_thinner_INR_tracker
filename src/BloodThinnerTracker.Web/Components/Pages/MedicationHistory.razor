@@ -4,6 +4,7 @@
 @using MudBlazor
 @using BloodThinnerTracker.Web.Services
 @using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Components.Medications
 @inject IMedicationService MedicationService
 @inject IMedicationLogService MedicationLogService
 @inject NavigationManager Navigation
@@ -21,7 +22,7 @@
     else if (_medication == null)
     {
         <MudAlert Severity="Severity.Error">Medication not found</MudAlert>
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" 
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Navigation.NavigateTo("/medications"))" Class="mt-2">
             Back to Medications
         </MudButton>
@@ -80,12 +81,12 @@
         <MudPaper Class="pa-4 mb-4">
             <MudGrid>
                 <MudItem xs="12" md="4">
-                    <MudDatePicker Label="From Date" 
+                    <MudDatePicker Label="From Date"
                                    @bind-Date="_fromDate"
                                    MaxDate="DateTime.Today" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <MudDatePicker Label="To Date" 
+                    <MudDatePicker Label="To Date"
                                    @bind-Date="_toDate"
                                    MaxDate="DateTime.Today" />
                 </MudItem>
@@ -116,6 +117,7 @@
                         <MudTh>Scheduled</MudTh>
                         <MudTh>Actual</MudTh>
                         <MudTh>Dosage</MudTh>
+                        <MudTh>Variance</MudTh>
                         <MudTh>Status</MudTh>
                         <MudTh>Timing</MudTh>
                         <MudTh>Notes</MudTh>
@@ -140,6 +142,16 @@
                         </MudTd>
                         <MudTd DataLabel="Dosage">
                             @context.ActualDosage @context.ActualDosageUnit
+                        </MudTd>
+                        <MudTd DataLabel="Variance">
+                            @* T041, T042: Display variance indicator with tooltip *@
+                            <VarianceIndicator HasVariance="@context.HasVariance"
+                                             ExpectedDosage="@context.ExpectedDosage"
+                                             ActualDosage="@context.ActualDosage"
+                                             VarianceAmount="@context.VarianceAmount"
+                                             VariancePercentage="@context.VariancePercentage"
+                                             DosageUnit="@context.ActualDosageUnit"
+                                             ShowNoVariance="true" />
                         </MudTd>
                         <MudTd DataLabel="Status">
                             @GetStatusChip(context.Status)
@@ -181,9 +193,9 @@
 
     private Medication? _medication;
     private List<MedicationLogDto> _logs = new();
-    
+
     private bool _loading = true;
-    
+
     private DateTime? _fromDate = DateTime.Today.AddDays(-30);
     private DateTime? _toDate = DateTime.Today;
 
@@ -228,14 +240,14 @@
             return;
         }
 
-        _takenOnTimeCount = _logs.Count(l => 
-            l.Status == MedicationLogStatus.Taken && 
+        _takenOnTimeCount = _logs.Count(l =>
+            l.Status == MedicationLogStatus.Taken &&
             Math.Abs(l.TimeVarianceMinutes) <= 120);
 
         _missedCount = _logs.Count(l => l.Status == MedicationLogStatus.Skipped);
 
         var totalDoses = _logs.Count(l => l.Status != MedicationLogStatus.Scheduled);
-        _adherenceRate = totalDoses > 0 
+        _adherenceRate = totalDoses > 0
             ? Math.Round((decimal)_takenOnTimeCount / totalDoses * 100, 1)
             : 0;
     }
@@ -251,15 +263,15 @@
     {
         return status switch
         {
-            MedicationLogStatus.Taken => 
+            MedicationLogStatus.Taken =>
                 @<MudChip T="string" Size="Size.Small" Color="Color.Success">Taken</MudChip>,
-            MedicationLogStatus.Skipped => 
+            MedicationLogStatus.Skipped =>
                 @<MudChip T="string" Size="Size.Small" Color="Color.Warning">Skipped</MudChip>,
-            MedicationLogStatus.PartiallyTaken => 
+            MedicationLogStatus.PartiallyTaken =>
                 @<MudChip T="string" Size="Size.Small" Color="Color.Info">Partial</MudChip>,
-            MedicationLogStatus.Scheduled => 
+            MedicationLogStatus.Scheduled =>
                 @<MudChip T="string" Size="Size.Small" Color="Color.Info">Scheduled</MudChip>,
-            _ => 
+            _ =>
                 @<MudChip T="string" Size="Size.Small">Unknown</MudChip>
         };
     }
@@ -267,22 +279,22 @@
     private RenderFragment GetTimingChip(int varianceMinutes)
     {
         var absVariance = Math.Abs(varianceMinutes);
-        
+
         if (absVariance <= 15)
             return @<MudChip T="string" Size="Size.Small" Color="Color.Success">On Time</MudChip>;
-        
+
         if (absVariance <= 60)
         {
             var text = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
             return @<MudChip T="string" Size="Size.Small" Color="Color.Info">@text</MudChip>;
         }
-        
+
         if (absVariance <= 120)
         {
             var text = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
             return @<MudChip T="string" Size="Size.Small" Color="Color.Warning">@text</MudChip>;
         }
-        
+
         var lateText = varianceMinutes > 0 ? $"+{varianceMinutes}m" : $"{varianceMinutes}m";
         return @<MudChip T="string" Size="Size.Small" Color="Color.Error">@lateText</MudChip>;
     }

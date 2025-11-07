@@ -512,6 +512,67 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MedicationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PatternSequence")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("MedicationId", "EndDate")
+                        .HasDatabaseName("IX_MedicationDosagePattern_Active")
+                        .HasFilter("\"EndDate\" IS NULL");
+
+                    b.HasIndex("MedicationId", "StartDate", "EndDate")
+                        .HasDatabaseName("IX_MedicationDosagePattern_Temporal");
+
+                    b.ToTable("MedicationDosagePatterns", t =>
+                        {
+                            t.HasCheckConstraint("CK_MedicationDosagePattern_Dates", "\"EndDate\" IS NULL OR \"EndDate\" >= \"StartDate\"");
+                        });
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationLog", b =>
                 {
                     b.Property<int>("Id")
@@ -547,12 +608,19 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DosagePatternId")
+                        .HasColumnType("int");
+
                     b.Property<string>("EntryDevice")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
                     b.Property<int>("EntryMethod")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("ExpectedDosage")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("decimal(10,3)");
 
                     b.Property<string>("FoodDetails")
                         .HasMaxLength(200)
@@ -571,6 +639,9 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("PatternDayNumber")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uniqueidentifier");
@@ -603,6 +674,8 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DosagePatternId");
+
                     b.HasIndex("MedicationId");
 
                     b.HasIndex("PublicId")
@@ -613,6 +686,10 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.ToTable("MedicationLogs", t =>
                         {
                             t.HasCheckConstraint("CK_MedicationLog_ActualDosage", "\"ActualDosage\" IS NULL OR (\"ActualDosage\" > 0 AND \"ActualDosage\" <= 1000)");
+
+                            t.HasCheckConstraint("CK_MedicationLog_ExpectedDosage", "\"ExpectedDosage\" IS NULL OR (\"ExpectedDosage\" > 0 AND \"ExpectedDosage\" <= 1000)");
+
+                            t.HasCheckConstraint("CK_MedicationLog_PatternDay", "\"PatternDayNumber\" IS NULL OR (\"PatternDayNumber\" >= 1 AND \"PatternDayNumber\" <= 365)");
 
                             t.HasCheckConstraint("CK_MedicationLog_TimeVariance", "\"TimeVarianceMinutes\" >= -1440 AND \"TimeVarianceMinutes\" <= 1440");
                         });
@@ -867,8 +944,24 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", b =>
+                {
+                    b.HasOne("BloodThinnerTracker.Shared.Models.Medication", "Medication")
+                        .WithMany("DosagePatterns")
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Medication");
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationLog", b =>
                 {
+                    b.HasOne("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", "DosagePattern")
+                        .WithMany()
+                        .HasForeignKey("DosagePatternId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BloodThinnerTracker.Shared.Models.Medication", "Medication")
                         .WithMany("MedicationLogs")
                         .HasForeignKey("MedicationId")
@@ -880,6 +973,8 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("DosagePattern");
 
                     b.Navigation("Medication");
 
@@ -904,6 +999,8 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
 
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.Medication", b =>
                 {
+                    b.Navigation("DosagePatterns");
+
                     b.Navigation("MedicationLogs");
                 });
 

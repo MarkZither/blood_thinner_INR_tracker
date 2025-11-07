@@ -1,5 +1,6 @@
 @page "/medications"
 @using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Components.Medications
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
@@ -109,6 +110,7 @@
                                         <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
                                             <MudMenuItem OnClick="() => EditMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
                                             <MudMenuItem OnClick="() => ViewHistory(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
+                                            <MudMenuItem OnClick="() => ViewSchedule(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.CalendarMonth">View Schedule</MudMenuItem>
                                             <MudDivider />
                                             <MudMenuItem OnClick="() => DeactivateMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Pause" IconColor="Color.Error">
                                                 <MudText Color="Color.Error">Deactivate</MudText>
@@ -169,6 +171,15 @@
                                             <MudText Typo="Typo.body2" Color="Color.Secondary">@medication.Instructions</MudText>
                                         </MudStack>
                                     }
+
+                                    <!-- Dosage Pattern Display -->
+                                    <div class="mb-3">
+                                        <PatternDisplayComponent
+                                            MedicationId="@medication.PublicId"
+                                            ShowEditButton="true"
+                                            OnEditPattern="() => OpenPatternDialog(medication)"
+                                            OnViewHistory="() => ViewPatternHistory(medication.PublicId.ToString())" />
+                                    </div>
 
                                     <!-- Status and Actions -->
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -441,9 +452,50 @@
         Navigation.NavigateTo($"/medications/{medicationId}/history");
     }
 
+    private void ViewSchedule(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/schedule");
+    }
+
     private void LogDose(string medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/log");
+    }
+
+    private async Task OpenPatternDialog(Medication medication)
+    {
+        var parameters = new DialogParameters
+        {
+            ["MedicationId"] = medication.PublicId
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<PatternEntryComponent>("Manage Dosage Pattern", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await HandlePatternSaved();
+        }
+    }
+
+    private async Task HandlePatternSaved()
+    {
+        Snackbar.Add("Dosage pattern saved successfully!", Severity.Success);
+        await LoadMedications();
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ViewPatternHistory(string medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/pattern-history");
     }
 
     private async Task DeactivateMedication(string medicationId)

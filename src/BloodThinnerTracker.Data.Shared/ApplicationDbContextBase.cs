@@ -39,6 +39,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Medication> Medications { get; set; } = null!;
     public DbSet<MedicationLog> MedicationLogs { get; set; } = null!;
+    public DbSet<MedicationDosagePattern> MedicationDosagePatterns { get; set; } = null!;
     public DbSet<INRTest> INRTests { get; set; } = null!;
     public DbSet<INRSchedule> INRSchedules { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
@@ -142,6 +143,38 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
             entity.HasIndex(e => e.MedicationId);
         });
 
+        // Configure MedicationDosagePattern entity with user isolation (via Medication)
+        modelBuilder.Entity<MedicationDosagePattern>(entity =>
+        {
+            ConfigureSecurityKeys(entity);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            // Temporal index for pattern queries (most common: find active pattern for medication)
+            entity.HasIndex(e => new { e.MedicationId, e.StartDate, e.EndDate })
+                .HasDatabaseName("IX_MedicationDosagePattern_Temporal");
+
+            // Active patterns index (filter NULL EndDate for fast active pattern lookups)
+            entity.HasIndex(e => new { e.MedicationId, e.EndDate })
+                .HasDatabaseName("IX_MedicationDosagePattern_Active")
+                .HasFilter("\"EndDate\" IS NULL");
+
+            // Foreign key relationship with cascade delete
+            entity.HasOne(p => p.Medication)
+                .WithMany(m => m.DosagePatterns)
+                .HasForeignKey(p => p.MedicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure JSON column for PatternSequence (provider-specific handling)
+            // PostgreSQL will use JSONB, SQLite will use TEXT
+            entity.Property(p => p.PatternSequence)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<List<decimal>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<decimal>()
+                )
+                .HasColumnType("jsonb") // PostgreSQL JSONB, SQLite will override to TEXT
+                .IsRequired();
+        });
+
         // Configure INRTest entity with user isolation
         modelBuilder.Entity<INRTest>(entity =>
         {
@@ -235,10 +268,29 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
         modelBuilder.Entity<MedicationLog>(entity =>
         {
             entity.Property(e => e.ActualDosage).HasPrecision(10, 3);
+            entity.Property(e => e.ExpectedDosage).HasPrecision(10, 3);
             entity.ToTable(t =>
             {
                 t.HasCheckConstraint("CK_MedicationLog_ActualDosage", "\"ActualDosage\" IS NULL OR (\"ActualDosage\" > 0 AND \"ActualDosage\" <= 1000)");
+                t.HasCheckConstraint("CK_MedicationLog_ExpectedDosage", "\"ExpectedDosage\" IS NULL OR (\"ExpectedDosage\" > 0 AND \"ExpectedDosage\" <= 1000)");
                 t.HasCheckConstraint("CK_MedicationLog_TimeVariance", "\"TimeVarianceMinutes\" >= -1440 AND \"TimeVarianceMinutes\" <= 1440");
+                t.HasCheckConstraint("CK_MedicationLog_PatternDay", "\"PatternDayNumber\" IS NULL OR (\"PatternDayNumber\" >= 1 AND \"PatternDayNumber\" <= 365)");
+            });
+
+            // Foreign key to MedicationDosagePattern (optional, SetNull on delete)
+            entity.HasOne(log => log.DosagePattern)
+                .WithMany()
+                .HasForeignKey(log => log.DosagePatternId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // MedicationDosagePattern entity constraints
+        modelBuilder.Entity<MedicationDosagePattern>(entity =>
+        {
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_MedicationDosagePattern_Dates", "\"EndDate\" IS NULL OR \"EndDate\" >= \"StartDate\"");
             });
         });
 

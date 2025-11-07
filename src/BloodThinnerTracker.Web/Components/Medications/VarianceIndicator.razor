@@ -1,0 +1,138 @@
+@*
+ * BloodThinnerTracker.Web - Variance Indicator Component
+ * Licensed under MIT License. See LICENSE file in the project root.
+ *
+ * Displays variance indicator for medication logs showing when actual dosage
+ * differs from expected dosage based on active pattern.
+ *
+ * T040: Component for visualizing dosage variance with color-coded icons and tooltips.
+ *@
+
+@using MudBlazor
+
+@if (HasVariance)
+{
+    <MudTooltip Text="@GetVarianceTooltipText()">
+        <MudChip T="string"
+                 Color="@GetVarianceColor()"
+                 Size="Size.Small"
+                 Icon="@GetVarianceIcon()">
+            @GetVarianceDisplayText()
+        </MudChip>
+    </MudTooltip>
+}
+else if (ShowNoVariance)
+{
+    <MudTooltip Text="Dosage matches expected amount">
+        <MudChip T="string"
+                 Color="Color.Success"
+                 Size="Size.Small"
+                 Icon="@Icons.Material.Filled.CheckCircle">
+            On Target
+        </MudChip>
+    </MudTooltip>
+}
+
+@code {
+    /// <summary>
+    /// Indicates whether this log has a dosage variance.
+    /// </summary>
+    [Parameter]
+    public bool HasVariance { get; set; }
+
+    /// <summary>
+    /// Expected dosage from pattern (in medication units).
+    /// </summary>
+    [Parameter]
+    public decimal? ExpectedDosage { get; set; }
+
+    /// <summary>
+    /// Actual dosage taken (in medication units).
+    /// </summary>
+    [Parameter]
+    public decimal? ActualDosage { get; set; }
+
+    /// <summary>
+    /// Variance amount (actual - expected).
+    /// Positive = took more, negative = took less.
+    /// </summary>
+    [Parameter]
+    public decimal? VarianceAmount { get; set; }
+
+    /// <summary>
+    /// Variance percentage ((actual - expected) / expected * 100).
+    /// </summary>
+    [Parameter]
+    public decimal? VariancePercentage { get; set; }
+
+    /// <summary>
+    /// Dosage unit for display (e.g., "mg").
+    /// </summary>
+    [Parameter]
+    public string? DosageUnit { get; set; } = "mg";
+
+    /// <summary>
+    /// Whether to show "On Target" chip when there's no variance.
+    /// </summary>
+    [Parameter]
+    public bool ShowNoVariance { get; set; } = false;
+
+    private Color GetVarianceColor()
+    {
+        if (!VarianceAmount.HasValue) return Color.Default;
+
+        var absVariance = Math.Abs(VarianceAmount.Value);
+
+        // Severe variance (>25% or >2mg)
+        if (Math.Abs(VariancePercentage ?? 0) > 25 || absVariance > 2)
+            return Color.Error;
+
+        // Moderate variance (10-25% or 1-2mg)
+        if (Math.Abs(VariancePercentage ?? 0) > 10 || absVariance > 1)
+            return Color.Warning;
+
+        // Minor variance (<10% or <1mg)
+        return Color.Info;
+    }
+
+    private string GetVarianceIcon()
+    {
+        if (!VarianceAmount.HasValue) return Icons.Material.Filled.Info;
+
+        return VarianceAmount.Value switch
+        {
+            > 0 => Icons.Material.Filled.TrendingUp,  // Took more than expected
+            < 0 => Icons.Material.Filled.TrendingDown, // Took less than expected
+            _ => Icons.Material.Filled.CheckCircle // Exact match (shouldn't reach here if HasVariance=true)
+        };
+    }
+
+    private string GetVarianceDisplayText()
+    {
+        if (!VarianceAmount.HasValue) return "Variance";
+
+        var direction = VarianceAmount.Value > 0 ? "+" : "";
+        return $"{direction}{VarianceAmount.Value:F1}{DosageUnit}";
+    }
+
+    private string GetVarianceTooltipText()
+    {
+        if (!ExpectedDosage.HasValue || !ActualDosage.HasValue)
+            return "Dosage variance detected";
+
+        var message = $"Expected: {ExpectedDosage.Value:F1}{DosageUnit}, Taken: {ActualDosage.Value:F1}{DosageUnit}";
+
+        if (VarianceAmount.HasValue)
+        {
+            var direction = VarianceAmount.Value > 0 ? "more" : "less";
+            message += $", Diff: {Math.Abs(VarianceAmount.Value):F1}{DosageUnit} {direction}";
+        }
+
+        if (VariancePercentage.HasValue)
+        {
+            message += $" ({VariancePercentage.Value:F1}%)";
+        }
+
+        return message;
+    }
+}

@@ -512,6 +512,67 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MedicationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PatternSequence")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("MedicationId", "EndDate")
+                        .HasDatabaseName("IX_MedicationDosagePattern_Active")
+                        .HasFilter("\"EndDate\" IS NULL");
+
+                    b.HasIndex("MedicationId", "StartDate", "EndDate")
+                        .HasDatabaseName("IX_MedicationDosagePattern_Temporal");
+
+                    b.ToTable("MedicationDosagePatterns", t =>
+                        {
+                            t.HasCheckConstraint("CK_MedicationDosagePattern_Dates", "\"EndDate\" IS NULL OR \"EndDate\" >= \"StartDate\"");
+                        });
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationLog", b =>
                 {
                     b.Property<int>("Id")
@@ -547,12 +608,19 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("DosagePatternId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("EntryDevice")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
                     b.Property<int>("EntryMethod")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("ExpectedDosage")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("decimal(10,3)");
 
                     b.Property<string>("FoodDetails")
                         .HasMaxLength(200)
@@ -571,6 +639,9 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("PatternDayNumber")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid");
@@ -603,6 +674,8 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DosagePatternId");
+
                     b.HasIndex("MedicationId");
 
                     b.HasIndex("PublicId")
@@ -613,6 +686,10 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                     b.ToTable("MedicationLogs", t =>
                         {
                             t.HasCheckConstraint("CK_MedicationLog_ActualDosage", "\"ActualDosage\" IS NULL OR (\"ActualDosage\" > 0 AND \"ActualDosage\" <= 1000)");
+
+                            t.HasCheckConstraint("CK_MedicationLog_ExpectedDosage", "\"ExpectedDosage\" IS NULL OR (\"ExpectedDosage\" > 0 AND \"ExpectedDosage\" <= 1000)");
+
+                            t.HasCheckConstraint("CK_MedicationLog_PatternDay", "\"PatternDayNumber\" IS NULL OR (\"PatternDayNumber\" >= 1 AND \"PatternDayNumber\" <= 365)");
 
                             t.HasCheckConstraint("CK_MedicationLog_TimeVariance", "\"TimeVarianceMinutes\" >= -1440 AND \"TimeVarianceMinutes\" <= 1440");
                         });
@@ -864,8 +941,24 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", b =>
+                {
+                    b.HasOne("BloodThinnerTracker.Shared.Models.Medication", "Medication")
+                        .WithMany("DosagePatterns")
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Medication");
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.MedicationLog", b =>
                 {
+                    b.HasOne("BloodThinnerTracker.Shared.Models.MedicationDosagePattern", "DosagePattern")
+                        .WithMany()
+                        .HasForeignKey("DosagePatternId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("BloodThinnerTracker.Shared.Models.Medication", "Medication")
                         .WithMany("MedicationLogs")
                         .HasForeignKey("MedicationId")
@@ -877,6 +970,8 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DosagePattern");
 
                     b.Navigation("Medication");
 
@@ -901,6 +996,8 @@ namespace BloodThinnerTracker.Data.PostgreSQL.Migrations
 
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.Medication", b =>
                 {
+                    b.Navigation("DosagePatterns");
+
                     b.Navigation("MedicationLogs");
                 });
 

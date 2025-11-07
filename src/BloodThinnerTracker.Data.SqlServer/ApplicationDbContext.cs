@@ -24,6 +24,13 @@ public class ApplicationDbContext : ApplicationDbContextBase
     {
         base.OnModelCreating(modelBuilder);
 
+        // SQL Server doesn't support JSONB - override to use NVARCHAR(MAX) for JSON columns
+        modelBuilder.Entity<BloodThinnerTracker.Shared.Models.MedicationDosagePattern>(entity =>
+        {
+            entity.Property(p => p.PatternSequence)
+                .HasColumnType("nvarchar(max)"); // SQL Server uses NVARCHAR(MAX) for JSON storage
+        });
+
         // SQL Server doesn't allow multiple cascade paths to the same table
         // This prevents "may cause cycles or multiple cascade paths" errors
         // We disable cascade delete on all foreign keys and handle deletions in application code

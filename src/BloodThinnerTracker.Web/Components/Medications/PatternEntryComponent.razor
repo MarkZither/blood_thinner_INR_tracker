@@ -1,0 +1,430 @@
+@using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.Models
+@using MudBlazor
+@inject IMedicationPatternService PatternService
+@inject IConfiguration Configuration
+@inject IDialogService DialogService
+@inject ILogger<PatternEntryComponent> Logger
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Dosage Pattern Entry</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-4">@_successMessage</MudAlert>
+        }
+
+        <MudStack Spacing="3">
+            <!-- Pattern Entry Mode Toggle -->
+            <MudToggleGroup @bind-Value="_selectedMode" Color="Color.Primary" CheckMark FixedContent>
+                <MudToggleItem Value="@PatternEntryMode.DateBased">
+                    <MudText>Date-Based</MudText>
+                    <MudText Typo="Typo.caption">Specify effective date</MudText>
+                </MudToggleItem>
+                <MudToggleItem Value="@PatternEntryMode.DayNumber">
+                    <MudText>Day Number</MudText>
+                    <MudText Typo="Typo.caption">Current pattern day</MudText>
+                </MudToggleItem>
+            </MudToggleGroup>
+
+            <!-- Date-Based Mode UI -->
+            @if (_selectedMode == PatternEntryMode.DateBased)
+            {
+                <MudDatePicker
+                    Label="Effective Date"
+                    @bind-Date="_effectiveDate"
+                    DateFormat="MM/dd/yyyy"
+                    HelperText="Pattern will start on Day 1 on this date"
+                    Required="true"
+                    Variant="Variant.Outlined" />
+            }
+
+            <!-- Day-Number Mode UI -->
+            @if (_selectedMode == PatternEntryMode.DayNumber)
+            {
+                <MudNumericField
+                    @bind-Value="_currentDayNumber"
+                    Label="Today is Pattern Day"
+                    HelperText="System will calculate the start date based on today's day number"
+                    Min="1"
+                    Max="365"
+                    Required="true"
+                    Variant="Variant.Outlined" />
+
+                @if (_currentDayNumber.HasValue && _currentDayNumber.Value > 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Info">
+                        Calculated Start Date: @GetCalculatedStartDate().ToString("MM/dd/yyyy")
+                    </MudText>
+                }
+            }
+
+            <!-- Pattern Sequence Input -->
+            <MudTextField
+                @bind-Value="_patternInput"
+                Label="Dosage Pattern"
+                HelperText="Enter dosages separated by commas (e.g., 4, 4, 3 or 4.5, 3.5)"
+                Variant="Variant.Outlined"
+                Lines="3"
+                Required="true"
+                Error="@(!string.IsNullOrEmpty(_patternValidationError))"
+                ErrorText="@_patternValidationError"
+                OnBlur="ValidatePattern" />
+
+            <!-- Pattern Visual Display (MudChipSet) -->
+            @if (_parsedPattern != null && _parsedPattern.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2">Pattern Preview:</MudText>
+                <MudChipSet T="string">
+                    @for (int i = 0; i < _parsedPattern.Count; i++)
+                    {
+                        var dosage = _parsedPattern[i];
+                        var dayNumber = i + 1;
+                        <MudChip T="string"
+                            Color="Color.Primary"
+                            Variant="Variant.Text">
+                            Day @dayNumber: @dosage mg
+                        </MudChip>
+                    }
+                </MudChipSet>
+
+                <MudText Typo="Typo.caption" Color="Color.Info">
+                    Pattern repeats every @_parsedPattern.Count days |
+                    Average: @(_parsedPattern.Average().ToString("F2"))mg |
+                    Min: @(_parsedPattern.Min().ToString("F2"))mg |
+                    Max: @(_parsedPattern.Max().ToString("F2"))mg
+                </MudText>
+            }
+
+            <!-- Close Previous Pattern Option -->
+            <MudCheckBox
+                @bind-Value="_closePreviousPattern"
+                Label="Close previous active pattern"
+                Color="Color.Primary">
+                <MudText Typo="Typo.caption">
+                    If checked, the previous pattern's end date will be set to the day before this pattern starts
+                </MudText>
+            </MudCheckBox>
+
+            <!-- Action Buttons -->
+            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <MudButton
+                    Variant="Variant.Outlined"
+                    Color="Color.Default"
+                    OnClick="Cancel"
+                    Disabled="_isSaving">
+                    Cancel
+                </MudButton>
+                <MudButton
+                    Variant="Variant.Filled"
+                    Color="Color.Primary"
+                    OnClick="SavePattern"
+                    Disabled="_isSaving || !IsValid()">
+                    @if (_isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ml-2">Saving...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Save Pattern</MudText>
+                    }
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter]
+    public Guid MedicationId { get; set; }
+
+    [Parameter]
+    public EventCallback OnPatternSaved { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelled { get; set; }
+
+    private PatternEntryMode _selectedMode = PatternEntryMode.DayNumber;
+    private DateTime? _effectiveDate = DateTime.Today;
+    private int? _currentDayNumber = 1;
+    private string _patternInput = string.Empty;
+    private List<decimal> _parsedPattern = new();
+    private bool _closePreviousPattern = true;
+    private bool _isSaving = false;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private string? _patternValidationError;
+
+    protected override void OnInitialized()
+    {
+        // Read feature flag to set default mode
+        var configuredMode = Configuration.GetValue<string>("Features:PatternEntryMode");
+        if (Enum.TryParse<PatternEntryMode>(configuredMode, out var mode))
+        {
+            _selectedMode = mode;
+            Logger.LogInformation("Pattern entry mode set to {Mode} from configuration", mode);
+        }
+        else
+        {
+            Logger.LogWarning("Invalid pattern entry mode in configuration: {Mode}. Using default: {DefaultMode}",
+                configuredMode, _selectedMode);
+        }
+    }
+
+    private DateTime GetCalculatedStartDate()
+    {
+        if (!_currentDayNumber.HasValue || _currentDayNumber.Value <= 0)
+        {
+            return DateTime.Today;
+        }
+
+        // Calculate start date: Today - (CurrentDayNumber - 1) days
+        return DateTime.Today.AddDays(-(_currentDayNumber.Value - 1));
+    }
+
+    private void ValidatePattern()
+    {
+        _patternValidationError = null;
+        _parsedPattern.Clear();
+
+        if (string.IsNullOrWhiteSpace(_patternInput))
+        {
+            _patternValidationError = "Pattern is required";
+            return;
+        }
+
+        var parts = _patternInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length == 0)
+        {
+            _patternValidationError = "Pattern must contain at least one dosage value";
+            return;
+        }
+
+        if (parts.Length > 365)
+        {
+            _patternValidationError = "Pattern cannot exceed 365 days";
+            return;
+        }
+
+        foreach (var part in parts)
+        {
+            if (!decimal.TryParse(part, out var dosage))
+            {
+                _patternValidationError = $"Invalid dosage value: '{part}'. Please use numeric values only.";
+                return;
+            }
+
+            if (dosage < 0.1m || dosage > 1000m)
+            {
+                _patternValidationError = $"Dosage {dosage} is out of range (0.1-1000mg)";
+                return;
+            }
+
+            _parsedPattern.Add(dosage);
+        }
+
+        // Warning for single-value pattern
+        if (_parsedPattern.Count == 1)
+        {
+            Logger.LogWarning("Single-value pattern detected for medication {MedicationId}", MedicationId);
+        }
+
+        // Warning for long patterns
+        if (_parsedPattern.Count > 20)
+        {
+            Logger.LogWarning("Long pattern detected ({Length} days) for medication {MedicationId}",
+                _parsedPattern.Count, MedicationId);
+        }
+    }
+
+    private bool IsValid()
+    {
+        if (_parsedPattern.Count == 0)
+        {
+            return false;
+        }
+
+        if (_selectedMode == PatternEntryMode.DateBased && !_effectiveDate.HasValue)
+        {
+            return false;
+        }
+
+        if (_selectedMode == PatternEntryMode.DayNumber && (!_currentDayNumber.HasValue || _currentDayNumber.Value <= 0))
+        {
+            return false;
+        }
+
+        return string.IsNullOrEmpty(_patternValidationError);
+    }
+
+    private async Task SavePattern()
+    {
+        _isSaving = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            ValidatePattern();
+
+            if (!IsValid())
+            {
+                _errorMessage = "Please correct the validation errors before saving";
+                return;
+            }
+
+            // T075: Single-value pattern confirmation
+            if (_parsedPattern.Count == 1)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Single-Value Pattern Detected",
+                    $"You entered only one dosage value ({_parsedPattern[0]}mg). " +
+                    "Did you mean to use a fixed daily dose instead of a repeating pattern? " +
+                    "A pattern with one value will repeat the same dose every day.",
+                    yesText: "Continue with Pattern",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled single-value pattern creation for medication {MedicationId}", MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogInformation("User confirmed single-value pattern creation for medication {MedicationId}", MedicationId);
+            }
+
+            // T076: Long pattern confirmation
+            if (_parsedPattern.Count > 20)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Long Pattern Detected",
+                    $"Your pattern is {_parsedPattern.Count} days long, which is unusually long. " +
+                    "Most dosage patterns are 7-20 days. Please verify this is correct before continuing.",
+                    yesText: "Continue with Pattern",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled long pattern creation ({Length} days) for medication {MedicationId}",
+                        _parsedPattern.Count, MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogInformation("User confirmed long pattern creation ({Length} days) for medication {MedicationId}",
+                    _parsedPattern.Count, MedicationId);
+            }
+
+            // T077: Safety warning for out-of-range dosages
+            var maxDosage = _parsedPattern.Max();
+            var minDosage = _parsedPattern.Min();
+
+            if (maxDosage > 20.0m)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "⚠️ High Dosage Warning",
+                    $"Your pattern contains a dosage of {maxDosage}mg, which exceeds typical maximum dosages for most blood thinners. " +
+                    "For Warfarin, the usual maximum is 20mg per day. Please verify this dosage with your healthcare provider before continuing.",
+                    yesText: "I Understand, Continue",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled pattern with high dosage ({MaxDosage}mg) for medication {MedicationId}",
+                        maxDosage, MedicationId);
+                    _isSaving = false;
+                    return;
+                }
+
+                Logger.LogWarning("User confirmed pattern with high dosage ({MaxDosage}mg) for medication {MedicationId}",
+                    maxDosage, MedicationId);
+            }
+
+            DateTime startDate;
+            if (_selectedMode == PatternEntryMode.DateBased)
+            {
+                startDate = _effectiveDate!.Value;
+            }
+            else
+            {
+                startDate = GetCalculatedStartDate();
+            }
+
+            // T051: Backdating confirmation for changes >7 days in the past (FR-011)
+            var daysDifference = (DateTime.Today - startDate.Date).Days;
+            if (daysDifference > 7)
+            {
+                var confirmed = await DialogService.ShowMessageBox(
+                    "Confirm Backdated Pattern",
+                    $"The pattern start date is {daysDifference} days in the past ({startDate:MMM dd, yyyy}). " +
+                    "This will affect historical medication logs. Are you sure you want to continue?",
+                    yesText: "Yes, Continue",
+                    cancelText: "Cancel");
+
+                if (confirmed != true)
+                {
+                    Logger.LogInformation("User cancelled backdated pattern creation for medication {MedicationId} (start date: {StartDate})",
+                        MedicationId, startDate);
+                    _isSaving = false;
+                    return; // User cancelled - prevent form submission
+                }
+
+                Logger.LogInformation("User confirmed backdated pattern creation for medication {MedicationId} ({DaysDiff} days in past)",
+                    MedicationId, daysDifference);
+            }
+
+            var request = new CreateDosagePatternRequest
+            {
+                PatternSequence = _parsedPattern,
+                StartDate = startDate,
+                ClosePreviousPattern = _closePreviousPattern
+            };
+
+            Logger.LogInformation("Creating dosage pattern for medication {MedicationId} with {PatternLength} days starting {StartDate}",
+                MedicationId, _parsedPattern.Count, startDate);
+
+            var result = await PatternService.CreatePatternAsync(MedicationId, request);
+
+            if (result != null)
+            {
+                _successMessage = "Dosage pattern saved successfully!";
+                Logger.LogInformation("Dosage pattern created successfully for medication {MedicationId}", MedicationId);
+
+                await Task.Delay(500); // Brief delay to show success message
+                await OnPatternSaved.InvokeAsync();
+            }
+            else
+            {
+                _errorMessage = "Failed to save pattern. Please try again.";
+                Logger.LogWarning("Pattern creation returned null for medication {MedicationId}", MedicationId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error saving pattern: {ex.Message}";
+            Logger.LogError(ex, "Error creating dosage pattern for medication {MedicationId}", MedicationId);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancelled.InvokeAsync();
+    }
+}

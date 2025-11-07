@@ -2,6 +2,7 @@ using BloodThinnerTracker.Api.Services;
 using BloodThinnerTracker.Api.Services.Authentication;
 using BloodThinnerTracker.Api.Hubs;
 using BloodThinnerTracker.Shared.Models.Authentication;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -43,6 +44,9 @@ builder.Services.ConfigureMedicalAuthentication(builder.Configuration);
 
 // Add HTTP context accessor for audit logging
 builder.Services.AddHttpContextAccessor();
+
+// Add FluentValidation for model validation
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Add API services
 builder.Services.AddControllers();

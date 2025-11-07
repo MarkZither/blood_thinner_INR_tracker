@@ -1,0 +1,206 @@
+@using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Services
+@inject IMedicationPatternService PatternService
+@inject ILogger<PatternDisplayComponent> Logger
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (_isLoading)
+{
+    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+}
+else if (_activePattern != null)
+{
+    <MudCard Outlined="true">
+        <MudCardContent>
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">Active Dosage Pattern</MudText>
+
+                <!-- Pattern Sequence Display -->
+                <MudChipSet T="string">
+                    @foreach (var (dosage, index) in _activePattern.PatternSequence.Select((d, i) => (d, i)))
+                    {
+                        var isTodayDay = index + 1 == _todayPatternDay;
+                        <MudChip T="string"
+                            Color="@(isTodayDay ? Color.Success : Color.Primary)"
+                            Variant="@(isTodayDay ? Variant.Filled : Variant.Text)"
+                            Icon="@(isTodayDay ? Icons.Material.Filled.Today : null)">
+                            Day @(index + 1): @dosage mg
+                        </MudChip>
+                    }
+                </MudChipSet>
+
+                <!-- Pattern Statistics -->
+                <MudDivider />
+                <MudGrid>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Cycle Length</MudText>
+                        <MudText Typo="Typo.body1">@_activePattern.PatternLength days</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Average Dose</MudText>
+                        <MudText Typo="Typo.body1">@_activePattern.AverageDosage.ToString("F2") mg</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Started On</MudText>
+                        <MudText Typo="Typo.body1">@_activePattern.StartDate.ToString("MM/dd/yyyy")</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Today's Dose</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Success">@_todayDosage mg</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_todayPatternDay > 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        Today is Day @_todayPatternDay of the pattern cycle
+                    </MudAlert>
+                }
+            </MudStack>
+        </MudCardContent>
+        @if (ShowEditButton)
+        {
+            <MudCardActions>
+                <MudButton
+                    Variant="Variant.Text"
+                    Color="Color.Primary"
+                    OnClick="OnEditClicked">
+                    Edit Pattern
+                </MudButton>
+                <MudButton
+                    Variant="Variant.Text"
+                    Color="Color.Default"
+                    OnClick="ViewHistory">
+                    View History
+                </MudButton>
+            </MudCardActions>
+        }
+    </MudCard>
+}
+else if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Info">
+        No active dosage pattern. This medication uses a fixed daily dose.
+    </MudAlert>
+}
+
+@code {
+    [Parameter]
+    public Guid MedicationId { get; set; }
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnEditPattern { get; set; }
+
+    [Parameter]
+    public EventCallback OnViewHistory { get; set; }
+
+    private DosagePatternResponse? _activePattern;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private int _todayPatternDay = 0;
+    private decimal _todayDosage = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadActivePattern();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (MedicationId != Guid.Empty)
+        {
+            await LoadActivePattern();
+        }
+    }
+
+    private async Task LoadActivePattern()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _activePattern = await PatternService.GetActivePatternAsync(MedicationId);
+
+            if (_activePattern != null)
+            {
+                CalculateTodayPosition();
+                Logger.LogDebug("Loaded active pattern for medication {MedicationId} with {PatternLength} days",
+                    MedicationId, _activePattern.PatternLength);
+            }
+            else
+            {
+                Logger.LogDebug("No active pattern found for medication {MedicationId}", MedicationId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to load active pattern";
+            Logger.LogError(ex, "Error loading active pattern for medication {MedicationId}", MedicationId);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CalculateTodayPosition()
+    {
+        if (_activePattern == null)
+        {
+            return;
+        }
+
+        var daysSinceStart = (DateTime.Today - _activePattern.StartDate).Days;
+        _todayPatternDay = (daysSinceStart % _activePattern.PatternLength) + 1;
+
+        if (_todayPatternDay > 0 && _todayPatternDay <= _activePattern.PatternSequence.Count)
+        {
+            _todayDosage = _activePattern.PatternSequence[_todayPatternDay - 1];
+        }
+    }
+
+    private async Task OnEditClicked()
+    {
+        var parameters = new DialogParameters
+        {
+            ["MedicationId"] = MedicationId
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<PatternEntryComponent>("Manage Dosage Pattern", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            Snackbar.Add("Pattern saved successfully!", Severity.Success);
+            await LoadActivePattern(); // Refresh the display
+            await OnEditPattern.InvokeAsync();
+        }
+    }
+
+    private async Task ViewHistory()
+    {
+        await OnViewHistory.InvokeAsync();
+    }
+
+    public async Task RefreshPattern()
+    {
+        await LoadActivePattern();
+        StateHasChanged();
+    }
+}

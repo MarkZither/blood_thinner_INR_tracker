@@ -21,7 +21,7 @@ public class MedicationLog : MedicalEntityBase
         /// ⚠️ SECURITY: This is an internal foreign key. Use Medication.PublicId when exposing via API.
         /// </summary>
         [Required]
-        public int MedicationId { get; set; } 
+        public int MedicationId { get; set; }
 
         /// <summary>
         /// Gets or sets the scheduled time when medication should have been taken.
@@ -46,6 +46,66 @@ public class MedicationLog : MedicalEntityBase
         [Range(0.0, 1000.0, ErrorMessage = "Dosage must be between 0 and 1000")]
         [Column(TypeName = "decimal(10,3)")]
         public decimal? ActualDosage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the expected dosage from the active pattern on TakenAt/ScheduledTime date.
+        /// NULL if no pattern was active or medication doesn't use patterns.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ VARIANCE TRACKING: Populated automatically when log is created.
+        ///
+        /// Algorithm:
+        /// 1. On log creation, call Medication.GetExpectedDosageForDate(ScheduledTime)
+        /// 2. Store result in this field
+        /// 3. If pattern exists, also populate PatternDayNumber and DosagePatternId
+        /// 4. If no pattern, this field remains NULL (backward compatible)
+        ///
+        /// Used for:
+        /// - Variance calculations (ActualDosage - ExpectedDosage)
+        /// - Adherence reports ("Took 3mg instead of expected 4mg")
+        /// - Historical accuracy (if pattern changes later, this preserves original expectation)
+        /// </remarks>
+        [Column(TypeName = "decimal(10,3)")]
+        public decimal? ExpectedDosage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the position in the dosage pattern cycle (1-based).
+        /// Example: Day 3 of a 6-day pattern.
+        /// NULL if no pattern was active.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ PATTERN POSITION: Helps users understand their position in dosing cycle.
+        ///
+        /// Calculation:
+        /// - daysSinceStart = (ScheduledTime.Date - Pattern.StartDate.Date).Days
+        /// - PatternDayNumber = (daysSinceStart % Pattern.PatternLength) + 1
+        ///
+        /// Used for:
+        /// - UI display: "Day 3 of 6 in pattern"
+        /// - Pattern adherence tracking
+        /// - Debugging dosage calculation issues
+        /// </remarks>
+        public int? PatternDayNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reference to the dosage pattern that was active on TakenAt date.
+        /// Enables historical pattern lookup even if pattern is later modified/closed.
+        /// NULL if no pattern was active.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ TEMPORAL ACCURACY: Critical for FR-013 (historical pattern tracking).
+        ///
+        /// Why store PatternId instead of just calculating on-the-fly:
+        /// - Pattern may be closed/modified after log is created
+        /// - Need to know WHICH pattern was active at time of logging
+        /// - Enables accurate variance reports across pattern changes
+        /// - Preserves audit trail for medical compliance
+        ///
+        /// Example: User logs dose on Nov 1 with Pattern A (4,4,3).
+        /// On Nov 2, pattern changes to Pattern B (4,4,3,4,3,3).
+        /// Nov 1 log should still reference Pattern A, not Pattern B.
+        /// </remarks>
+        public int? DosagePatternId { get; set; }
 
         /// <summary>
         /// Gets or sets the dosage unit for actual dosage.
@@ -144,6 +204,91 @@ public class MedicationLog : MedicalEntityBase
         public virtual Medication Medication { get; set; } = null!;
 
         /// <summary>
+        /// Gets or sets the dosage pattern that was active when this log was created.
+        /// NULL if medication didn't use patterns at the time.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ NAVIGATION PROPERTY: Virtual for EF Core lazy loading.
+        /// OnDelete: SetNull (if pattern is deleted, logs remain with NULL reference)
+        /// </remarks>
+        [ForeignKey("DosagePatternId")]
+        public virtual MedicationDosagePattern? DosagePattern { get; set; }
+
+        // Computed Properties for Variance Tracking
+
+        /// <summary>
+        /// Gets a value indicating whether actual dosage differs from expected dosage.
+        /// Threshold: > 0.01mg difference to account for decimal rounding.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ VARIANCE DETECTION: Used for UI indicators and adherence reports.
+        ///
+        /// Returns true if:
+        /// - ExpectedDosage is set (pattern was active)
+        /// - AND absolute difference > 0.01mg
+        ///
+        /// Examples:
+        /// - Expected 4mg, took 4mg → false (no variance)
+        /// - Expected 4mg, took 3mg → true (variance)
+        /// - Expected 4mg, took 4.005mg → false (within rounding threshold)
+        /// - No expected dosage → false (backward compatible)
+        /// </remarks>
+        [NotMapped]
+        public bool HasVariance => ExpectedDosage.HasValue &&
+                                   ActualDosage.HasValue &&
+                                   Math.Abs(ActualDosage.Value - ExpectedDosage.Value) > 0.01m;
+
+        /// <summary>
+        /// Gets the variance amount (actual - expected).
+        /// Positive = took more than expected, negative = took less.
+        /// NULL if no expected dosage is set.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ VARIANCE CALCULATION: Signed decimal for UI display.
+        ///
+        /// Examples:
+        /// - Expected 4mg, took 5mg → +1.0 (took 1mg more)
+        /// - Expected 4mg, took 3mg → -1.0 (took 1mg less)
+        /// - Expected 4mg, no actual → NULL (not yet taken)
+        ///
+        /// Used for:
+        /// - Variance reports (total over/under dosing)
+        /// - Safety alerts (large variances)
+        /// - Adherence scoring
+        /// </remarks>
+        [NotMapped]
+        public decimal? VarianceAmount => ExpectedDosage.HasValue && ActualDosage.HasValue
+            ? ActualDosage.Value - ExpectedDosage.Value
+            : null;
+
+        /// <summary>
+        /// Gets the variance percentage.
+        /// Example: -25% means took 25% less than expected.
+        /// NULL if no expected dosage or expected dosage is 0.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ PERCENTAGE CALCULATION: For relative variance analysis.
+        ///
+        /// Formula: ((actual - expected) / expected) * 100
+        ///
+        /// Examples:
+        /// - Expected 4mg, took 3mg → -25% (25% less)
+        /// - Expected 4mg, took 5mg → +25% (25% more)
+        /// - Expected 4mg, took 4mg → 0% (exact match)
+        ///
+        /// Used for:
+        /// - Percentage-based adherence thresholds
+        /// - Visual indicators (red if >25% variance)
+        /// - Trend analysis (consistent under/over dosing)
+        /// </remarks>
+        [NotMapped]
+        public decimal? VariancePercentage => ExpectedDosage.HasValue &&
+                                              ExpectedDosage.Value > 0 &&
+                                              ActualDosage.HasValue
+            ? ((ActualDosage.Value - ExpectedDosage.Value) / ExpectedDosage.Value) * 100
+            : null;
+
+        /// <summary>
         /// Calculate if medication was taken on time (within acceptable window).
         /// </summary>
         /// <param name="acceptableWindowMinutes">Acceptable time window in minutes (default: 60).</param>
@@ -234,6 +379,65 @@ public class MedicationLog : MedicalEntityBase
             }
 
             return errors;
+        }
+
+        /// <summary>
+        /// Populate pattern-related fields from medication's active pattern.
+        /// Should be called when creating a new log entry to capture expected dosage.
+        /// </summary>
+        /// <param name="medication">The medication to get expected dosage from.</param>
+        /// <exception cref="ArgumentNullException">Thrown if medication is null.</exception>
+        /// <remarks>
+        /// ⚠️ AUTO-POPULATION: Critical method for variance tracking (FR-009, FR-010).
+        ///
+        /// Algorithm:
+        /// 1. Call medication.GetExpectedDosageForDate(ScheduledTime) to get pattern dosage
+        /// 2. Store result in ExpectedDosage field
+        /// 3. If pattern exists, also populate:
+        ///    - DosagePatternId (FK to active pattern)
+        ///    - PatternDayNumber (position in pattern cycle)
+        /// 4. If no pattern, leave fields NULL (backward compatible)
+        ///
+        /// Usage:
+        /// ```csharp
+        /// var log = new MedicationLog
+        /// {
+        ///     MedicationId = medication.Id,
+        ///     ScheduledTime = DateTime.UtcNow
+        /// };
+        /// log.SetExpectedDosageFromMedication(medication);
+        /// // Now log.ExpectedDosage is set, log.PatternDayNumber is set
+        /// ```
+        ///
+        /// Called by:
+        /// - POST /api/medication-logs endpoint (T033)
+        /// - LogDose page when creating new log (T038)
+        /// - Medication reminder service (background job)
+        /// </remarks>
+        public void SetExpectedDosageFromMedication(Medication medication)
+        {
+            if (medication == null)
+                throw new ArgumentNullException(nameof(medication));
+
+            // Use ScheduledTime as the target date for pattern lookup
+            ExpectedDosage = medication.GetExpectedDosageForDate(ScheduledTime);
+
+            // If pattern exists, populate pattern tracking fields
+            var activePattern = medication.GetPatternForDate(ScheduledTime);
+            if (activePattern != null)
+            {
+                DosagePatternId = activePattern.Id;
+
+                // Calculate pattern day number (1-based)
+                int daysSinceStart = (ScheduledTime.Date - activePattern.StartDate.Date).Days;
+                PatternDayNumber = (daysSinceStart % activePattern.PatternLength) + 1;
+            }
+            else
+            {
+                // No pattern active - clear pattern fields
+                DosagePatternId = null;
+                PatternDayNumber = null;
+            }
         }
 
         /// <summary>
