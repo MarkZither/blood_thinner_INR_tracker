@@ -325,7 +325,8 @@
     </Authorizing>
     <NotAuthorized>
         @{
-            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+            var returnUrl = Uri.EscapeDataString(relative);
             Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
         }
     </NotAuthorized>

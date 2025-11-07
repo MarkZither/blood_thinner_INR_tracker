@@ -3,8 +3,9 @@
 @code {
     protected override void OnInitialized()
     {
-        // Redirect to login page with return URL
-        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        // Redirect to login page with a relative return URL
+        var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+        var returnUrl = Uri.EscapeDataString(relative);
         Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
     }
 }

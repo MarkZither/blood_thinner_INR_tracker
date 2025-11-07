@@ -1,0 +1,37 @@
+openapi: 3.0.1
+info:
+  title: ReturnUrl Redirect APIs
+  version: 1.0.0
+paths:
+  /account/login:
+    get:
+      summary: Login page with optional ReturnUrl
+      parameters:
+        - in: query
+          name: ReturnUrl
+          schema:
+            type: string
+          description: Relative path to redirect to after successful login (must start with `/`).
+      responses:
+        '200':
+          description: Login page
+  /account/redirect-after-login:
+    post:
+      summary: Endpoint used after authentication to perform the validated redirect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Optional server-issued ReturnUrl token
+      responses:
+        '302':
+          description: Redirect to validated ReturnUrl or safe default
+
+essentials:
+  - ReturnUrl must be relative and validated server-side
+  - Server may issue short-lived token for ReturnUrl to support POST-redirect workflows

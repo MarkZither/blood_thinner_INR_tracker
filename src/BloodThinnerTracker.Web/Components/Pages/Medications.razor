@@ -277,7 +277,10 @@
     </Authorizing>
     <NotAuthorized>
         @{
-            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            // Navigation.Uri is absolute (e.g. https://localhost:7235/medications). Convert to a relative path
+            // so our ReturnUrlValidator treats it as a safe in-app path.
+            var relative = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+            var returnUrl = Uri.EscapeDataString(relative);
             Navigation.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
         }
     </NotAuthorized>
