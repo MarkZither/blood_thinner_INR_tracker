@@ -11,7 +11,7 @@ public partial class Login
     [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private ILogger<Login> Logger { get; set; } = default!;
 
-    private async Task OnLoginSucceeded()
+    private void OnLoginSucceeded()
     {
         // Read returnUrl query parameter if present
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
