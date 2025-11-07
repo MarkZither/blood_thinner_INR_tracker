@@ -154,9 +154,17 @@
                     Logger.LogInformation("OAuth complete: Restored returnUrl from auth properties: {Return}", _restoredReturnFromProperties);
                 }
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException ex)
             {
-                Logger.LogWarning(ex, "OAuth complete: Error reading returnUrl from auth properties");
+                Logger.LogWarning(ex, "OAuth complete: KeyNotFoundException reading returnUrl from auth properties");
+            }
+            catch (NullReferenceException ex)
+            {
+                Logger.LogWarning(ex, "OAuth complete: NullReferenceException reading returnUrl from auth properties");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Logger.LogWarning(ex, "OAuth complete: InvalidOperationException reading returnUrl from auth properties");
             }
         }
         catch (Exception ex)
