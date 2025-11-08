@@ -48,9 +48,9 @@ Phase 3 — User Story 1 (US1) — Return to intended page after login (Priority
 
 Phase 4 — User Story 2 (US2) — Block unsafe redirect attempts (Priority P1)
 
-- [ ] T012 Enforce ReturnUrl validation policy (relative-only) in all web entry points that accept `returnUrl` (use `ReturnUrlValidator`). Reject absolute and protocol-relative URLs.
-- [ ] T013 On invalid ReturnUrl, ensure flow redirects to safe default (`/dashboard`) and log a security event at Error level using existing ILogger. Include raw value in log (consider redaction policy if secrets present).
-- [ ] T014 Add unit tests for invalid patterns: external absolute URLs, protocol-relative `//evil`, double-encoded payloads, malformed URLs in `tests/BloodThinnerTracker.Web.Tests/ReturnUrl/InvalidReturnUrlTests.cs`.
+- [removed] T012 Enforce ReturnUrl validation policy (relative-only) in all web entry points that accept `returnUrl` (use `ReturnUrlValidator`). Reject absolute and protocol-relative URLs. (Deferred)
+- [removed] T013 On invalid ReturnUrl, ensure flow redirects to safe default (`/dashboard`) and log a security event at Error level using existing ILogger. Include raw value in log (consider redaction policy if secrets present). (Deferred)
+- [removed] T014 Add unit tests for invalid patterns: external absolute URLs, protocol-relative `//evil`, double-encoded payloads, malformed URLs in `tests/BloodThinnerTracker.Web.Tests/ReturnUrl/InvalidReturnUrlTests.cs`. (Deferred)
 - [removed] T015 Add C# Playwright negative test: external URL blocked in `tests/playwright/returnurl/ExternalBlockTests.cs`. Hosting model: specify server and/or client as applicable in test header. (Defer to separate e2e phase)
 - [removed] T016 Add C# Playwright negative tests: protocol-relative and double-encoded payloads in `tests/playwright/returnurl/NegativeEncodingTests.cs`. (Defer to separate e2e phase)
 
@@ -63,7 +63,6 @@ Phase 5 — User Story 3 (US3) — Missing or empty ReturnUrl (Priority P2)
 Phase 6 — Polish & Cross-cutting concerns
 
 - [ x ] T020 Add logging and telemetry assertions to tests where security blocking occurs (use test hook or mock logger to assert that an Error-level security event was recorded using the Logging Schema in `spec.md#logging-schema`). Guidance: document the mock or test-hook approach in `quickstart.md` so CI tests can assert logs deterministically.
-  
   Example assertions (guidance):
 
   - Unit test (xUnit + Moq ILogger):
@@ -76,10 +75,10 @@ Phase 6 — Polish & Cross-cutting concerns
     - After triggering blocked ReturnUrl flow, query the test-hook for recent events and assert an event with EventId `ReturnUrlBlocked` and ValidationResult `protocol-relative` (or the expected value) exists and RawReturnUrl matches the blocked input (or its redacted placeholder).
 
   Document the exact mock or test-hook wiring in `specs/006-title-bugfix-returnurl/quickstart.md` so CI can run these assertions reliably.
-- [ ] T021 Add documentation update: `docs/api/returnurl.md` and update `specs/006-title-bugfix-returnurl/quickstart.md` with exact Playwright run instructions and confirmation that no configuration changes are necessary for this feature.
-- [ ] T022 Run full test suite locally and verify new tests pass: `dotnet test` (unit) and Playwright integration runs. Report results in PR description.
-- [ ] T023 Add a small PR checklist item to ensure any configuration changes (if introduced later) follow repository configuration standards (e.g., strongly-typed options where applicable).
-- [ ] T024 Add coverage measurement to CI and PR checklist: collect code coverage for the changed Web project(s) and report coverage in the PR description.
+- [removed] T021 Add documentation update: `docs/api/returnurl.md` and update `specs/006-title-bugfix-returnurl/quickstart.md` with exact Playwright run instructions and confirmation that no configuration changes are necessary for this feature. (Deferred)
+- [removed] T022 Run full test suite locally and verify new tests pass: `dotnet test` (unit) and Playwright integration runs. Report results in PR description. (Deferred)
+- [removed] T023 Add a small PR checklist item to ensure any configuration changes (if introduced later) follow repository configuration standards (e.g., strongly-typed options where applicable). (Deferred)
+- [removed] T024 Add coverage measurement to CI and PR checklist: collect code coverage for the changed Web project(s) and report coverage in the PR description. (Deferred)
   Acceptance criteria:
   - Use Coverlet + ReportGenerator (or the repo's existing coverage tool) to produce an HTML and Cobertura/Codecov-compatible report.
   - CI must upload the coverage artifact and the PR template must include the coverage summary for changed projects.
