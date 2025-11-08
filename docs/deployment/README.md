@@ -6,12 +6,74 @@ This guide covers deployment options for the Blood Thinner & INR Tracker across 
 
 **⚠️ SECURITY NOTE**: This application handles sensitive medical data. Ensure all deployments follow healthcare data protection regulations (HIPAA, GDPR, etc.).
 
+## Deployment Options
+
+### Quick Links
+
+- **[Raspberry Pi Internal Deployment](RASPBERRY-PI-INTERNAL.md)** - Bare metal Linux deployment for internal use
+  - [Quick Start Guide](RASPBERRY-PI-QUICK-START.md) - One-command deployment
+- **[Windows Bare-Metal Deployment](WINDOWS-BAREMETAL.md)** ⭐ NEW - Native Windows deployment with AOT support
+- **Docker Deployment** - Container-based deployment (see below)
+- **Azure Container Apps** - Cloud deployment (see below)
+- **Kubernetes** - Production Kubernetes deployment (see below)
+
+### Raspberry Pi Internal Deployment
+
+**Best for**: Internal/home use, Tailscale networks, Linux-based deployment
+
+Key features:
+- ✅ **No Docker required** - Bare metal deployment
+- ✅ **Self-contained** - No .NET framework installation needed
+- ✅ **SQLite database** - Persisted between updates
+- ✅ **One-command deployment** - Automated script
+- ✅ **Systemd integration** - Auto-start on boot
+- ✅ **Tailscale/LAN access** - Internal network only
+
+**Quick Start:**
+```bash
+./tools/deploy-to-pi.sh
+```
+
+**Documentation:**
+- [Full Raspberry Pi Guide](RASPBERRY-PI-INTERNAL.md)
+- [Quick Reference](RASPBERRY-PI-QUICK-START.md)
+
+### Windows Bare-Metal Deployment ⭐ NEW
+
+**Best for**: Internal Windows environments, Windows Server, desktop deployments
+
+Key features:
+- ✅ **Native AOT compilation** - 50-70% faster startup, 30-50% lower memory
+- ✅ **Windows Services** - Auto-start, managed by Windows
+- ✅ **SQLite database** - Persisted in ProgramData
+- ✅ **One-command deployment** - PowerShell automation
+- ✅ **No Docker required** - Direct installation
+- ✅ **Network access** - LAN accessible
+
+**Quick Start:**
+```powershell
+# Run as Administrator
+.\tools\deploy-windows-baremetal.ps1 -AOT
+```
+
+**Documentation:**
+- [Full Windows Bare-Metal Guide](WINDOWS-BAREMETAL.md)
+
+---
+
 ## Prerequisites
 
+### Cloud/Production Deployments
 - **.NET 10 SDK** (10.0.100-preview.7.25380.108 or later)
 - **Database**: PostgreSQL 13+ (production) or SQLite (development)
 - **SSL Certificate** (required for production)
 - **OAuth2 Setup**: Azure AD and/or Google OAuth applications
+
+### Raspberry Pi Deployment
+- **Raspberry Pi 4/5** with 64-bit OS
+- **8GB+ storage**
+- **SSH access**
+- **.NET 10 SDK** on development machine (for building)
 
 ## Environment Configuration
 
