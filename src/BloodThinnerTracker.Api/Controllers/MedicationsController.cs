@@ -497,7 +497,7 @@ public sealed class MedicationsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ApiResponse>> DeactivateMedication(Guid publicId, [FromBody] DeactivateMedicationRequest request)
+    public async Task<ActionResult<ApiResponse>> DeactivateMedication([FromRoute(Name = "id")] Guid publicId, [FromBody] DeactivateMedicationRequest request)
     {
         try
         {

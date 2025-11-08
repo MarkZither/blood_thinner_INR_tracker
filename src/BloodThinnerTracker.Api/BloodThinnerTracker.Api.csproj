@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bloodthinner-api-oauth-secrets-2025</UserSecretsId>
 
+    <!-- XML documentation enabled - fixed parameter binding issue in DeactivateMedication endpoint -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
     <!-- Container support for Azure Container Apps source builds -->
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-preview</ContainerBaseImage>

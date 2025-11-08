@@ -1,0 +1,35 @@
+# Ignore build outputs and local artifacts
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Node
+node_modules/
+
+# Logs and env
+*.log
+.env*
+
+# Coverage
+coverage/
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+# .NET build artifacts and user files
+*.user
+*.suo
+packages/
+
+# Docker temporary files
+Dockerfile
+Dockerfile.*
+*.dockerignore
+
+# Coverage and test artifacts
+TestResults/
+coverage/
