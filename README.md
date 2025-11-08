@@ -167,6 +167,25 @@ Deploy to Raspberry Pi for **internal/home use** with one command:
 - [Quick Start](docs/deployment/RASPBERRY-PI-QUICK-START.md)
 - [Troubleshooting](docs/deployment/RASPBERRY-PI-TROUBLESHOOTING.md)
 
+### Windows Bare-Metal (Internal Use) ⭐ NEW
+
+Deploy directly to **Windows Server or Desktop** with Native AOT support:
+
+```powershell
+# Run as Administrator
+.\tools\deploy-windows-baremetal.ps1 -AOT
+```
+
+**Features:**
+- ✅ Native AOT compilation (faster, lower memory)
+- ✅ Windows Services (auto-start)
+- ✅ SQLite database (persisted)
+- ✅ Network access (LAN)
+- ✅ No Docker required
+
+**Documentation:**
+- [Full Guide](docs/deployment/WINDOWS-BAREMETAL.md)
+
 ### Cloud Deployment
 
 For production cloud deployment, see:

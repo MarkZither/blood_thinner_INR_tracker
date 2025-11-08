@@ -10,15 +10,16 @@ This guide covers deployment options for the Blood Thinner & INR Tracker across 
 
 ### Quick Links
 
-- **[Raspberry Pi Internal Deployment](RASPBERRY-PI-INTERNAL.md)** - Bare metal deployment for internal use (recommended for home/Tailscale networks)
+- **[Raspberry Pi Internal Deployment](RASPBERRY-PI-INTERNAL.md)** - Bare metal Linux deployment for internal use
   - [Quick Start Guide](RASPBERRY-PI-QUICK-START.md) - One-command deployment
+- **[Windows Bare-Metal Deployment](WINDOWS-BAREMETAL.md)** ⭐ NEW - Native Windows deployment with AOT support
 - **Docker Deployment** - Container-based deployment (see below)
 - **Azure Container Apps** - Cloud deployment (see below)
 - **Kubernetes** - Production Kubernetes deployment (see below)
 
-### Raspberry Pi Internal Deployment (NEW) ⭐
+### Raspberry Pi Internal Deployment
 
-**Best for**: Internal/home use, Tailscale networks, offline-first deployment
+**Best for**: Internal/home use, Tailscale networks, Linux-based deployment
 
 Key features:
 - ✅ **No Docker required** - Bare metal deployment
@@ -36,6 +37,27 @@ Key features:
 **Documentation:**
 - [Full Raspberry Pi Guide](RASPBERRY-PI-INTERNAL.md)
 - [Quick Reference](RASPBERRY-PI-QUICK-START.md)
+
+### Windows Bare-Metal Deployment ⭐ NEW
+
+**Best for**: Internal Windows environments, Windows Server, desktop deployments
+
+Key features:
+- ✅ **Native AOT compilation** - 50-70% faster startup, 30-50% lower memory
+- ✅ **Windows Services** - Auto-start, managed by Windows
+- ✅ **SQLite database** - Persisted in ProgramData
+- ✅ **One-command deployment** - PowerShell automation
+- ✅ **No Docker required** - Direct installation
+- ✅ **Network access** - LAN accessible
+
+**Quick Start:**
+```powershell
+# Run as Administrator
+.\tools\deploy-windows-baremetal.ps1 -AOT
+```
+
+**Documentation:**
+- [Full Windows Bare-Metal Guide](WINDOWS-BAREMETAL.md)
 
 ---
 
