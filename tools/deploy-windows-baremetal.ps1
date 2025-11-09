@@ -5,6 +5,13 @@
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 
+# Parse command line arguments (MUST be first executable statement after #Requires)
+param(
+    [switch]$Web,
+    [switch]$AOT,
+    [switch]$Help
+)
+
 # Stop on errors
 $ErrorActionPreference = "Stop"
 
@@ -60,13 +67,7 @@ try {
 
 Write-Success "dotnet SDK found: $dotnetVersion"
 
-# Parse command line arguments
-param(
-    [switch]$Web,
-    [switch]$AOT,
-    [switch]$Help
-)
-
+# Show help if requested
 if ($Help) {
     Write-Host "Usage: .\deploy-windows-baremetal.ps1 [OPTIONS]"
     Write-Host ""
@@ -184,7 +185,7 @@ Write-Success "API published to $PUBLISH_DIR\api"
 # Step 5: Publish Web (optional)
 if ($DEPLOY_WEB) {
     Write-Step "Publishing Web UI for Windows..."
-    
+
     $webPublishArgs = @(
         "publish", $WEB_PROJ,
         "--configuration", "Release",
@@ -192,7 +193,7 @@ if ($DEPLOY_WEB) {
         "--self-contained", "true",
         "--output", "$PUBLISH_DIR\web"
     )
-    
+
     if ($ENABLE_AOT) {
         Write-Host "  Building with Native AOT (this may take several minutes)..." -ForegroundColor Cyan
         $webPublishArgs += "-p:PublishAot=true"
@@ -201,13 +202,13 @@ if ($DEPLOY_WEB) {
         $webPublishArgs += "-p:PublishSingleFile=true"
         $webPublishArgs += "-p:PublishTrimmed=false"
     }
-    
+
     & dotnet $webPublishArgs
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Message "Web UI publish failed"
         exit 1
     }
-    
+
     Write-Success "Web UI published to $PUBLISH_DIR\web"
 }
 
@@ -255,7 +256,7 @@ $apiConfig = @"
   },
   "AllowedHosts": "*",
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=$($DATA_DIR.Replace('\', '\\'))\\bloodtracker.db;Cache=Shared;Journal Mode=WAL;Synchronous=NORMAL;"
+    "DefaultConnection": "Data Source=$($DATA_DIR.Replace('\', '\\'))\\bloodtracker.db;Cache=Shared;"
   },
   "Database": {
     "Provider": "SQLite"
@@ -282,23 +283,34 @@ $apiConfig | Out-File -FilePath "$INSTALL_DIR\api\appsettings.Production.json" -
 Write-Success "API configuration created"
 
 if ($DEPLOY_WEB) {
-    # Web configuration
-    $webConfig = @"
+        # Web configuration (HTTPS, custom port, certificate paths)
+        $webConfig = @"
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "Urls": "http://localhost:5235;http://0.0.0.0:5235",
-  "ApiBaseUrl": "http://localhost:5234"
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information",
+            "Microsoft.AspNetCore": "Warning"
+        }
+    },
+    "AllowedHosts": "*",
+    "Urls": "https://localhost:5245;https://0.0.0.0:5245",
+    "Kestrel": {
+        "Endpoints": {
+            "Https": {
+                "Url": "https://0.0.0.0:5245",
+                "Certificate": {
+                    "Path": "C:\\BloodTracker\\certs\\zitherldw01.tailf3463.ts.net.crt",
+                    "KeyPath": "C:\\BloodTracker\\certs\\zitherldw01.tailf3463.ts.net.key"
+                }
+            }
+        }
+    },
+    "ApiBaseUrl": "http://localhost:5234"
 }
 "@
-    
-    $webConfig | Out-File -FilePath "$INSTALL_DIR\web\appsettings.Production.json" -Encoding UTF8 -Force
-    Write-Success "Web UI configuration created"
+
+        $webConfig | Out-File -FilePath "$INSTALL_DIR\web\appsettings.Production.json" -Encoding UTF8 -Force
+        Write-Success "Web UI configuration created (HTTPS, port 5245)"
 }
 
 # Step 9: Configure Windows Firewall
@@ -321,11 +333,11 @@ if ($DEPLOY_WEB) {
     if (-not $firewallRuleWeb) {
         New-NetFirewallRule -DisplayName "Blood Thinner Tracker Web" `
             -Direction Inbound `
-            -LocalPort 5235 `
+            -LocalPort 5245 `
             -Protocol TCP `
             -Action Allow `
             -Profile Any | Out-Null
-        Write-Success "Firewall rule created for Web UI (port 5235)"
+        Write-Success "Firewall rule created for Web UI (port 5245)"
     } else {
         Write-Host "Firewall rule for Web UI already exists"
     }
@@ -386,7 +398,7 @@ if ($DEPLOY_WEB) {
         & sc.exe delete $WEB_SERVICE_NAME | Out-Null
         Start-Sleep -Seconds 2
     }
-    
+
     Write-Host "Creating Web UI Windows Service..."
     $webServicePath = "`"$INSTALL_DIR\web\$webExe`""
     $webServiceArgs = @(
@@ -395,26 +407,26 @@ if ($DEPLOY_WEB) {
         "start=", "auto",
         "DisplayName=", "Blood Thinner Tracker Web UI"
     )
-    
+
     & sc.exe @webServiceArgs | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Message "Failed to create Web service"
         exit 1
     }
-    
+
     # Set service description
     & sc.exe description $WEB_SERVICE_NAME "Blood Thinner Medication & INR Tracker Web UI Service" | Out-Null
-    
+
     # Set service to restart on failure and depend on API
     & sc.exe failure $WEB_SERVICE_NAME reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
     & sc.exe config $WEB_SERVICE_NAME depend= $API_SERVICE_NAME | Out-Null
-    
+
     # Set environment variable for production
     $webRegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$WEB_SERVICE_NAME"
     if (Test-Path $webRegPath) {
         New-ItemProperty -Path $webRegPath -Name "Environment" -PropertyType MultiString -Value "ASPNETCORE_ENVIRONMENT=Production" -Force | Out-Null
     }
-    
+
     Write-Success "Web service created: $WEB_SERVICE_NAME"
 }
 

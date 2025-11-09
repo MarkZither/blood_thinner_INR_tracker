@@ -1,3 +1,5 @@
+using BloodThinnerTracker.ServiceDefaults.Services;
+using Microsoft.Extensions.Logging;
 using BloodThinnerTracker.Web.Components;
 using BloodThinnerTracker.Web.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -7,22 +9,111 @@ using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authentication.Google;
 using BloodThinnerTracker.Shared.Models.Authentication;
 using MudBlazor.Services;
+
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using Serilog;
+
+
+// Configure Serilog for file logging before builder creation
+var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "web-app.log");
+Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Azure Key Vault integration for production secrets
-if (builder.Environment.IsProduction())
+// Replace default logging with Serilog
+builder.Host.UseSerilog();
+
+// Run as a Windows Service when deployed on Windows hosts
+if (OperatingSystem.IsWindows())
 {
-    var keyVaultUri = builder.Configuration["ConnectionStrings:KeyVaultUri"];
-    if (!string.IsNullOrEmpty(keyVaultUri))
-    {
-        builder.Configuration.AddAzureKeyVault(
-            new Uri(keyVaultUri),
-            new Azure.Identity.DefaultAzureCredential());
-    }
+    builder.Host.UseWindowsService();
 }
+
+// Configure Kestrel certificate for HTTPS endpoints (optional, cross-platform)
+// Use standard ASP.NET Core configuration via appsettings.json or environment variables:
+// - Kestrel:Certificates:Default:Thumbprint (Windows only - cert in LocalMachine\My)
+// - Kestrel:Certificates:Default:Path (PFX file path or PEM certificate path)
+// - Kestrel:Certificates:Default:Password (PFX password, not needed for PEM)
+// - Kestrel:Certificates:Default:KeyPath (PEM private key path, optional if using PEM)
+//
+// Supported formats:
+//   1. Windows Certificate Store (thumbprint) - Windows only
+//   2. PFX/PKCS12 (.pfx/.p12) - Cross-platform, requires password
+//   3. PEM (.crt + .key) - Cross-platform, no password needed, RECOMMENDED for Linux/containers
+//
+// IMPORTANT: Do NOT hardcode ports or ListenAnyIP here!
+// Use standard Urls configuration: appsettings.json "Urls": "http://localhost:5235;https://localhost:7235"
+// Or environment variable: ASPNETCORE_URLS=http://localhost:5235;https://localhost:7235
+// Or launchSettings.json for development
+var certThumb = builder.Configuration["Kestrel:Certificates:Default:Thumbprint"];
+var certPath = builder.Configuration["Kestrel:Certificates:Default:Path"];
+var certPassword = builder.Configuration["Kestrel:Certificates:Default:Password"];
+var keyPath = builder.Configuration["Kestrel:Certificates:Default:KeyPath"];
+
+if (!string.IsNullOrEmpty(certThumb) || !string.IsNullOrEmpty(certPath))
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ConfigureHttpsDefaults(httpsOptions =>
+        {
+            try
+            {
+                // Windows-specific: Load certificate from Windows Certificate Store by thumbprint
+                if (!string.IsNullOrEmpty(certThumb) && OperatingSystem.IsWindows())
+                {
+                    using var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+                    store.Open(OpenFlags.ReadOnly);
+                    var certs = store.Certificates.Find(X509FindType.FindByThumbprint, certThumb, false);
+                    if (certs.Count > 0)
+                    {
+                        httpsOptions.ServerCertificate = certs[0];
+                    }
+                    store.Close();
+                }
+                // Cross-platform: Load certificate from PEM files (.crt + .key) - RECOMMENDED
+                else if (!string.IsNullOrEmpty(certPath) && !string.IsNullOrEmpty(keyPath) &&
+                         File.Exists(certPath) && File.Exists(keyPath))
+                {
+                    var certPem = File.ReadAllText(certPath);
+                    var keyPem = File.ReadAllText(keyPath);
+                    httpsOptions.ServerCertificate = X509Certificate2.CreateFromPem(certPem, keyPem);
+                }
+                // Cross-platform: Load certificate from PFX file (.pfx/.p12)
+                else if (!string.IsNullOrEmpty(certPath) && File.Exists(certPath))
+                {
+                    httpsOptions.ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail startup - allows app to start without HTTPS
+                // Operators should check certificate configuration if HTTPS is required
+                Console.WriteLine($"Warning: Failed to load certificate: {ex.Message}");
+            }
+        });
+    });
+}
+
+// Configure Azure Key Vault integration for production secrets (shared extension)
+// Configure Azure Key Vault integration for production secrets (ServiceDefaults extension)
+builder.Host.ConfigureAppConfiguration((hostingContext, configBuilder) =>
+{
+    using var loggerFactory = LoggerFactory.Create(logging => logging.AddSerilog(Log.Logger));
+    var logger = loggerFactory.CreateLogger("KeyVault");
+    BloodThinnerTracker.ServiceDefaults.Services.KeyVaultConfigurationExtensions.UseKeyVaultIfConfigured(
+        configBuilder,
+        hostingContext.HostingEnvironment,
+        builder.Configuration,
+        logger);
+});
 
 // Add service defaults (OpenTelemetry, health checks, service discovery, resilience)
 builder.AddServiceDefaults();
@@ -150,6 +241,7 @@ builder.Services.AddScoped(sp =>
     return httpClient;
 });
 
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -185,4 +277,15 @@ app.MapRazorComponents<App>()
 // Map Aspire health check endpoints (/health, /alive)
 app.MapDefaultEndpoints();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Web application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

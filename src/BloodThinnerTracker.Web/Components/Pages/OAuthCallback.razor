@@ -211,7 +211,7 @@
                 Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}",
                     email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
 
-                var response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/external/mobile", exchangeRequest);
+                var response = await Http.PostAsJsonAsync("api/auth/external/mobile", exchangeRequest);
 
                 // If ID token validation fails, try claims-based exchange
                 if (!response.IsSuccessStatusCode)
@@ -228,7 +228,7 @@
                         DevicePlatform = "Web"
                     };
 
-                    response = await Http.PostAsJsonAsync("https://localhost:7234/api/auth/exchange", claimsRequest);
+                    response = await Http.PostAsJsonAsync("api/auth/exchange", claimsRequest);
                 }
 
                 if (response.IsSuccessStatusCode)

@@ -1,0 +1,17 @@
+{
+  "Api": {
+    "BaseUrl": "https://localhost:5001",
+    "HttpPort": 5000,
+    "HttpsPort": 5001,
+    "TlsCertPath": "/etc/ssl/certs/example.crt",
+    "TlsKeyPath": "/etc/ssl/private/example.key"
+  },
+  "Web": {
+    "BaseUrl": "https://localhost",
+    "Port": 80
+  },
+  "Deployment": {
+    "ArtifactsPath": "~/deployments",
+    "RetainPrevious": true
+  }
+}

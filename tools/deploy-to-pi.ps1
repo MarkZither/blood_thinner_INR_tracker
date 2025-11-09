@@ -135,7 +135,7 @@ Write-Success "API published to $PUBLISH_DIR\api"
 # Step 3: Publish Web (optional)
 if ($DEPLOY_WEB) {
     Write-Step "Publishing Web UI..."
-    
+
     $webPublishArgs = @(
         "publish", $WEB_PROJ,
         "--configuration", "Release",
@@ -143,7 +143,7 @@ if ($DEPLOY_WEB) {
         "--self-contained", "true",
         "--output", "$PUBLISH_DIR\web"
     )
-    
+
     if ($SINGLE_FILE) {
         $webPublishArgs += "-p:PublishSingleFile=true"
         $webPublishArgs += "-p:IncludeNativeLibrariesForSelfExtract=true"
@@ -152,13 +152,13 @@ if ($DEPLOY_WEB) {
         $webPublishArgs += "-p:PublishSingleFile=false"
         $webPublishArgs += "-p:PublishTrimmed=false"
     }
-    
+
     & dotnet $webPublishArgs
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Message "Web UI publish failed"
         exit 1
     }
-    
+
     Write-Success "Web UI published to $PUBLISH_DIR\web"
 }
 
@@ -295,7 +295,7 @@ if ($DEPLOY_WEB) {
   "ApiBaseUrl": "http://localhost:5234"
 }
 '@
-    
+
     $webConfigEscaped = $webConfig -replace "'", "'\\''"
     ssh "${PI_USER}@${PI_HOST}" "echo '$webConfigEscaped' > /opt/bloodtracker/web/appsettings.Production.json"
 }
@@ -303,13 +303,60 @@ if ($DEPLOY_WEB) {
 Write-Success "Configuration files created"
 
 # Step 11: Setup systemd services
-Write-Step "Setting up systemd services..."
+
+# Step 11: Setup service (systemd or OpenRC)
+Write-Step "Detecting init system and setting up service files..."
+
+# Detect init system (systemd or openrc)
+$initSystem = ssh "${PI_USER}@${PI_HOST}" "if [ -d /run/openrc ]; then echo 'openrc'; elif pidof systemd > /dev/null; then echo 'systemd'; else echo 'unknown'; fi".Trim()
+Write-Host "Detected init system: $initSystem"
 
 # Create bloodtracker user if doesn't exist
 ssh "${PI_USER}@${PI_HOST}" "sudo useradd -r -s /bin/false bloodtracker 2>/dev/null || true"
 
-# API service
-$apiService = @'
+if ($initSystem -eq "openrc") {
+    # OpenRC init scripts
+    $apiOpenRc = @'
+#!/sbin/openrc-run
+name="Blood Thinner Tracker API"
+description="Blood Thinner Tracker API Service"
+command="/opt/bloodtracker/api/BloodThinnerTracker.Api"
+command_user="bloodtracker:bloodtracker"
+directory="/opt/bloodtracker/api"
+pidfile="/run/bloodtracker-api.pid"
+command_background=true
+export ASPNETCORE_ENVIRONMENT=Production
+
+depend() {
+    need net
+}
+'@
+    $apiOpenRcEscaped = $apiOpenRc -replace "'", "'\\''"
+    ssh "${PI_USER}@${PI_HOST}" "echo '$apiOpenRcEscaped' | sudo tee /etc/init.d/bloodtracker-api > /dev/null && sudo chmod +x /etc/init.d/bloodtracker-api"
+
+    if ($DEPLOY_WEB) {
+        $webOpenRc = @'
+#!/sbin/openrc-run
+name="Blood Thinner Tracker Web UI"
+description="Blood Thinner Tracker Web UI Service"
+command="/opt/bloodtracker/web/BloodThinnerTracker.Web"
+command_user="bloodtracker:bloodtracker"
+directory="/opt/bloodtracker/web"
+pidfile="/run/bloodtracker-web.pid"
+command_background=true
+export ASPNETCORE_ENVIRONMENT=Production
+
+depend() {
+    need net bloodtracker-api
+}
+'@
+        $webOpenRcEscaped = $webOpenRc -replace "'", "'\\''"
+        ssh "${PI_USER}@${PI_HOST}" "echo '$webOpenRcEscaped' | sudo tee /etc/init.d/bloodtracker-web > /dev/null && sudo chmod +x /etc/init.d/bloodtracker-web"
+    }
+    Write-Success "OpenRC service scripts created"
+} elseif ($initSystem -eq "systemd") {
+    # systemd unit files
+    $apiService = @'
 [Unit]
 Description=Blood Thinner Tracker API
 After=network.target
@@ -336,13 +383,11 @@ SyslogIdentifier=bloodtracker-api
 [Install]
 WantedBy=multi-user.target
 '@
+    $apiServiceEscaped = $apiService -replace "'", "'\\''"
+    ssh "${PI_USER}@${PI_HOST}" "echo '$apiServiceEscaped' | sudo tee /etc/systemd/system/bloodtracker-api.service > /dev/null"
 
-$apiServiceEscaped = $apiService -replace "'", "'\\''"
-ssh "${PI_USER}@${PI_HOST}" "echo '$apiServiceEscaped' | sudo tee /etc/systemd/system/bloodtracker-api.service > /dev/null"
-
-if ($DEPLOY_WEB) {
-    # Web service
-    $webService = @'
+    if ($DEPLOY_WEB) {
+        $webService = @'
 [Unit]
 Description=Blood Thinner Tracker Web UI
 After=network.target bloodtracker-api.service
@@ -370,12 +415,13 @@ SyslogIdentifier=bloodtracker-web
 [Install]
 WantedBy=multi-user.target
 '@
-    
-    $webServiceEscaped = $webService -replace "'", "'\\''"
-    ssh "${PI_USER}@${PI_HOST}" "echo '$webServiceEscaped' | sudo tee /etc/systemd/system/bloodtracker-web.service > /dev/null"
+        $webServiceEscaped = $webService -replace "'", "'\\''"
+        ssh "${PI_USER}@${PI_HOST}" "echo '$webServiceEscaped' | sudo tee /etc/systemd/system/bloodtracker-web.service > /dev/null"
+    }
+    Write-Success "Systemd services created"
+} else {
+    Write-Error-Message "Unknown init system. Please create service files manually."
 }
-
-Write-Success "Systemd services created"
 
 # Step 12: Set permissions
 Write-Step "Setting permissions..."
