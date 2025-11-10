@@ -89,3 +89,4 @@ appsettings.local.json
 
 # Publish files
 publish-windows/*
+publish/*
