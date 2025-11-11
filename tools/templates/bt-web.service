@@ -1,0 +1,26 @@
+[Unit]
+Description=Blood Thinner Tracker Web UI
+After=network.target bloodtracker-api.service
+Wants=network-online-target
+Requires=bloodtracker-api.service
+
+[Service]
+Type=notify
+User=bloodtracker
+Group=bloodtracker
+WorkingDirectory=/opt/bloodtracker/web
+ExecStart=/opt/bloodtracker/web/BloodThinnerTracker.Web
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+Restart=always
+RestartSec=10
+
+MemoryLimit=512M
+CPUQuota=80%
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bloodtracker-web
+
+[Install]
+WantedBy=multi-user.target

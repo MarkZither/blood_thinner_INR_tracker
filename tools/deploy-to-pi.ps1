@@ -10,6 +10,7 @@ param(
     [string]$PiHost = "raspberrypi",
     [string]$User = "pi",
     [string]$SshKey = "",
+    [switch]$SkipPublish,
     [switch]$Help
 )
 
@@ -31,17 +32,44 @@ function Write-Error-Message {
 # Helper function to execute SSH command with optional key
 function Invoke-RemoteCommand {
     param([string]$Command)
-    # Allocate TTY if using doas (required for interactive password prompt)
+    # By default Invoke-RemoteCommand is non-interactive (no TTY). However, doas
+    # requires a TTY when it needs to prompt for a password. Detect that case and
+    # run ssh with -t interactively so the user's terminal can accept the password.
     $ttyFlag = ""
-    if ($SUDO_CMD -eq "doas") {
-        $ttyFlag = "-t"
+
+    # Build the ssh command string for logging (human readable)
+    if ($SSH_KEY_ARG -ne "") {
+        $sshCmd = "ssh $ttyFlag $SSH_KEY_ARG ${PI_USER}@${PI_HOST} `"$Command`""
+    } else {
+        $sshCmd = "ssh $ttyFlag ${PI_USER}@${PI_HOST} `"$Command`""
     }
 
-    if ($SSH_KEY_ARG -ne "") {
-        Invoke-Expression "ssh $ttyFlag $SSH_KEY_ARG `"${PI_USER}@${PI_HOST}`" `"$Command`""
-    } else {
-        Invoke-Expression "ssh $ttyFlag `"${PI_USER}@${PI_HOST}`" `"$Command`""
+    Write-Step "Executing remote command: $sshCmd"
+
+    # If the configured escalation tool is doas and the command contains doas,
+    # run interactively (allocate a TTY) so password prompting works.
+    if ($SUDO_CMD -eq 'doas' -and $Command -match '\bdoas\b') {
+        Write-Step "doas detected; running command interactively to allow password prompt..."
+        if ($SSH_KEY_PATH -ne "") {
+            & ssh -t -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $Command
+        } else {
+            & ssh -t "${PI_USER}@${PI_HOST}" $Command
+        }
+        $exit = $LASTEXITCODE
+        $global:LASTEXITCODE = $exit
+        # Interactive run prints directly to the operator's console; return empty string
+        return ""
     }
+
+    # Non-interactive path: execute via cmd /c and capture stdout/stderr so callers receive output text
+    $cmdLine = $sshCmd
+    $raw = & cmd /c $cmdLine 2>&1
+    $exit = $LASTEXITCODE
+    # Propagate exit code to the global LASTEXITCODE so older checks work
+    $global:LASTEXITCODE = $exit
+    # Convert array output to a single string
+    if ($raw -is [array]) { $out = ($raw -join "`n") } else { $out = [string]$raw }
+    return $out
 }
 
 # Helper function to execute SCP command with optional key
@@ -52,7 +80,55 @@ function Invoke-SecureCopy {
     } else {
         Invoke-Expression "scp -r `"$Source`" `"${PI_USER}@${PI_HOST}:$Destination`""
     }
-}# Stop on errors
+}
+
+# Helper: write a file to remote host robustly via scp then move into place under escalation
+function Write-RemoteFile {
+    param(
+        [string]$Content,
+        [string]$RemotePath,
+        [string]$RemoteOwner = "bloodtracker:bloodtracker",
+        [string]$RemotePerm = "600"
+    )
+
+    # Create a local temp file
+    $localTmp = [System.IO.Path]::GetTempFileName()
+    $localTmpTxt = "$localTmp.txt"
+    Move-Item -Path $localTmp -Destination $localTmpTxt -Force
+
+    try {
+        # Normalize to LF and ensure trailing newline, write as UTF8 without BOM
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        $normalized = $Content -replace "\r\n","`n" -replace "\r","`n"
+        if (-not $normalized.EndsWith("`n")) { $normalized += "`n" }
+        [System.IO.File]::WriteAllText($localTmpTxt, $normalized, $utf8NoBom)
+
+        # Transfer to remote /tmp
+        $remoteTmp = "/tmp/" + [System.IO.Path]::GetFileName($localTmpTxt)
+        if ($SSH_KEY_PATH -ne "") {
+            & scp -i $SSH_KEY_PATH `"$localTmpTxt`" "${PI_USER}@${PI_HOST}:$remoteTmp"
+        } else {
+            & scp `"$localTmpTxt`" "${PI_USER}@${PI_HOST}:$remoteTmp"
+        }
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "SCP failed with exit code $LASTEXITCODE"
+        }
+
+        # Move into final location under escalation (doas/sudo). Use a single sh -c to avoid quoting issues.
+        $moveCmd = "$SUDO_CMD sh -c 'cat $remoteTmp > $RemotePath && rm -f $remoteTmp && chown $RemoteOwner $RemotePath && chmod $RemotePerm $RemotePath'"
+        $res = Invoke-RemoteCommand $moveCmd
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error-Message "Failed to write remote file $RemotePath. Remote output:`n$res"
+            throw "Remote move failed"
+        }
+
+    } finally {
+        if (Test-Path $localTmpTxt) { Remove-Item $localTmpTxt -Force }
+    }
+}
+
+# Stop on errors
 $ErrorActionPreference = "Stop"
 
 # Configuration
@@ -69,6 +145,7 @@ if ($Help) {
     Write-Host '  -PiHost HOST   Raspberry Pi hostname or IP (default: raspberrypi)'
     Write-Host '  -User USER     SSH user (default: pi)'
     Write-Host '  -SshKey PATH   Path to SSH private key file (optional, uses password auth if not provided)'
+    Write-Host '  -SkipPublish   Skip dotnet publish and file copy to target (useful when files already on target)'
     Write-Host '  -Help          Show this help message'
     Write-Host ''
     Write-Host 'Examples:'
@@ -116,6 +193,7 @@ $PI_HOST = $PiHost
 $PI_USER = $User
 $DEPLOY_WEB = $Web.IsPresent
 $SINGLE_FILE = $SingleFile.IsPresent
+$SKIP_PUBLISH = $SkipPublish.IsPresent
 
 Write-Host ""
 Write-Host "Deployment Configuration:"
@@ -132,72 +210,85 @@ if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
 }
 
 # Step 1: Clean previous publish
-Write-Step "Cleaning previous publish directory..."
-if (Test-Path $PUBLISH_DIR) {
-    Remove-Item -Path $PUBLISH_DIR -Recurse -Force
+if (-not $SKIP_PUBLISH) {
+    Write-Step "Cleaning previous publish directory..."
+    if (Test-Path $PUBLISH_DIR) {
+        Remove-Item -Path $PUBLISH_DIR -Recurse -Force
+    }
+    New-Item -Path "$PUBLISH_DIR\api" -ItemType Directory -Force | Out-Null
+    if ($DEPLOY_WEB) {
+        New-Item -Path "$PUBLISH_DIR\web" -ItemType Directory -Force | Out-Null
+    }
+    Write-Success "Cleaned publish directory"
+} else {
+    Write-Host "[SKIP] Skipping publish and publish directory cleanup (SkipPublish set)" -ForegroundColor Cyan
 }
-New-Item -Path "$PUBLISH_DIR\api" -ItemType Directory -Force | Out-Null
-if ($DEPLOY_WEB) {
-    New-Item -Path "$PUBLISH_DIR\web" -ItemType Directory -Force | Out-Null
-}
-Write-Success "Cleaned publish directory"
 
 # Step 2: Publish API
-Write-Step "Publishing API..."
+if (-not $SKIP_PUBLISH) {
+    Write-Step "Publishing API..."
 
-$publishArgs = @(
-    "publish", $API_PROJ,
-    "--configuration", "Release",
-    "--runtime", "linux-arm64",
-    "--self-contained", "true",
-    "--output", "$PUBLISH_DIR\api"
-)
-
-if ($SINGLE_FILE) {
-    $publishArgs += "-p:PublishSingleFile=true"
-    $publishArgs += "-p:IncludeNativeLibrariesForSelfExtract=true"
-    $publishArgs += "-p:PublishTrimmed=false"
-} else {
-    $publishArgs += "-p:PublishSingleFile=false"
-    $publishArgs += "-p:PublishTrimmed=false"
-}
-
-& dotnet $publishArgs
-if ($LASTEXITCODE -ne 0) {
-    Write-Error-Message "API publish failed"
-    exit 1
-}
-
-Write-Success "API published to $PUBLISH_DIR\api"
-
-# Step 3: Publish Web (optional)
-if ($DEPLOY_WEB) {
-    Write-Step "Publishing Web UI..."
-
-    $webPublishArgs = @(
-        "publish", $WEB_PROJ,
+    $publishArgs = @(
+        "publish", $API_PROJ,
         "--configuration", "Release",
-        "--runtime", "linux-arm64",
+        "--runtime", "linux-musl-arm64",
         "--self-contained", "true",
-        "--output", "$PUBLISH_DIR\web"
+        "--output", "$PUBLISH_DIR\api"
     )
 
     if ($SINGLE_FILE) {
-        $webPublishArgs += "-p:PublishSingleFile=true"
-        $webPublishArgs += "-p:IncludeNativeLibrariesForSelfExtract=true"
-        $webPublishArgs += "-p:PublishTrimmed=false"
+        $publishArgs += "-p:PublishSingleFile=true"
+        $publishArgs += "-p:IncludeNativeLibrariesForSelfExtract=true"
+        $publishArgs += "-p:PublishTrimmed=false"
     } else {
-        $webPublishArgs += "-p:PublishSingleFile=false"
-        $webPublishArgs += "-p:PublishTrimmed=false"
+        $publishArgs += "-p:PublishSingleFile=false"
+        $publishArgs += "-p:PublishTrimmed=false"
     }
 
-    & dotnet $webPublishArgs
+    & dotnet $publishArgs
     if ($LASTEXITCODE -ne 0) {
-        Write-Error-Message "Web UI publish failed"
+        Write-Error-Message "API publish failed"
         exit 1
     }
 
-    Write-Success "Web UI published to $PUBLISH_DIR\web"
+    Write-Success "API published to $PUBLISH_DIR\api"
+} else {
+    Write-Host "[SKIP] Skipping API publish (SkipPublish set)" -ForegroundColor Cyan
+}
+
+# Step 3: Publish Web (optional)
+if ($DEPLOY_WEB) {
+    if (-not $SKIP_PUBLISH) {
+        Write-Step "Publishing Web UI..."
+
+        $webPublishArgs = @(
+            "publish", $WEB_PROJ,
+            "--configuration", "Release",
+            "--runtime", "linux-arm64",
+            "--self-contained", "true",
+            "--output", "$PUBLISH_DIR\web"
+        )
+
+        if ($SINGLE_FILE) {
+            $webPublishArgs += "-p:PublishSingleFile=true"
+            $webPublishArgs += "-p:IncludeNativeLibrariesForSelfExtract=true"
+            $webPublishArgs += "-p:PublishTrimmed=false"
+        } else {
+            $webPublishArgs += "-p:PublishSingleFile=false"
+            $webPublishArgs += "-p:PublishTrimmed=false"
+        }
+
+        Write-Step "Running dotnet publish for Web UI. dotnet $webPublishArgs"
+        & dotnet $webPublishArgs
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error-Message "Web UI publish failed"
+            exit 1
+        }
+
+        Write-Success "Web UI published to $PUBLISH_DIR\web"
+    } else {
+        Write-Host "[SKIP] Skipping Web publish (SkipPublish set)" -ForegroundColor Cyan
+    }
 }
 
 # Check if ssh is available (requires OpenSSH Client on Windows)
@@ -314,32 +405,39 @@ Invoke-RemoteCommand "$SUDO_CMD systemctl stop bloodtracker-api.service 2>/dev/n
 Write-Success 'Services stopped'
 
 # Step 8: Transfer API files
-Write-Step "Transferring API files to Raspberry Pi..."
-# Use scp for Windows (recursive copy)
-Invoke-SecureCopy "$PUBLISH_DIR\api\*" "/opt/bloodtracker/api/"
-if ($LASTEXITCODE -ne 0) {
-    Write-Error-Message "Failed to transfer API files"
-    exit 1
+if (-not $SKIP_PUBLISH) {
+    Write-Step "Transferring API files to Raspberry Pi..."
+    # Use scp for Windows (recursive copy)
+    Invoke-SecureCopy "$PUBLISH_DIR\api\*" "/opt/bloodtracker/api/"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error-Message "Failed to transfer API files"
+        exit 1
+    }
+    Write-Success "API files transferred"
+} else {
+    Write-Host "[SKIP] Skipping API file transfer (SkipPublish set)" -ForegroundColor Cyan
 }
-Write-Success "API files transferred"
 
 # Step 9: Transfer Web files (optional)
 if ($DEPLOY_WEB) {
     Write-Step "Transferring Web UI files to Raspberry Pi..."
-    Invoke-SecureCopy "$PUBLISH_DIR\web\*" "/opt/bloodtracker/web/"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error-Message "Failed to transfer Web UI files"
-        exit 1
+    if (-not $SKIP_PUBLISH) {
+        Invoke-SecureCopy "$PUBLISH_DIR\web\*" "/opt/bloodtracker/web/"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error-Message "Failed to transfer Web UI files"
+            exit 1
+        }
+        Write-Success "Web UI files transferred"
+    } else {
+        Write-Host "[SKIP] Skipping Web file transfer (SkipPublish set)" -ForegroundColor Cyan
     }
-    Write-Success "Web UI files transferred"
 }
 
 # Step 10: Create/update configuration files
 Write-Step "Creating configuration files..."
 
 # API configuration - Using direct SSH to avoid Invoke-Expression parsing issues
-$apiConfigCmd = @"
-cat > /opt/bloodtracker/api/appsettings.Production.json << 'EOFCONFIG'
+$apiConfigJson = @'
 {
     "Logging": {
         "LogLevel": {
@@ -352,9 +450,7 @@ cat > /opt/bloodtracker/api/appsettings.Production.json << 'EOFCONFIG'
     "ConnectionStrings": {
         "DefaultConnection": "Data Source=/var/lib/bloodtracker/bloodtracker.db;Cache=Shared;"
     },
-    "Database": {
-        "Provider": "SQLite"
-    },
+    "Database": { "Provider": "SQLite" },
     "Urls": "http://0.0.0.0:5234",
     "Security": {
         "RequireHttps": false,
@@ -372,40 +468,24 @@ cat > /opt/bloodtracker/api/appsettings.Production.json << 'EOFCONFIG'
         "EnableAuditLogging": true
     }
 }
-EOFCONFIG
-"@
+'@
 
-# Use direct SSH call instead of Invoke-RemoteCommand to avoid parsing issues
-if ($SSH_KEY_PATH -ne "") {
-    & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $apiConfigCmd
-} else {
-    & ssh "${PI_USER}@${PI_HOST}" $apiConfigCmd
-}
+Write-RemoteFile -Content $apiConfigJson -RemotePath "/opt/bloodtracker/api/appsettings.Production.json" -RemoteOwner "bloodtracker:bloodtracker" -RemotePerm 600
 
 if ($DEPLOY_WEB) {
     # Web configuration
-    $webConfigCmd = @"
-cat > /opt/bloodtracker/web/appsettings.Production.json << 'EOFCONFIG'
+    $webConfigJson = @'
 {
-    "Logging": {
-        "LogLevel": {
-            "Default": "Information",
-            "Microsoft.AspNetCore": "Warning"
-        }
-    },
-    "AllowedHosts": "*",
-    "Urls": "http://0.0.0.0:5235",
-    "ApiBaseUrl": "http://localhost:5234"
+  "Logging": {
+    "LogLevel": { "Default": "Information", "Microsoft.AspNetCore": "Warning" }
+  },
+  "AllowedHosts": "*",
+  "Urls": "http://0.0.0.0:5235",
+  "ApiBaseUrl": "http://localhost:5234"
 }
-EOFCONFIG
-"@
+'@
 
-    # Use direct SSH call
-    if ($SSH_KEY_PATH -ne "") {
-        & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $webConfigCmd
-    } else {
-        & ssh "${PI_USER}@${PI_HOST}" $webConfigCmd
-    }
+    Write-RemoteFile -Content $webConfigJson -RemotePath "/opt/bloodtracker/web/appsettings.Production.json" -RemoteOwner "bloodtracker:bloodtracker" -RemotePerm 600
 }
 
 Write-Success "Configuration files created"# Step 11: Setup systemd services
@@ -422,11 +502,11 @@ Write-Host "Detected init system: $initSystem"
 # Create bloodtracker user if doesn't exist
 # Alpine Linux uses adduser (not useradd) with different syntax
 Invoke-RemoteCommand "$SUDO_CMD adduser -D -s /sbin/nologin -H bloodtracker 2>/dev/null || $SUDO_CMD useradd -r -s /bin/false bloodtracker 2>/dev/null || true"
+Write-Success "Created bloodtracker User"# Step 11a: create bloodtracker user
 
 if ($initSystem -eq "openrc") {
-    # OpenRC init scripts - use cat with here-document for proper shell handling
-    $apiOpenRcCmd = @"
-$SUDO_CMD sh -c 'cat > /etc/init.d/bloodtracker-api << '\''EOFSCRIPT'\''
+    # OpenRC init script content (write via Write-RemoteFile so scp+doas handling is used)
+    $apiOpenRc = @'
 #!/sbin/openrc-run
 name="Blood Thinner Tracker API"
 description="Blood Thinner Tracker API Service"
@@ -437,26 +517,18 @@ pidfile="/run/bloodtracker-api.pid"
 command_background=true
 
 depend() {
-    need net
+  need net
 }
 
 start_pre() {
-    export ASPNETCORE_ENVIRONMENT=Production
+  export ASPNETCORE_ENVIRONMENT=Production
 }
-EOFSCRIPT
-chmod +x /etc/init.d/bloodtracker-api'
-"@
+'@
 
-    # Use direct SSH call to avoid Invoke-Expression parsing
-    if ($SSH_KEY_PATH -ne "") {
-        & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $apiOpenRcCmd
-    } else {
-        & ssh "${PI_USER}@${PI_HOST}" $apiOpenRcCmd
-    }
+    Write-RemoteFile -Content $apiOpenRc -RemotePath "/etc/init.d/bloodtracker-api" -RemoteOwner "root:root" -RemotePerm 755
 
     if ($DEPLOY_WEB) {
-        $webOpenRcCmd = @"
-$SUDO_CMD sh -c 'cat > /etc/init.d/bloodtracker-web << '\''EOFSCRIPT'\''
+                $webOpenRc = @'
 #!/sbin/openrc-run
 name="Blood Thinner Tracker Web UI"
 description="Blood Thinner Tracker Web UI Service"
@@ -473,16 +545,9 @@ depend() {
 start_pre() {
     export ASPNETCORE_ENVIRONMENT=Production
 }
-EOFSCRIPT
-chmod +x /etc/init.d/bloodtracker-web'
-"@
+'@
 
-        # Use direct SSH call
-        if ($SSH_KEY_PATH -ne "") {
-            & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $webOpenRcCmd
-        } else {
-            & ssh "${PI_USER}@${PI_HOST}" $webOpenRcCmd
-        }
+                Write-RemoteFile -Content $webOpenRc -RemotePath "/etc/init.d/bloodtracker-web" -RemoteOwner "root:root" -RemotePerm 755
     }
     Write-Success "OpenRC service scripts created"
 
@@ -503,8 +568,7 @@ chmod +x /etc/init.d/bloodtracker-web'
     Write-Success "Service files verified"
 } elseif ($initSystem -eq "systemd") {
     # systemd unit files - use cat with here-document for proper shell handling
-    $apiServiceCmd = @"
-$SUDO_CMD sh -c 'cat > /etc/systemd/system/bloodtracker-api.service << '\''EOFSERVICE'\''
+    $apiService = @'
 [Unit]
 Description=Blood Thinner Tracker API
 After=network.target
@@ -530,24 +594,16 @@ SyslogIdentifier=bloodtracker-api
 
 [Install]
 WantedBy=multi-user.target
-EOFSERVICE
-'
-"@
+'@
 
-    # Use direct SSH call
-    if ($SSH_KEY_PATH -ne "") {
-        & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $apiServiceCmd
-    } else {
-        & ssh "${PI_USER}@${PI_HOST}" $apiServiceCmd
-    }
+    Write-RemoteFile -Content $apiService -RemotePath "/etc/systemd/system/bloodtracker-api.service" -RemoteOwner "root:root" -RemotePerm 644
 
     if ($DEPLOY_WEB) {
-        $webServiceCmd = @"
-$SUDO_CMD sh -c 'cat > /etc/systemd/system/bloodtracker-web.service << '\''EOFSERVICE'\''
+        $webService = @'
 [Unit]
 Description=Blood Thinner Tracker Web UI
 After=network.target bloodtracker-api.service
-Wants=network-online.target
+Wants=network-online-target
 Requires=bloodtracker-api.service
 
 [Service]
@@ -570,16 +626,9 @@ SyslogIdentifier=bloodtracker-web
 
 [Install]
 WantedBy=multi-user.target
-EOFSERVICE
-'
-"@
+'@
 
-        # Use direct SSH call
-        if ($SSH_KEY_PATH -ne "") {
-            & ssh -i $SSH_KEY_PATH "${PI_USER}@${PI_HOST}" $webServiceCmd
-        } else {
-            & ssh "${PI_USER}@${PI_HOST}" $webServiceCmd
-        }
+        Write-RemoteFile -Content $webService -RemotePath "/etc/systemd/system/bloodtracker-web.service" -RemoteOwner "root:root" -RemotePerm 644
     }
     Write-Success "Systemd services created"
 } else {
@@ -707,9 +756,31 @@ if ($initSystem -eq "openrc") {
 Write-Host ""
 Write-Step "Testing endpoints..."
 
-# Get Raspberry Pi IPs
-$PI_LOCAL_IP = Invoke-RemoteCommand "hostname -I | awk '{print `$1}'"
-$PI_TAILSCALE_IP = Invoke-RemoteCommand "tailscale ip -4 2>/dev/null; echo '(Tailscale not installed)'"
+# Helper: determine primary IPv4 address on remote host in a portable way
+function Get-RemotePrimaryIP {
+    # Try a few commands, return first matching IPv4
+    $candidates = @(
+        "ip -4 addr show scope global | awk '/inet /{split(\`$2,a,\"/\"); print a[1]; exit}'",
+        "ip -4 addr show | awk '/inet /{split(\`$2,a,\"/\"); print a[1]; exit}'",
+        "hostname -i 2>/dev/null | awk '{print \$1}'"
+    )
+
+    foreach ($cmd in $candidates) {
+        $out = Invoke-RemoteCommand $cmd
+        if ($LASTEXITCODE -eq 0 -and $out) {
+            $trim = $out.Trim()
+            if ($trim -match '\d+\.\d+\.\d+\.\d+') {
+                return $trim
+            }
+        }
+    }
+
+    return "(unknown)"
+}
+
+# We already know the host/IP used for SSH, use it directly as the local IP
+$PI_LOCAL_IP = $PI_HOST
+$PI_TAILSCALE_IP = Invoke-RemoteCommand "tailscale ip -4 2>/dev/null || echo '(Tailscale not installed)'"
 
 Write-Host ""
 Write-Host "Testing API health endpoint..."

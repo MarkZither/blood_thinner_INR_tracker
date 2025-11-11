@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+name="Blood Thinner Tracker API"
+description="Blood Thinner Tracker API Service"
+command="/opt/bloodtracker/api/BloodThinnerTracker.Api"
+command_user="bloodtracker:bloodtracker"
+directory="/opt/bloodtracker/api"
+pidfile="/run/bloodtracker-api.pid"
+command_background=true
+
+depend() {
+    need net
+}
+
+start_pre() {
+    export ASPNETCORE_ENVIRONMENT=Production
+}

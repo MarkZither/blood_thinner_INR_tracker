@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+name="Blood Thinner Tracker Web UI"
+description="Blood Thinner Tracker Web UI Service"
+command="/opt/bloodtracker/web/BloodThinnerTracker.Web"
+command_user="bloodtracker:bloodtracker"
+directory="/opt/bloodtracker/web"
+pidfile="/run/bloodtracker-web.pid"
+command_background=true
+
+depend() {
+    need net bloodtracker-api
+}
+
+start_pre() {
+    export ASPNETCORE_ENVIRONMENT=Production
+}
