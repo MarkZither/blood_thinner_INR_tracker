@@ -86,3 +86,7 @@ health-records/
 .env.development
 .env.production
 appsettings.local.json
+
+# Publish files
+publish-windows/*
+publish/*

@@ -323,7 +323,7 @@ app.MapDefaultEndpoints();  // Registers /health, /alive, /ready
   <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
   <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
   <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
-  <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.1.0" />
+  <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
   <PackageReference Include="Serilog.Sinks.InfluxDB" Version="1.2.0" />
 </ItemGroup>
 ```

@@ -1,0 +1,18 @@
+[Unit]
+Description=BloodThinnerTracker API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/home/pi/deployments/api/current
+ExecStart=/home/pi/deployments/api/current/BloodThinnerTracker.Api
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
+# Notes:
+# - Replace WorkingDirectory and ExecStart with actual artifact path.
+# - Ensure TLS certs are available and the service is configured to use them.

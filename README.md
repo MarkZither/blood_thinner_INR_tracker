@@ -276,3 +276,48 @@ This project uses spec-driven development. All features start with:
 ---
 
 **Built with ❤️ using .NET 10 and spec-driven development**
+
+## Docker images (API & Web)
+
+This repository builds two Docker images from the monorepo:
+
+- <DOCKERHUB_USER>/bloodthinner-api  (API service, default port 5234)
+- <DOCKERHUB_USER>/bloodthinner-web  (Web UI service, default port 5235)
+
+Quick local workflow (PowerShell):
+
+1) Build locally (no push):
+```powershell
+# Build both images and tag them with 'local'
+.\tools\docker-build-local.ps1 -Tag local -Push:$false -DockerHubUser <DOCKERHUB_USER>
+```
+
+2) Test locally by running the images:
+```powershell
+# Run API
+docker run --rm -p 5234:5234 --name bloodthinner-api-local <DOCKERHUB_USER>/bloodthinner-api:local
+# Run Web
+docker run --rm -p 5235:5235 --name bloodthinner-web-local <DOCKERHUB_USER>/bloodthinner-web:local
+```
+
+3) Tag and push to Docker Hub:
+```powershell
+# Tag
+docker tag bloodthinner-web:local <DOCKERHUB_USER>/bloodthinner-web:v0.1.0
+# Push
+docker login
+docker push <DOCKERHUB_USER>/bloodthinner-web:v0.1.0
+```
+
+4) Traefik-based compose (local dev):
+ - See `docker-compose.traefik.yml` and `dynamic.yml` in repo root.
+ - Start Traefik + services locally:
+```powershell
+docker compose -f docker-compose.traefik.yml up --build
+```
+
+Notes:
+- Replace `<DOCKERHUB_USER>` with your Docker Hub username.
+- The helper `tools/docker-build-local.ps1` validates Dockerfiles (skips if invalid) and optionally pushes when `-Push` is set.
+- If you want CI to build/publish images, add GitHub Actions using Docker Buildx and the DOCKERHUB credentials stored as secrets.
+

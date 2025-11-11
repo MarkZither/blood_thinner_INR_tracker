@@ -28,7 +28,7 @@ All code MUST adhere to .NET coding conventions and C# best practices. Code MUST
 **Rationale**: Medical applications require enterprise-grade code quality for reliability, maintainability, and regulatory compliance. .NET ecosystem provides robust tooling for enforcing these standards.
 
 ### II. Testing Discipline & Coverage
-All functional code MUST achieve minimum 90% test coverage with unit, integration, and end-to-end tests. Tests MUST be written using xUnit for .NET backend, Playwright for UI automation, and BUnit for Blazor components. Critical user flows (medication reminders, INR logging, authentication) MUST have comprehensive test scenarios covering happy path, edge cases, and error conditions. No production deployment without passing CI/CD pipeline including all test suites.
+All functional code MUST achieve minimum 90% test coverage with unit, integration, and end-to-end tests. Tests MUST be written using xUnit for .NET backend, Playwright for UI automation, BUnit for Blazor components and Pester for Powershell scripts. Critical user flows (medication reminders, INR logging, authentication) MUST have comprehensive test scenarios covering happy path, edge cases, and error conditions. No production deployment without passing CI/CD pipeline including all test suites.
 
 **Rationale**: Patient safety depends on thoroughly tested functionality. Automated testing prevents regression and ensures consistent behavior across platforms.
 

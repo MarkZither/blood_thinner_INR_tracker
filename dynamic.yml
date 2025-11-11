@@ -1,0 +1,5 @@
+tls:
+  # Example TLS config: replace with your certresolver/ACME or static cert details
+  certificates:
+    - certFile: /certs/cloud.crt
+      keyFile: /certs/cloud.key
