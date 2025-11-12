@@ -1,30 +1,31 @@
+using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using Bunit;
-using Microsoft.Extensions.DependencyInjection;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Linq;
 using MudBlazor;
 using MudBlazor.Services;
 using Xunit;
 
 namespace BloodThinnerTracker.Web.Tests.Components
 {
-    public class NotAuthorizedRedirectTests : TestContext
+    public class NotAuthorizedRedirectTests : BunitContext
     {
-        private readonly TestAuthorizationContext _authContext;
+        private readonly BunitAuthorizationContext _authContext;
 
         public NotAuthorizedRedirectTests()
         {
             // Register TestAuthorization and NavigationManager
             // Create and register TestAuthorization which wires up policy provider and other auth services
-            var authCtx = this.AddTestAuthorization();
+            var authCtx = this.AddAuthorization();
             _authContext = authCtx;
 
             // Provide a TestNavigationManager (bUnit FakeNavigationManager) so we can assert navigations
-            Services.AddSingleton<NavigationManager>(new Bunit.TestDoubles.FakeNavigationManager(this));
+            Services.AddSingleton<NavigationManager>(new Bunit.TestDoubles.BunitNavigationManager(this));
 
             // Provide minimal stubs for services the pages expect using Moq
             var snackbarMock = new Mock<ISnackbar>();
@@ -45,7 +46,7 @@ namespace BloodThinnerTracker.Web.Tests.Components
         public void NotAuthorized_RedirectsToLogin_WithEncodedRelativeReturnUrl(string initialUri, System.Type componentType)
         {
             // Arrange: start from an absolute URI that would normally be the current page
-            var nav = (Bunit.TestDoubles.FakeNavigationManager)Services.GetRequiredService<NavigationManager>();
+            var nav = (Bunit.TestDoubles.BunitNavigationManager)Services.GetRequiredService<NavigationManager>();
             nav.NavigateTo("https://localhost" + initialUri);
 
             // Ensure the authorization state is NotAuthorized
@@ -73,24 +74,27 @@ namespace BloodThinnerTracker.Web.Tests.Components
             Assert.Equal(expected, decoded);
         }
 
-        private IRenderedFragment RenderComponentByType(System.Type componentType)
+        private IRenderedComponent<IComponent> RenderComponentByType(System.Type componentType)
         {
-            // Find the generic RenderComponent<T>() method on TestContext
-            var method = typeof(Bunit.TestContext)
-                .GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
-                .FirstOrDefault(m => m.Name == "RenderComponent" && m.IsGenericMethod && m.GetGenericArguments().Length == 1);
+            // Find the generic Render<T>() method on TestContext (formerly RenderComponent<T>)
+            var method = typeof(BunitContext)
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .FirstOrDefault(m => m.Name == "Render" && m.IsGenericMethod && m.GetGenericArguments().Length == 1);
 
             if (method == null)
-                throw new System.InvalidOperationException("RenderComponent<T>() reflection helper could not find the method.");
+                throw new InvalidOperationException("Render<T>() reflection helper could not find the method.");
 
             var generic = method.MakeGenericMethod(componentType);
-            var componentParameterType = typeof(Bunit.ComponentParameter);
-            var emptyParams = System.Array.CreateInstance(componentParameterType, 0);
-            var rendered = generic.Invoke(this, new object[] { emptyParams }) as IRenderedFragment;
-            if (rendered == null)
-                throw new System.InvalidOperationException($"Failed to render component of type {componentType.FullName}.");
 
-            return rendered;
+            // In bunit v2, Render<T>() takes an Action<ComponentParameterCollectionBuilder<T>> instead of params
+            // For components with no parameters, we pass null
+            var rendered = generic.Invoke(this, [null]);
+
+            if (rendered == null)
+                throw new InvalidOperationException($"Failed to render component of type {componentType.FullName}.");
+
+            return (IRenderedComponent<IComponent>)rendered;
+
         }
 
 

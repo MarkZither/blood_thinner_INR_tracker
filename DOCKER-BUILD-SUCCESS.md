@@ -9,11 +9,11 @@ The Docker image for the Blood Thinner Tracker API has been built successfully u
 **Image**: `bloodtracker-api:test`  
 **Size**: ~500MB (includes .NET runtime + app)  
 **Build Time**: ~27 seconds  
-**.NET Version**: 10.0.100-rc.2.25502.107  
+**.NET Version**: 10.0.100  
 
 ## What Was Fixed
 
-1. **Docker Image Tags**: Changed from `10.0-rc` to `10.0` to get RC2
+1. **Docker Image Tags**: Use `10.0` for .NET 10
 2. **Package Vulnerabilities**: Updated `Microsoft.Identity.Web` to 3.3.0
 3. **Build Warnings**: Allowed NuGet warnings in `Directory.Build.props`
 4. **Code Style**: Disabled StyleCop checks for Docker builds

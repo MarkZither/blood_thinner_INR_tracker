@@ -14,7 +14,7 @@ This guide walks through setting up and using the .NET Aspire orchestration for 
 
 1. **.NET 10 RC2 SDK**
    - Download: https://dotnet.microsoft.com/download/dotnet/10.0
-   - Verify: `dotnet --version` (should show 10.0.100-rc.2 or later)
+   - Verify: `dotnet --version` (should show 10.0.100 or later)
 
 2. **Docker Desktop** (Windows/macOS) or **Docker Engine** (Linux)
    - Download: https://www.docker.com/products/docker-desktop
@@ -52,7 +52,7 @@ cd blood_thinner_INR_tracker
 
 ```bash
 dotnet --version
-# Output: 10.0.100-rc.2 (or later)
+# Output: 10.0.100 (or later)
 ```
 
 If the version is incorrect, check `global.json` in the repository root:
@@ -60,7 +60,7 @@ If the version is incorrect, check `global.json` in the repository root:
 ```json
 {
   "sdk": {
-    "version": "10.0.100-rc.2",
+   "version": "10.0.100",
     "rollForward": "latestMinor"
   }
 }

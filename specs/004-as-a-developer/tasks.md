@@ -35,7 +35,7 @@
 
 **Implementation Notes**:
 - Used Aspire 9.5.2 (latest stable) with .NET 10 target framework
-- Aspire 10.0.0-rc versions do NOT exist on public NuGet
+- Aspire 10.0.0 versions do NOT exist on public NuGet
 - Configured explicit endpoint names (api-https, api-http, web-https, web-http) for clarity
 - AppHost successfully orchestrates API (ports 7234/5234) and Web (ports 7235/5235) with SQLite
 - ServiceDefaults.AddServiceDefaults() called in both API and Web Program.cs
@@ -632,7 +632,7 @@ Task T034: "Implement structured logging pattern in Web Blazor pages"
 ## Notes
 
 - **UPDATED**: Aspire workload deprecated - use `dotnet new install Aspire.ProjectTemplates` instead
-- All tasks assume .NET 10 RC2 and Aspire 10.0.0-rc.2 (NuGet packages)
+- All tasks assume .NET 10 and Aspire 10.0.0 (NuGet packages)
 - Docker Desktop must be running before starting application
 - This feature is LOCAL DEVELOPMENT ONLY - no production deployment changes
 - Aspire Dashboard is ephemeral (not persisted, starts fresh each time)

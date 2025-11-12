@@ -51,7 +51,7 @@ Update `src/BloodThinnerTracker.AppHost/BloodThinnerTracker.AppHost.csproj`:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="10.0.0-rc.2.*" />
+  <PackageReference Include="Aspire.Hosting.AppHost" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -105,8 +105,8 @@ Update `src/BloodThinnerTracker.ServiceDefaults/BloodThinnerTracker.ServiceDefau
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0-rc.2.*" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0-rc.2.*" />
+  <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.0" />

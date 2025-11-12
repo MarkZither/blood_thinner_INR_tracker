@@ -112,7 +112,7 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
     /// </summary>
     private void ConfigurePostgreSQL(DbContextOptionsBuilder options, string connectionString, IWebHostEnvironment environment)
     {
-        options.UseNpgsql(connectionString, postgres =>
+        /*options.UseNpgsql(connectionString, postgres =>
         {
             postgres.MigrationsAssembly("BloodThinnerTracker.Data.PostgreSQL");
             postgres.CommandTimeout(30);
@@ -120,7 +120,7 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
                 errorCodesToAdd: null);
-        });
+        });*/
 
         _logger.LogInformation("Configured PostgreSQL database for {Environment} environment", environment.EnvironmentName);
     }
@@ -388,7 +388,7 @@ public static class DatabaseConfigurationExtensions
                     .AddDbContextCheck<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>("database");
                 break;
 
-            case DatabaseProvider.PostgreSQL:
+            /*case DatabaseProvider.PostgreSQL:
                 services.AddDbContext<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>(
                     (serviceProvider, options) =>
                     {
@@ -430,7 +430,7 @@ public static class DatabaseConfigurationExtensions
 
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>("database");
-                break;
+                break;*/
 
             default:
                 throw new InvalidOperationException($"Unsupported database provider: {provider}");
