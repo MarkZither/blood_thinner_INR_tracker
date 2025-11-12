@@ -22,6 +22,10 @@ Phase 2 - Foundational (blocking validations & docs)
 - [ ] T007 [ ] Add Playwright smoke test to verify manifest and service worker registration: `tests/Playwright/installability.spec.ts` (assert manifest served and SW registration occurs)
 - [ ] T008 [ ] Security review task: validate `service-worker.js` does not cache API endpoints and add comment in file `src/BloodThinnerTracker.Web/wwwroot/service-worker.js` documenting allowed paths
 - [ ] T009 [ ] Documentation: Update `specs/008-install-web-app/research.md` with final test findings and any platform caveats discovered during implementation
+ - [X] T006 [ ] Update `specs/008-install-web-app/quickstart.md` to ensure copy matches implemented manifest and SW paths (verify content)
+- [X] T007 [ ] Add Playwright smoke test to verify manifest and service worker registration: `tests/BloodThinnerTracker.Web.e2e.Tests/InstallabilityTests.cs` (C# Playwright test that asserts manifest served)
+ - [X] T008 [ ] Security review task: validate `service-worker.js` does not cache API endpoints and add comment in file `src/BloodThinnerTracker.Web/wwwroot/service-worker.js` documenting allowed paths
+ - [X] T009 [ ] Documentation: Update `specs/008-install-web-app/research.md` with final test findings and any platform caveats discovered during implementation
 
 Phase 3 - User Stories (implement per priority)
 

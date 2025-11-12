@@ -29,6 +29,13 @@ Confirm shape of `manifest.webmanifest`, icon sizing and formats, registration a
 - Manual: Install via Chrome/Edge on desktop and Android; Add to Home Screen on iOS (verify manual flow) — confirm icon appears and opens app to landing page.
 - Automated: Playwright smoke test to request manifest and confirm service worker registration endpoint reachable and that icons are present.
 
+## Implementation findings (Phase 2)
+
+- Implemented `manifest.webmanifest` and runtime service worker registration in `MainLayout.razor`.
+- Created conservative `service-worker.js` that whitelists only static assets (icons, CSS, JS). See reviewer checklist in the file header.
+- Populated `quickstart.md` with the current manifest shape and noted SVG icons are used in the repository as placeholders.
+- Added Playwright smoke test placeholder at `tests/Playwright/installability.spec.ts` to validate manifest availability and SW registration in environments that support it.
+
 ## Risks & Mitigations
 
 - Risk: Service worker accidentally caching API responses → Mitigation: Service worker explicitly filters requests by pathname and only caches whitelisted static paths.

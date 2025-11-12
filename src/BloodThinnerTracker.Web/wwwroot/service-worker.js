@@ -2,6 +2,10 @@
 // PURPOSE: Support manifest discovery and optionally cache a small set of static assets (icons, CSS, JS).
 // SECURITY: MUST NOT cache API responses, authentication tokens, or any personal/medical data.
 // REVIEWERS: Ensure the `ALLOWED_ASSETS` list contains only static, non-sensitive files.
+// REVIEW CHECKLIST:
+//  - Confirm ALLOWED_ASSETS contains no /api, /identity, or other user-data paths
+//  - Confirm caching strategy is cache-first for listed assets only
+//  - Confirm no use of IndexedDB/localStorage to persist sensitive data
 
 const CACHE_NAME = 'btt-static-v1';
 const ALLOWED_ASSETS = [

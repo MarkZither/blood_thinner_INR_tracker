@@ -6,15 +6,15 @@ This quickstart shows the minimal steps to add installability to the Blazor Serv
 
 ```json
 {
-  "name": "Blood Thinner & INR Tracker",
+  "name": "Blood Thinner Tracker",
   "short_name": "INR Tracker",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#594AE2",
+  "theme_color": "#1976d2",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml" }
   ]
 }
 ```
