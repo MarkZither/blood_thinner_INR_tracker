@@ -3,6 +3,8 @@
 @using MudBlazor
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@using BloodThinnerTracker.Web.Shared
 
 <MudThemeProvider Theme="CustomTheme.Theme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
@@ -29,6 +31,8 @@
             <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                            Color="Color.Inherit"
                            OnClick="@ToggleDarkMode" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.GetApp" Color="Color.Inherit" OnClick="@OpenInstallHelp" aria-label="Install instructions" />
 
             <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                 <ActivatorContent>
@@ -137,8 +141,8 @@
         }
     </MudDrawer>
 
-    <MudMainContent Style="@(_isMobile ? "padding-top: 64px; padding-bottom: 80px;" : "")">
-        <div Class="@(_isMobile ? "pa-4" : "pa-6")">
+    <MudMainContent Style="@MainContentStyle">
+        <div Class="@(_isMobile ? "pa-4" : "pa-6")" style="position: relative;">
             <AuthorizeView>
                 <Authorized>
                     <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
@@ -154,6 +158,8 @@
         </div>
     </MudMainContent>
 </MudLayout>
+
+    @* InstallHelp is opened via DialogService for proper modal placement and z-index *@
 
 @if (_isMobile)
 {
@@ -179,6 +185,7 @@
     </MudPaper>
 }
 
+
 @code {
     private bool _drawerOpen = true;
     private bool _notificationsOpen = false;
@@ -187,6 +194,14 @@
     private string _userName = "User";
     private int _notificationCount = 3;
     private List<NotificationItem> _notifications = new();
+
+    private string MainContentStyle => $"padding-top: 64px; {(_isMobile ? "padding-bottom: 80px;" : string.Empty)}";
+
+    private async void OpenInstallHelp()
+    {
+        if (DialogService is null) return;
+        await DialogService.ShowAsync<Shared.InstallHelp>("Install the app");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -292,6 +307,8 @@
         public string Message { get; set; } = string.Empty;
         public string TimeAgo { get; set; } = string.Empty;
     }
+
+}
 }
 
 @* Runtime manifest injection and minimal service worker registration for Phase 1 install affordances. This will dynamically add a <link rel="manifest"> to document.head and attempt to register a conservative service worker that only caches static assets. The actual service worker file is in wwwroot/service-worker.js *@

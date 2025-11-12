@@ -18,10 +18,6 @@ Phase 1 - Setup
 
 Phase 2 - Foundational (blocking validations & docs)
 
-- [ ] T006 [ ] Update `specs/008-install-web-app/quickstart.md` to ensure copy matches implemented manifest and SW paths (verify content)
-- [ ] T007 [ ] Add Playwright smoke test to verify manifest and service worker registration: `tests/Playwright/installability.spec.ts` (assert manifest served and SW registration occurs)
-- [ ] T008 [ ] Security review task: validate `service-worker.js` does not cache API endpoints and add comment in file `src/BloodThinnerTracker.Web/wwwroot/service-worker.js` documenting allowed paths
-- [ ] T009 [ ] Documentation: Update `specs/008-install-web-app/research.md` with final test findings and any platform caveats discovered during implementation
  - [X] T006 [ ] Update `specs/008-install-web-app/quickstart.md` to ensure copy matches implemented manifest and SW paths (verify content)
 - [X] T007 [ ] Add Playwright smoke test to verify manifest and service worker registration: `tests/BloodThinnerTracker.Web.e2e.Tests/InstallabilityTests.cs` (C# Playwright test that asserts manifest served)
  - [X] T008 [ ] Security review task: validate `service-worker.js` does not cache API endpoints and add comment in file `src/BloodThinnerTracker.Web/wwwroot/service-worker.js` documenting allowed paths
@@ -31,25 +27,25 @@ Phase 3 - User Stories (implement per priority)
 
 User Story 1 - Create shortcut on Android home screen (Priority: P1)
 
-- [ ] T010 [US1] Create inline contextual help component `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (modal/popover) with Android instructions and links to long-form help
-- [ ] T011 [US1] Populate Android instruction text in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (copy-ready steps: open menu -> Add to Home screen)
-- [ ] T012 [US1] Add link/button to surface the `InstallHelp` component in header: update `src/BloodThinnerTracker.Web/Shared/MainLayout.razor` (or equivalent) to include a visible affordance
-- [ ] T013 [US1] Manual verification checklist: add `specs/008-install-web-app/tests/manual-android.md` with step-by-step verification and expected results
+- [X] T010 [US1] Create inline contextual help component `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (modal/popover) with Android instructions and links to long-form help
+- [X] T011 [US1] Populate Android instruction text in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (copy-ready steps: open menu -> Add to Home screen)
+- [X] T012 [US1] Add link/button to surface the `InstallHelp` component in header: update `src/BloodThinnerTracker.Web/Shared/MainLayout.razor` (or equivalent) to include a visible affordance
+- [ x ] T013 [US1] Manual verification checklist: add `specs/008-install-web-app/tests/manual-android.md` with step-by-step verification and expected results
 
 User messaging & tests
 
-- [ ] T014 [USx] Implement user-facing success/failure messaging (snackbar/toast) in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` to show confirmations like "Shortcut added to home screen" and actionable errors. Wire message display to UI triggers.
-- [ ] T015 [Test] Add BUnit unit test for `InstallHelp.razor` at `tests/BloodThinnerTracker.Web.Tests/InstallHelpTests.cs` to assert messaging behavior (success and failure cases).
+- [ x ] ~~T014 [USx] Implement user-facing success/failure messaging (snackbar/toast) in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` to show confirmations like "Shortcut added to home screen" and actionable errors. Wire message display to UI triggers.~~ REMOVED this is provided by the browser
+- [X] T015 [Test] Add BUnit unit test for `InstallHelp.razor` at `tests/BloodThinnerTracker.Web.Tests/InstallHelpTests.cs` to assert messaging behavior (success and failure cases).
 
 User Story 2 - Create shortcut on iOS home screen (Priority: P1)
 
-- [ ] T020 [US2] Add iOS-specific instruction text to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (Share -> Add to Home Screen instructions for Safari)
-- [ ] T021 [US2] Manual verification checklist: add `specs/008-install-web-app/tests/manual-ios.md` with step-by-step verification and expected results
+- [X] T020 [US2] Add iOS-specific instruction text to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (Share -> Add to Home Screen instructions for Safari)
+- [X] T021 [US2] Manual verification checklist: add `specs/008-install-web-app/tests/manual-ios.md` with step-by-step verification and expected results
 
 User Story 3 - Create desktop shortcut on Windows (Priority: P1)
 
-- [ ] T030 [US3] Add Windows-specific instruction text to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (how to create desktop shortcut via browser/OS actions)
-- [ ] T031 [US3] Manual verification checklist: add `specs/008-install-web-app/tests/manual-windows.md` with step-by-step verification and expected results
+- [X] T030 [US3] Add Windows-specific instruction text to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (how to create desktop shortcut via browser/OS actions)
+- [X] T031 [US3] Manual verification checklist: add `specs/008-install-web-app/tests/manual-windows.md` with step-by-step verification and expected results
 
 User Story 4 - Manage or remove created shortcut (Priority: P2)
 
