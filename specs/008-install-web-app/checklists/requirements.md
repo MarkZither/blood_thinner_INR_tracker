@@ -29,6 +29,12 @@
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
 
+## Verification
+
+- [x] Manual verification checklists created for Android, iOS, and Windows
+- [x] Playwright smoke test added to tests (local execution verified)
+- [x] Playwright CI workflow created (pending execution in remote CI)
+
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`

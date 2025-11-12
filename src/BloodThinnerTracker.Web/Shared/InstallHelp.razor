@@ -1,4 +1,17 @@
 
+@*
+    InstallHelp.razor
+
+    Purpose: Provide platform-specific, non-actionable guidance to users on how to
+    install or create shortcuts for the web app on Android, iOS, and Windows.
+
+    Notes:
+    - This component is informational only; actual install behavior is provided by
+        the browser and operating system. Do NOT attempt to cache or persist
+        sensitive medical data here.
+    - Open this component via `IDialogService` to guarantee correct z-index and
+        accessible focus handling across layouts.
+*@
 @using MudBlazor
 @inject ISnackbar Snackbar
 

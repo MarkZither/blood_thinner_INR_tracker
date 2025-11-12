@@ -49,14 +49,14 @@ User Story 3 - Create desktop shortcut on Windows (Priority: P1)
 
 User Story 4 - Manage or remove created shortcut (Priority: P2)
 
-- [ ] T040 [US4] Add removal/uninstall instructions to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (per-platform removal guidance)
-- [ ] T041 [US4] Add acceptance scenario test file `specs/008-install-web-app/tests/manual-remove.md` describing removal flows and expected outcomes
+- [ x ] ~~T040 [US4] Add removal/uninstall instructions to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (per-platform removal guidance)~~ REMOVED this is built in ok functionality
+- [ x ] ~~T041 [US4] Add acceptance scenario test file `specs/008-install-web-app/tests/manual-remove.md` describing removal flows and expected outcomes~~ REMOVED this is built in ok functionality
 
 Final Phase - Polish & cross-cutting concerns
 
-- [ ] T050 [ ] Add comment headers and XML doc where appropriate in modified files to satisfy code conventions: `src/BloodThinnerTracker.Web/wwwroot/service-worker.js`, `src/BloodThinnerTracker.Web/Pages/_Host.cshtml`, `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor`
-- [ ] T051 [ ] Add Playwright job to CI: create `.github/workflows/playwright-install.yml` that runs the installability smoke test (optional manual gating)
-- [ ] T052 [P] Update `specs/008-install-web-app/checklists/requirements.md` to mark verification steps complete and record test outcomes after implementation
+ - [X] T050 [X] Add comment headers and XML doc where appropriate in modified files to satisfy code conventions: `src/BloodThinnerTracker.Web/wwwroot/service-worker.js`, `src/BloodThinnerTracker.Web/Pages/_Host.cshtml`, `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor`
+ - [X] T051 [X] Add Playwright job to CI: create `.github/workflows/playwright-install.yml` that runs the installability smoke test (optional manual gating)
+ - [X] T052 [P] Update `specs/008-install-web-app/checklists/requirements.md` to mark verification steps complete and record test outcomes after implementation
 
 Dependencies & order
 
