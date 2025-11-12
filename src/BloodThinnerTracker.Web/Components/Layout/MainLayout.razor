@@ -293,3 +293,31 @@
         public string TimeAgo { get; set; } = string.Empty;
     }
 }
+
+@* Runtime manifest injection and minimal service worker registration for Phase 1 install affordances. This will dynamically add a <link rel="manifest"> to document.head and attempt to register a conservative service worker that only caches static assets. The actual service worker file is in wwwroot/service-worker.js *@
+<script>
+    (function() {
+        try {
+            // Inject manifest link if not present
+            if (!document.querySelector('link[rel="manifest"]')) {
+                var link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = '/manifest.webmanifest';
+                document.head.appendChild(link);
+            }
+
+            // Register service worker if supported
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(reg) {
+                        console.log('Service worker registered (scope: ' + reg.scope + ')');
+                    })
+                    .catch(function(err) {
+                        console.warn('Service worker registration failed:', err);
+                    });
+            }
+        } catch (e) {
+            console.warn('Manifest/SW setup error', e);
+        }
+    })();
+</script>
