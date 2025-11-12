@@ -1,57 +1,57 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>bloodthinner-api-oauth-secrets-2025</UserSecretsId>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>bloodthinner-api-oauth-secrets-2025</UserSecretsId>
 
-    <!-- XML documentation enabled - fixed parameter binding issue in DeactivateMedication endpoint -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<!-- XML documentation enabled - fixed parameter binding issue in DeactivateMedication endpoint -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <!-- Container support for Azure Container Apps source builds -->
-    <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-preview</ContainerBaseImage>
-    <ContainerPort>5234</ContainerPort>
-    <ContainerPort>7234</ContainerPort>
-    <ContainerWorkingDirectory>/app</ContainerWorkingDirectory>
-  </PropertyGroup>
+		<!-- Container support for Azure Container Apps source builds -->
+		<EnableSdkContainerSupport>true</EnableSdkContainerSupport>
+		<ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
+		<ContainerPort>5234</ContainerPort>
+		<ContainerPort>7234</ContainerPort>
+		<ContainerWorkingDirectory>/app</ContainerWorkingDirectory>
+		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
-    <PackageReference Include="Azure.Identity" Version="1.17.0" />
-    <PackageReference Include="FluentValidation" Version="11.11.0" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-rc.2" />
-    <PackageReference Include="Scalar.AspNetCore" Version="1.2.42" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0-rc.2.25502.107" />
-    <!-- Removed unnecessary DataProtection reference - included in ASP.NET Core -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0-rc.2.25502.107" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0-rc.2.25502.107" />
-    <!-- Updated to fix vulnerability GHSA-rpq8-q44m-2rpg - using latest stable version -->
-    <PackageReference Include="Microsoft.Identity.Web" Version="4.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
+		<PackageReference Include="Azure.Identity" Version="1.17.0" />
+		<PackageReference Include="FluentValidation" Version="12.1.0" />
+		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
+		<PackageReference Include="Google.Apis.Auth" Version="1.72.0" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+		<!--PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" /-->
+		<PackageReference Include="Scalar.AspNetCore" Version="2.10.3" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+		<!-- Removed unnecessary DataProtection reference - included in ASP.NET Core -->
+		<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
+		<!-- Updated to fix vulnerability GHSA-rpq8-q44m-2rpg - using latest stable version -->
+		<PackageReference Include="Microsoft.Identity.Web" Version="4.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\BloodThinnerTracker.ServiceDefaults\BloodThinnerTracker.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
-    <ProjectReference Include="..\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
-    <ProjectReference Include="..\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" />
-    <ProjectReference Include="..\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
-    <ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\BloodThinnerTracker.ServiceDefaults\BloodThinnerTracker.ServiceDefaults.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
+	</ItemGroup>
 
 </Project>

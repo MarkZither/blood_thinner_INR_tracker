@@ -26,7 +26,7 @@ Implement one-press (F5) local development orchestration using .NET Aspire to au
 
 **Primary Dependencies**: <!--
 
-- Aspire.Hosting 10.0.0-rc.2 (orchestration engine)  ACTION REQUIRED: Replace the content in this section with the technical details
+- Aspire.Hosting 10.0.0 (orchestration engine)  ACTION REQUIRED: Replace the content in this section with the technical details
 
 - Aspire.Hosting.PostgreSQL (container management)  for the project. The structure here is presented in advisory capacity to guide
 
@@ -284,7 +284,7 @@ var postgresBuilder = builder.AddPostgres("postgres")
 ### Research Tasks
 
 1. **Aspire 10 RC2 Compatibility Investigation**
-   - **Question**: Does .NET Aspire 10.0.0-rc.2 work with .NET 10 RC2?
+   - **Question**: Does .NET Aspire 10.0.0 work with .NET 10 GA?
    - **Research**: Check official Aspire documentation, NuGet package compatibility, known issues
    - **Output**: Confirm compatible version combinations for global.json
 
@@ -331,7 +331,7 @@ All research findings will be consolidated into **`research.md`** with the follo
 # Feature 004: Technology Research
 
 ## R-001: Aspire 10 RC2 Compatibility
-**Decision**: Use Aspire.Hosting 10.0.0-rc.2 with .NET 10.0.0-rc.2
+**Decision**: Use Aspire.Hosting 10.0.0 with .NET 10.0.100
 **Rationale**: [findings from investigation]
 **Alternatives Considered**: [other version combinations tested]
 

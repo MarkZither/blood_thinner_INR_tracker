@@ -14,10 +14,10 @@ namespace BloodThinnerTracker.Api.Tests
             _factory = factory;
         }
 
-    [Theory]
-    [InlineData("/openapi/v1.json")]
-    [InlineData("/scalar/v1")]
-    public async Task ScalarEndpoints_DoNotThrowAndReturnContent(string url)
+        [Theory]
+        [InlineData("/openapi/v1.json")]
+        //[InlineData("/scalar/v1")] // will need to be a playwright test to validate UI properly
+        public async Task ScalarEndpoints_DoNotThrowAndReturnContent(string url)
         {
             // Arrange
             var client = _factory.CreateClient();

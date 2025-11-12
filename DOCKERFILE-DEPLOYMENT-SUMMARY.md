@@ -43,7 +43,7 @@ Pulling builder image metadata for mcr.microsoft.com/oryx/builder:stack-build-de
 
 ```dockerfile
 # Build stage - .NET 10 RC2 SDK
-FROM mcr.microsoft.com/dotnet/sdk:10.0-rc AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore dependencies
@@ -55,7 +55,7 @@ COPY src/ .
 RUN dotnet publish -c Release -o /app/publish
 
 # Runtime stage - .NET 10 RC2 Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-rc AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Security: Non-root user (Constitution V)

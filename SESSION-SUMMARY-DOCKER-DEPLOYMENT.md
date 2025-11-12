@@ -180,7 +180,7 @@ Must complete T051 tasks first to:
 
 ## Key Learnings
 
-1. **.NET 10 RC2 Tag**: Use `10.0` not `10.0-rc` or `10.0-preview`
+1. **.NET 10 Tag**: Use `10.0` not `10.0-preview`
 2. **Azure Oryx**: Doesn't support .NET 10 RC2 yet (requires GA)
 3. **Dockerfile Required**: Temporary necessity for preview releases
 4. **Managed Registry**: FREE with Container Apps, no ACR needed

@@ -27,10 +27,10 @@ Multi-stage Dockerfile using official .NET 10 RC2 images:
 
 ```dockerfile
 # Build with .NET 10 RC2 SDK
-FROM mcr.microsoft.com/dotnet/sdk:10.0-rc AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 # Runtime with .NET 10 RC2 ASP.NET Core
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-rc AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 # Security: Runs as non-root user (appuser)
 # Ports: 5234 (HTTP), 7234 (HTTPS)

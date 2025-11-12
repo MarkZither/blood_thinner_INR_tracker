@@ -95,31 +95,31 @@ These constraints MUST work correctly on all providers for patient safety.
 
 ### BloodThinnerTracker.Data.Shared
 ```xml
-<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0-rc.2.25502.107" />
-<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0-rc.2.25502.107" />
+<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.0" />
 ```
 ✅ **NO ASP.NET Core HTTP dependencies** - Clean architecture
 
 ### BloodThinnerTracker.Data.PostgreSQL
 ```xml
 <ProjectReference Include="..\BloodThinnerTracker.Data.Shared\..." />
-<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-rc.2" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-rc.2.25502.107" />
+<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
 ```
 
 ### BloodThinnerTracker.Data.SqlServer
 ```xml
 <ProjectReference Include="..\BloodThinnerTracker.Data.Shared\..." />
-<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0-rc.2.25502.107" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-rc.2.25502.107" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
 ```
 
 ### BloodThinnerTracker.Data.SQLite
 ```xml
 <ProjectReference Include="..\BloodThinnerTracker.Data.Shared\..." />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0-rc.2.25502.107" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-rc.2.25502.107" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
 ```
 
 ## Next Steps

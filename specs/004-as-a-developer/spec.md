@@ -139,7 +139,7 @@ As a developer, I want to set breakpoints across multiple services and debug the
 - **NFR-001**: Application startup time MUST be under 30 seconds on subsequent runs with warm containers
 - **NFR-002**: Dashboard response time MUST be under 1 second for log queries
 - **NFR-003**: Hot reload MUST apply code changes within 2 seconds
-- **NFR-004**: System MUST work with .NET 10 RC2 and Aspire 10.0.0-rc.2
+- **NFR-004**: System MUST work with .NET 10 and Aspire 10.0.0
 - **NFR-005**: All services MUST use OpenTelemetry standard for observability
 
 ---
@@ -192,7 +192,7 @@ As a developer, I want to set breakpoints across multiple services and debug the
 ## Dependencies
 
 ### External Dependencies
-- .NET 10 SDK (10.0.100-rc.2 or later)
+- .NET 10 SDK (10.0.100 or later)
 - Aspire.ProjectTemplates (`dotnet new install Aspire.ProjectTemplates`) - **NOTE: Aspire workload deprecated, use NuGet packages**
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux) version 20.10+
 - Visual Studio 2025, VS Code with C# Dev Kit, or JetBrains Rider

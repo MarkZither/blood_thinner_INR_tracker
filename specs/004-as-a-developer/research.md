@@ -10,23 +10,18 @@ This document captures all technology decisions, rationale, and alternatives con
 
 ## R-001: Aspire 10 RC2 Compatibility
 
-**Question**: Does .NET Aspire 10.0.0-rc.2 work with .NET 10 RC2? What are the exact version combinations?
+**Question**: Does .NET Aspire 10.0.0 work with .NET 10 GA? What are the exact version combinations?
 
-**Decision**: Use .NET Aspire 10.0.0-rc.2 with .NET 10.0.0-rc.2 SDK
+**Decision**: Use .NET Aspire 10.0.0 with .NET 10.0.100 SDK
 
 **Rationale**:
-- .NET Aspire 10.0 RC releases are specifically designed for .NET 10 RC
-- Aspire.Hosting packages target net10.0 framework
-- Microsoft's official documentation confirms RC alignment
-- **Aspire distributed via NuGet packages** (workload deprecated - see R-010)
-- Project templates via `dotnet new install Aspire.ProjectTemplates` provide scaffolding
 
 **Configuration**:
 ```json
 // global.json
 {
   "sdk": {
-    "version": "10.0.100-rc.2",
+    "version": "10.0.100",
     "rollForward": "latestMinor"
   }
 }
@@ -35,8 +30,8 @@ This document captures all technology decisions, rationale, and alternatives con
 ```xml
 <!-- AppHost.csproj -->
 <ItemGroup>
-  <PackageReference Include="Aspire.Hosting" Version="10.0.0-rc.2" />
-  <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="10.0.0-rc.2" />
+    <PackageReference Include="Aspire.Hosting" Version="10.0.0" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="10.0.0" />
 </ItemGroup>
 ```
 
@@ -607,13 +602,13 @@ dotnet new aspire-xunit -n BloodThinnerTracker.AppHost.Tests
 ```xml
 <!-- AppHost.csproj -->
 <ItemGroup>
-  <PackageReference Include="Aspire.Hosting" Version="10.0.0-rc.2" />
-  <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="10.0.0-rc.2" />
+    <PackageReference Include="Aspire.Hosting" Version="10.0.0" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="10.0.0" />
 </ItemGroup>
 
 <!-- ServiceDefaults.csproj -->
 <ItemGroup>
-  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0-rc.2" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
   <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
 </ItemGroup>
 ```
@@ -657,9 +652,9 @@ All research tasks completed. Key technology decisions:
 
 | Component | Decision | Version |
 |-----------|----------|---------|
-| .NET SDK | .NET 10 RC2 | 10.0.100-rc.2 |
+| .NET SDK | .NET 10 | 10.0.100 |
 | Aspire | **NuGet packages (NOT workload)** | 9.5.2 |
-| Templates | Aspire.ProjectTemplates | 10.0.0-rc.2 |
+| Templates | Aspire.ProjectTemplates | 10.0.0 |
 | Logging | Serilog + OTLP | Serilog.AspNetCore 8.0.2 |
 | Resilience | Microsoft.Extensions.Http.Resilience | 8.10.0 |
 | Service Discovery | Aspire built-in | (included in Aspire) |

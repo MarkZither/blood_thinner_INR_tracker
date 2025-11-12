@@ -316,7 +316,7 @@ app.MapDefaultEndpoints();  // Registers /health, /alive, /ready
 <!-- ServiceDefaults/BloodThinnerTracker.ServiceDefaults.csproj -->
 <ItemGroup>
   <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
-  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0-rc.2" />
+  <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
   <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
   <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
   <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />

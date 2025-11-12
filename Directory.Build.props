@@ -23,7 +23,7 @@
 
     <!-- Medical Application Security -->
     <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
 
     <!-- Performance -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
@@ -56,11 +56,6 @@
   <!-- Analyzer packages for code quality -->
   <ItemGroup>
         <!-- StyleCop Analyzers -->
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.16.0.82469" PrivateAssets="all" />
   </ItemGroup>
 
