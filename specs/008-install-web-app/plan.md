@@ -56,10 +56,11 @@ src/BloodThinnerTracker.Web/wwwroot/manifest.webmanifest
 src/BloodThinnerTracker.Web/wwwroot/service-worker.js
 src/BloodThinnerTracker.Web/wwwroot/icons/icon-192.png
 src/BloodThinnerTracker.Web/wwwroot/icons/icon-512.png
-src/BloodThinnerTracker.Web/Pages/_Host.cshtml (or shared layout) - include manifest link and service worker registration script
+src/BloodThinnerTracker.Web/Components/App.razor - main HTML document with manifest link in head
+src/BloodThinnerTracker.Web/Components/Layout/MainLayout.razor - layout component with service worker registration script
 ```
 
-**Structure Decision**: Keep existing Blazor Server project layout; add static assets under `wwwroot` and minimal registration in `_Host.cshtml` or `Shared/MainLayout.razor` depending on repo conventions.
+**Structure Decision**: Keep existing modern Blazor project layout; add static assets under `wwwroot` and minimal registration in `MainLayout.razor` (layout component) with manifest reference in `App.razor` (main HTML document).
 
 ## Complexity Tracking
 
@@ -73,5 +74,5 @@ Research goal: confirm manifest shape, icon requirements, service worker registr
 
 - Data model: none required (no new persisted entities) — `data-model.md` will indicate N/A
 - API Contracts: none required — create `/contracts/README.md` noting no API changes
-- Quickstart: installation steps and code snippets to add manifest, icons, service worker and registration in `_Host.cshtml` (deliverable: `quickstart.md`)
+- Quickstart: installation steps and code snippets to add manifest, icons, service worker and registration in `MainLayout.razor` (deliverable: `quickstart.md`)
 
