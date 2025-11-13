@@ -10,6 +10,9 @@ permissions:
 
 env:
   DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+  # Ensure repository secrets are configured:
+  # - DOCKERHUB_USERNAME
+  # - DOCKERHUB_TOKEN
 
 jobs:
   bump-and-tag:
@@ -80,6 +83,7 @@ jobs:
           context: .
           file: src/BloodThinnerTracker.Api/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKERHUB_USER }}/bloodthinner-api:${{ env.DOCKER_TAG }}
             ${{ env.DOCKERHUB_USER }}/bloodthinner-api:latest
@@ -91,6 +95,7 @@ jobs:
           context: .
           file: src/BloodThinnerTracker.Web/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKERHUB_USER }}/bloodthinner-web:${{ env.DOCKER_TAG }}
             ${{ env.DOCKERHUB_USER }}/bloodthinner-web:latest

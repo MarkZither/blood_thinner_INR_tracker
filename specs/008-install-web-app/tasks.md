@@ -58,6 +58,11 @@ Final Phase - Polish & cross-cutting concerns
  - [X] T051 [X] Add Playwright job to CI: create `.github/workflows/playwright-install.yml` that runs the installability smoke test (optional manual gating)
  - [X] T052 [P] Update `specs/008-install-web-app/checklists/requirements.md` to mark verification steps complete and record test outcomes after implementation
 
+Infra examples
+
+- See `specs/008-install-web-app/k3s/` for k3s/ExternalSecrets and SealedSecrets examples for Azure Key Vault integration.
+- See `specs/008-install-web-app/docker/` for a Docker Compose example that mounts host secret files and a simple `docker-entrypoint.sh` which exports them as environment variables for the container.
+
 Dependencies & order
 
 - Setup tasks T001..T005 should run first (icons, manifest, SW, host registration).
