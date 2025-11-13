@@ -27,6 +27,9 @@ COPY --from=build /app /app
 COPY docs/docker/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod 0555 /docker-entrypoint.sh
 
+# Set permissions
+RUN chown -R appuser:appgroup /app
+
 # Ensure the non-root user owns the app files
 USER appuser
 
