@@ -39,6 +39,9 @@ services:
       - "traefik.http.services.bloodthinner-api.loadbalancer.server.port=5234"
     networks:
       - web
+    volumes:
+      # Mount host secrets directory read-only into the container (Linux host example)
+      - /run/secrets/bloodtracker:/run/secrets:ro,z
 
   bloodthinner-web:
     image: markzither/bloodthinner-web:local
@@ -52,3 +55,6 @@ services:
       - "traefik.http.services.bloodthinner-web.loadbalancer.server.port=5235"
     networks:
       - web
+    volumes:
+      # Mount host secrets directory read-only into the container (Linux host example)
+      - /run/secrets/bloodtracker:/run/secrets:ro,z

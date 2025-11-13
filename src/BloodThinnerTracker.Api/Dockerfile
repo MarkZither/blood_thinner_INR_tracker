@@ -21,6 +21,10 @@ WORKDIR /app
 # Copy published output
 COPY --from=build /app /app
 
+# Copy entrypoint script into image and make executable
+COPY docs/docker/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chown appuser:appgroup /docker-entrypoint.sh && chmod 0555 /docker-entrypoint.sh
+
 # Set permissions
 RUN chown -R appuser:appgroup /app
 
@@ -32,4 +36,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 5234
 
-ENTRYPOINT ["dotnet", "BloodThinnerTracker.Api.dll"]
+ENTRYPOINT ["/docker-entrypoint.sh", "dotnet", "BloodThinnerTracker.Api.dll"]

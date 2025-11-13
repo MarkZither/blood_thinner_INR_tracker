@@ -47,6 +47,13 @@ public class ApplicationDbContext : ApplicationDbContextBase
                     }
                 }
             }
+
+        // Ensure PatternSequence uses native PostgreSQL jsonb
+        modelBuilder.Entity<BloodThinnerTracker.Shared.Models.MedicationDosagePattern>(entity =>
+        {
+            entity.Property(p => p.PatternSequence)
+                .HasColumnType("jsonb");
+        });
         }
     }
 }

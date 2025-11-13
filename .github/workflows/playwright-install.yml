@@ -1,0 +1,60 @@
+name: Playwright Installability Smoke Test
+
+on:
+  push:
+    branches: [ 008-install-web-app ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  playwright-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright browsers
+        run: pwsh tests/BloodThinnerTracker.Web.e2e.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps
+        shell: pwsh
+
+      - name: Start web app
+        run: Start-Process -FilePath dotnet -ArgumentList 'run','--project','src/BloodThinnerTracker.Web' -NoNewWindow -PassThru | Out-Null
+        shell: pwsh
+
+      - name: Wait for web app
+        run: |
+          $uri = 'http://localhost:5236'
+          for ($i=0; $i -lt 30; $i++) {
+            try {
+              $r = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 3
+              if ($r.StatusCode -eq 200) { exit 0 }
+            } catch { Start-Sleep -s 2 }
+          }
+          Write-Error "Web app did not become available"
+        shell: pwsh
+
+      - name: Run e2e tests
+        run: dotnet test tests/BloodThinnerTracker.Web.e2e.Tests --no-build --configuration Release
+        env:
+          TEST_BASE_URL: http://localhost:5236
+
+      - name: Tear down
+        if: always()
+        run: Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '*dotnet*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+        shell: pwsh

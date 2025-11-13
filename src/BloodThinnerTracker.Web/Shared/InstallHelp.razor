@@ -1,0 +1,47 @@
+
+@*
+    InstallHelp.razor
+
+    Purpose: Provide platform-specific, non-actionable guidance to users on how to
+    install or create shortcuts for the web app on Android, iOS, and Windows.
+
+    Notes:
+    - This component is informational only; actual install behavior is provided by
+        the browser and operating system. Do NOT attempt to cache or persist
+        sensitive medical data here.
+    - Open this component via `IDialogService` to guarantee correct z-index and
+        accessible focus handling across layouts.
+*@
+@using MudBlazor
+
+
+<MudPaper Class="pa-4" Elevation="4" Style="max-width:800px;margin:16px;">
+    <h2>Install the app</h2>
+    <h3>Android</h3>
+    <ol>
+        <li>Open the site in Chrome on your Android device.</li>
+        <li>Tap the browser menu (⋮) and choose "Add to Home screen".</li>
+        <li>Confirm and the shortcut will be placed on your home screen.</li>
+    </ol>
+
+    <h3>iOS</h3>
+    <ol>
+        <li>Open the site in Safari on your iPhone or iPad.</li>
+        <li>Tap the Share button (square with an arrow) and in the action sheet choose "Add to Home Screen".</li>
+        <li>Adjust the name if desired and tap "Add". The shortcut will appear on your home screen.</li>
+    </ol>
+
+    <h3>Windows / Desktop</h3>
+    <ol>
+        <li>Open the site in Chrome or Edge on Windows.</li>
+        <li>Open the browser menu and select "Install [site]" (Edge/Chrome) or use "More tools -> Create shortcut...". Follow the prompts to create a desktop shortcut or install the app.</li>
+        <li>Locate the shortcut on your desktop or in your Start menu and launch it. Expect either a standalone window or the URL opened in the browser depending on the browser/OS.</li>
+    </ol>
+
+    @* Dialog provides close button in the frame; no in-component close required *@
+</MudPaper>
+
+@* Dialog frame provides close action; no code-behind required *@
+@code {
+
+}

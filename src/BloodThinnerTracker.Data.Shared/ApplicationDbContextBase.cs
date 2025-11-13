@@ -171,7 +171,6 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
                     v => System.Text.Json.JsonSerializer.Deserialize<List<decimal>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<decimal>()
                 )
-                .HasColumnType("jsonb") // PostgreSQL JSONB, SQLite will override to TEXT
                 .IsRequired();
         });
 
