@@ -13,9 +13,9 @@ RUN dotnet publish src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj -c
 # Stage 2 - Runtime with Noble Chiseled + Azure CLI
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
-# Install Azure CLI via official script
+# Install Azure CLI via official script and a small privilege-drop helper (gosu)
 USER root
-RUN apt-get update && apt-get install -y curl ca-certificates gnupg \
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg gosu \
     && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean
 
@@ -30,14 +30,13 @@ WORKDIR /app
 # Copy published output
 COPY --from=build /app /app
 
-# Copy entrypoint script into image and make executable
+# Copy entrypoint script into image and make executable (keep owned by root so
+# it can read secret files at startup). The entrypoint will drop privileges.
 COPY docs/docker/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chown appuser:appgroup /docker-entrypoint.sh && chmod 0555 /docker-entrypoint.sh
+RUN chmod 0555 /docker-entrypoint.sh
 
 # Set permissions
 RUN chown -R appuser:appgroup /app
-
-USER appuser
 
 # API listens on port 5234 by default
 ENV ASPNETCORE_URLS=http://+:5234
