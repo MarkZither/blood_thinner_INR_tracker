@@ -25,6 +25,10 @@ jobs:
       - name: Build solution
         run: dotnet build --no-restore --configuration Release
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - name: Install Playwright browsers
         run: dotnet tool restore && npx playwright install --with-deps
         shell: pwsh

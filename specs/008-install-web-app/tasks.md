@@ -50,7 +50,7 @@ User Story 3 - Create desktop shortcut on Windows (Priority: P1)
 User Story 4 - Manage or remove created shortcut (Priority: P2)
 
 - [ x ] ~~T040 [US4] Add removal/uninstall instructions to `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (per-platform removal guidance)~~ REMOVED this is built in ok functionality
-- [ x ] ~~T041 [US4] Add acceptance scenario test file `specs/008-install-web-app/tests/manual-remove.md` describing removal flows and expected outcomes~~ REMOVED this is built in ok functionality
+- [x] ~~T041 [US4] Add acceptance scenario test file `specs/008-install-web-app/tests/manual-remove.md` describing removal flows and expected outcomes~~ REMOVED this is built in ok functionality
 
 Final Phase - Polish & cross-cutting concerns
 

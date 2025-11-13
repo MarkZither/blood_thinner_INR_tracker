@@ -197,7 +197,7 @@
 
     private string MainContentStyle => $"padding-top: 64px; {(_isMobile ? "padding-bottom: 80px;" : string.Empty)}";
 
-    private async void OpenInstallHelp()
+    private async Task OpenInstallHelp()
     {
         if (DialogService is null) return;
         await DialogService.ShowAsync<Shared.InstallHelp>("Install the app");

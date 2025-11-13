@@ -48,7 +48,7 @@ self.addEventListener('fetch', event => {
 });
 ```
 
-4. Register the service worker in the layout component (`MainLayout.razor`) by adding a script block at the end of the component:
+4. Register the service worker in the `MainLayout.razor` component by adding a script block at the bottom:
 
 ```html
 <script>
@@ -62,7 +62,7 @@ self.addEventListener('fetch', event => {
 </script>
 ```
 
-5. Reference the manifest in the HTML head (`App.razor` head section):
+5. Reference the manifest in the HTML head (can be added dynamically via script in `MainLayout.razor` or statically in `App.razor`):
 
 ```html
 <link rel="manifest" href="/manifest.webmanifest">
