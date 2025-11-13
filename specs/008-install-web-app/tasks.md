@@ -54,7 +54,7 @@ User Story 4 - Manage or remove created shortcut (Priority: P2)
 
 Final Phase - Polish & cross-cutting concerns
 
- - [X] T050 [X] Add comment headers and XML doc where appropriate in modified files to satisfy code conventions: `src/BloodThinnerTracker.Web/wwwroot/service-worker.js`, `src/BloodThinnerTracker.Web/Pages/_Host.cshtml`, `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor`
+ - [X] T050 [X] Add comment headers and XML doc where appropriate in modified files to satisfy code conventions: `src/BloodThinnerTracker.Web/wwwroot/service-worker.js`, `src/BloodThinnerTracker.Web/Components/Layout/MainLayout.razor`, `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor`
  - [X] T051 [X] Add Playwright job to CI: create `.github/workflows/playwright-install.yml` that runs the installability smoke test (optional manual gating)
  - [X] T052 [P] Update `specs/008-install-web-app/checklists/requirements.md` to mark verification steps complete and record test outcomes after implementation
 
