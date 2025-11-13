@@ -24,4 +24,23 @@ export_if_file "AZURE_CLIENT_SECRET"
 export_if_file "AZURE_TENANT_ID"
 export_if_file "DB_PASSWORD"
 
-exec "$@"
+# Drop privileges and exec the final command as the non-root app user
+# Prefer gosu for proper signal forwarding and exec semantics. Fall back to
+# runuser or su if gosu is not available. If no helper is present, exec as-is.
+drop_priv_and_exec() {
+  target_user="appuser"
+  if command -v gosu >/dev/null 2>&1; then
+    exec gosu "$target_user" "$@"
+  elif command -v runuser >/dev/null 2>&1; then
+    # runuser preserves environment and runs command as target user
+    exec runuser -u "$target_user" -- "$@"
+  elif command -v su >/dev/null 2>&1; then
+    # su -c runs command as target user via a shell
+    exec su -s /bin/sh -c "\"$*\"" "$target_user"
+  else
+    # last resort: just exec the command (may run as root)
+    exec "$@"
+  fi
+}
+
+drop_priv_and_exec "$@"
