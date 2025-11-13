@@ -45,11 +45,11 @@ Example override in compose (dev only):
 
 ```yaml
 services:
-	bloodthinner-web:
-		entrypoint: ["/docker-entrypoint.sh", "dotnet", "BloodThinnerTracker.Web.dll"]
-		volumes:
-			- ./docs/docker/docker-entrypoint.sh:/docker-entrypoint.sh:ro
-			- /run/secrets/bloodtracker:/run/secrets:ro,z
+  bloodthinner-web:
+	  entrypoint: ["/docker-entrypoint.sh", "dotnet", "BloodThinnerTracker.Web.dll"]
+	  volumes:
+	    - ./docs/docker/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+	    - /run/secrets/bloodtracker:/run/secrets:ro,z
 ```
 
 Verify alternative base images
