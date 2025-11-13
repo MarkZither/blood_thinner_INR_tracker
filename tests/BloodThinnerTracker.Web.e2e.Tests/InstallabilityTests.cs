@@ -26,7 +26,7 @@ namespace BloodThinnerTracker.Web.e2e.Tests
         [Fact]
         public async Task Manifest_Is_Served_And_ServiceWorker_Registration_Does_Not_Throw()
         {
-            var baseUrl = Environment.GetEnvironmentVariable("TEST_BASE_URL") ?? "http://localhost:5000";
+            var baseUrl = Environment.GetEnvironmentVariable("TEST_BASE_URL") ?? "http://localhost:5236";
 
             var context = await _browser!.NewContextAsync();
             var page = await context.NewPageAsync();
