@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install Playwright browsers
-        run: dotnet tool restore && npx playwright install --with-deps
+        run: pwsh tests/BloodThinnerTracker.Web.e2e.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps
         shell: pwsh
 
       - name: Start web app
