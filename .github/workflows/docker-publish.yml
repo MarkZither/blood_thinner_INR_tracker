@@ -78,7 +78,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push API image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: src/BloodThinnerTracker.Api/Dockerfile
@@ -90,7 +90,7 @@ jobs:
             ${{ env.DOCKERHUB_USER }}/bloodthinner-api:sha-${{ github.sha }}
 
       - name: Build and push Web image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: src/BloodThinnerTracker.Web/Dockerfile
