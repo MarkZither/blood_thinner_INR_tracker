@@ -48,7 +48,7 @@ self.addEventListener('fetch', event => {
 });
 ```
 
-4. Register the service worker in the server-rendered host page (`_Host.cshtml`) by adding near the bottom of the body:
+4. Register the service worker in the layout component (`MainLayout.razor`) by adding a script block at the end of the component:
 
 ```html
 <script>
@@ -62,7 +62,7 @@ self.addEventListener('fetch', event => {
 </script>
 ```
 
-5. Reference the manifest in the HTML head (`_Host.cshtml` head section):
+5. Reference the manifest in the HTML head (`App.razor` head section):
 
 ```html
 <link rel="manifest" href="/manifest.webmanifest">

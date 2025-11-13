@@ -8,7 +8,7 @@ Confirm shape of `manifest.webmanifest`, icon sizing and formats, registration a
 
 - Decision: Implement a minimal `manifest.webmanifest` and a lightweight `service-worker.js` that caches only static assets required for installability (icons, manifest, app shell static files). Rationale: minimal change, low risk, enables install icon on most devices without offline medical functionality.
 
-- Decision: Register service worker client-side in `_Host.cshtml` (server-rendered entry) using a small script that registers `service-worker.js` only on supporting browsers. Rationale: Blazor Server does not need a complex SW lifecycle; a simple registration suffices.
+- Decision: Register service worker client-side in `MainLayout.razor` (layout component) using a small script that registers `service-worker.js` only on supporting browsers. Rationale: Modern Blazor uses layout components for runtime registration; a simple registration script suffices.
 
 - Decision: Do NOT cache API responses or user-specific content. Rationale: Security & compliance — medical data must not be cached in browser storage in this phase.
 
