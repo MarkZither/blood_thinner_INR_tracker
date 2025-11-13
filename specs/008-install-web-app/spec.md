@@ -1,4 +1,3 @@
-```markdown
 # Feature Specification: Install web app shortcut (Phase 1)
 
 # Feature Specification: Install web app shortcut (Phase 1)
