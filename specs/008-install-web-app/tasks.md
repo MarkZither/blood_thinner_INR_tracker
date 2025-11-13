@@ -30,11 +30,11 @@ User Story 1 - Create shortcut on Android home screen (Priority: P1)
 - [X] T010 [US1] Create inline contextual help component `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (modal/popover) with Android instructions and links to long-form help
 - [X] T011 [US1] Populate Android instruction text in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` (copy-ready steps: open menu -> Add to Home screen)
 - [X] T012 [US1] Add link/button to surface the `InstallHelp` component in header: update `src/BloodThinnerTracker.Web/Shared/MainLayout.razor` (or equivalent) to include a visible affordance
-- [ x ] T013 [US1] Manual verification checklist: add `specs/008-install-web-app/tests/manual-android.md` with step-by-step verification and expected results
+- [x] T013 [US1] Manual verification checklist: add `specs/008-install-web-app/tests/manual-android.md` with step-by-step verification and expected results
 
 User messaging & tests
 
-- [ x ] ~~T014 [USx] Implement user-facing success/failure messaging (snackbar/toast) in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` to show confirmations like "Shortcut added to home screen" and actionable errors. Wire message display to UI triggers.~~ REMOVED this is provided by the browser
+- [x] ~~T014 [USx] Implement user-facing success/failure messaging (snackbar/toast) in `src/BloodThinnerTracker.Web/Shared/InstallHelp.razor` to show confirmations like "Shortcut added to home screen" and actionable errors. Wire message display to UI triggers.~~ REMOVED this is provided by the browser
 - [X] T015 [Test] Add BUnit unit test for `InstallHelp.razor` at `tests/BloodThinnerTracker.Web.Tests/InstallHelpTests.cs` to assert messaging behavior (success and failure cases).
 
 User Story 2 - Create shortcut on iOS home screen (Priority: P1)
