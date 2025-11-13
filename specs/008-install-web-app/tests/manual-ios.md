@@ -4,7 +4,7 @@ Target: iPhone / iPad running Safari
 
 Steps:
 
-1. Open Safari and navigate to the app URL (use the same host used during testing, e.g. https://localhost:5001).
+1. Open Safari and navigate to the app URL (e.g., <your-app-url> such as https://localhost:5235 or https://localhost:5236, depending on your environment).
 2. Verify the page loads and the site shows the normal header and content.
 3. Tap the Share button (square with upward arrow) in the Safari toolbar.
 4. In the share sheet, scroll the action row and select "Add to Home Screen".
