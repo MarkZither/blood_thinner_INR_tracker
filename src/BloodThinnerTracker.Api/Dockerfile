@@ -10,11 +10,20 @@ COPY . ./
 RUN dotnet restore src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj
 RUN dotnet publish src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj -c Release -o /app --no-restore
 
-# Stage 2 - runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+# Stage 2 - Runtime with Noble Chiseled + Azure CLI
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
-# Create a non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Install Azure CLI via official script
+USER root
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg \
+    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+    && apt-get clean
+
+    # Create non-root user and group
+RUN groupadd --system appgroup \
+    && useradd --system --gid appgroup --create-home --shell /bin/bash appuser
+
+RUN az version
 
 WORKDIR /app
 
