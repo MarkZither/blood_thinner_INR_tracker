@@ -13,7 +13,7 @@ RUN dotnet restore src/BloodThinnerTracker.Web/BloodThinnerTracker.Web.csproj
 RUN dotnet publish src/BloodThinnerTracker.Web/BloodThinnerTracker.Web.csproj -c Release -o /app --no-restore
 
 # Stage 2 - runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 
 # Create a non-root user for better security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
