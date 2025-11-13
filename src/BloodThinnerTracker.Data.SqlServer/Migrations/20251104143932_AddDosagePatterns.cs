@@ -38,7 +38,7 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     MedicationId = table.Column<int>(type: "int", nullable: false),
-                    PatternSequence = table.Column<string>(type: "jsonb", nullable: false),
+                    PatternSequence = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),

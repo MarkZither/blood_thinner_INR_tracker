@@ -544,7 +544,7 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
 
                     b.Property<string>("PatternSequence")
                         .IsRequired()
-                        .HasColumnType("jsonb");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uniqueidentifier");

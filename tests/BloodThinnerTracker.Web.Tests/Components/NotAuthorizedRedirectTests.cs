@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Reflection;
 using Bunit;
 using Bunit.TestDoubles;
+// using BloodThinnerTracker.Web.Tests.TestHelpers; // not required when calling fully-qualified helper
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,8 +53,8 @@ namespace BloodThinnerTracker.Web.Tests.Components
             // Ensure the authorization state is NotAuthorized
             _authContext.SetNotAuthorized();
 
-            // Act: render the page by type using generic RenderComponent via reflection
-            var comp = RenderComponentByType(componentType);
+            // Act: render the page by type using the centralized reflection helper
+            var comp = BloodThinnerTracker.Web.Tests.TestHelpers.BunitRenderHelpers.RenderComponentByType(this, componentType);
             // Assert: navigation was performed to /login with encoded relative returnUrl
             Assert.Contains("/login?returnUrl=", nav.Uri);
 
@@ -74,28 +75,7 @@ namespace BloodThinnerTracker.Web.Tests.Components
             Assert.Equal(expected, decoded);
         }
 
-        private IRenderedComponent<IComponent> RenderComponentByType(System.Type componentType)
-        {
-            // Find the generic Render<T>() method on TestContext (formerly RenderComponent<T>)
-            var method = typeof(BunitContext)
-                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                .FirstOrDefault(m => m.Name == "Render" && m.IsGenericMethod && m.GetGenericArguments().Length == 1);
-
-            if (method == null)
-                throw new InvalidOperationException("Render<T>() reflection helper could not find the method.");
-
-            var generic = method.MakeGenericMethod(componentType);
-
-            // In bunit v2, Render<T>() takes an Action<ComponentParameterCollectionBuilder<T>> instead of params
-            // For components with no parameters, we pass null
-            var rendered = generic.Invoke(this, [null]);
-
-            if (rendered == null)
-                throw new InvalidOperationException($"Failed to render component of type {componentType.FullName}.");
-
-            return (IRenderedComponent<IComponent>)rendered;
-
-        }
+        // Reflection-based renderer moved to TestHelpers.BunitRenderHelpers.RenderComponentByType
 
 
     }
