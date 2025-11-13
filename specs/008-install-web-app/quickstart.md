@@ -19,7 +19,7 @@ This quickstart shows the minimal steps to add installability to the Blazor Serv
 }
 ```
 
-2. Add icons to `wwwroot/icons/` (192x192 and 512x512 PNG). Ensure images are optimized and appropriately licensed.
+2. Add icons to `wwwroot/icons/` (192x192 and 512x512 SVG). Ensure images are optimized and appropriately licensed.
 
 3. Add `service-worker.js` to `wwwroot/` with a minimal caching strategy that ONLY caches whitelisted static assets:
 
@@ -28,8 +28,8 @@ const CACHE_NAME = 'inr-static-v1';
 const ASSETS = [
   '/',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/icons/icon-192.svg',
+  '/icons/icon-512.svg',
   '/css/app.css',
   '/js/app.js'
 ];
