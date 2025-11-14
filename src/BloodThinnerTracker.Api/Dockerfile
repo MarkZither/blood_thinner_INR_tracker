@@ -27,6 +27,10 @@ RUN az version
 
 WORKDIR /app
 
+# Ensure a persistent data dir exists and is owned by appuser so SQLite can write
+RUN mkdir -p /data \
+    && chown -R appuser:appgroup /data
+
 # Copy published output
 COPY --from=build /app /app
 
