@@ -259,10 +259,16 @@ var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
 };
+
+// Read optional trusted proxy configuration from ForwardedHeaders section.
+// In Development we continue to accept forwarded headers from local proxies for ease of testing.
+// In Production you MUST populate ForwardedHeaders:KnownProxies or ForwardedHeaders:KnownNetworks
+// with your reverse proxy / load balancer IPs or CIDRs. See docs/deployment/forwarded-headers.md
+// for guidance on how to obtain those values (Traefik, Kubernetes, cloud load-balancers).
 // For dev with a local trusted proxy (Traefik on same host) we clear known lists so forwarded
 // headers are accepted. In production, populate KnownIPAddresses or KnownIPNetworks instead.
-// For development only: clear KnownProxies so forwarded headers are accepted from local proxies.
-// In production, explicitly populate KnownProxies or KnownNetworks with your proxy IPs.
+// TODO: Follow-up (see issue #49) — implement reading KnownProxies/KnownNetworks from configuration
+// and add startup warning/log when running in non-Development without configured proxies.
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 

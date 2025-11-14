@@ -40,6 +40,8 @@ services:
     networks:
       - web
     volumes:
+      # Persistent SQLite database (named volume)
+      - btdata:/data
       # Mount host secrets directory read-only into the container (Linux host example)
       - /run/secrets/bloodtracker:/run/secrets:ro,z
 
@@ -58,3 +60,6 @@ services:
     volumes:
       # Mount host secrets directory read-only into the container (Linux host example)
       - /run/secrets/bloodtracker:/run/secrets:ro,z
+
+volumes:
+  btdata:
