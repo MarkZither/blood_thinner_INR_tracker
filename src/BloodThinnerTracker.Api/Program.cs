@@ -17,6 +17,7 @@ using System.Security.Cryptography.X509Certificates;
 using Serilog;
 using BloodThinnerTracker.ServiceDefaults.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
 // This application handles medical data and must comply with healthcare regulations.
@@ -235,6 +236,27 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+// Forwarded headers middleware must be configured early when running behind a TLS-terminating
+// reverse proxy so the application sees the original request scheme and host.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+};
+// For development only: clear KnownProxies so forwarded headers are accepted from local proxies.
+// In production, explicitly populate KnownProxies or KnownNetworks with your proxy IPs.
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
+// Diagnostic middleware to log the scheme/host seen by the API (useful while testing)
+app.Use(async (ctx, next) =>
+{
+    var loggerFactory = ctx.RequestServices.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger("ForwardedDebugApi");
+    logger.LogInformation("ForwardedDebugApi: Scheme={Scheme} Host={Host} Path={Path} XFP={XFP}",
+        ctx.Request.Scheme, ctx.Request.Host, ctx.Request.Path, ctx.Request.Headers["X-Forwarded-Proto"].ToString());
+    await next();
+});
 
 app.MapOpenApi();
 app.MapScalarApiReference(options =>

@@ -15,6 +15,7 @@ using Azure.Identity;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using Serilog;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 // Configure Serilog for file logging before builder creation
@@ -242,7 +243,38 @@ builder.Services.AddScoped(sp =>
 });
 
 
+// Configure cookie policy and cookie options to work correctly when behind a TLS-terminating
+// reverse proxy (Traefik, nginx, etc.). These settings make cookies secure and allow
+// cross-site OAuth redirects when the external endpoint is HTTPS.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
+});
+
 var app = builder.Build();
+
+// Forwarded headers middleware must run early, before authentication and any URL generation
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+};
+// For dev with a local trusted proxy (Traefik on same host) we clear known lists so forwarded
+// headers are accepted. In production, populate KnownIPAddresses or KnownIPNetworks instead.
+// For development only: clear KnownProxies so forwarded headers are accepted from local proxies.
+// In production, explicitly populate KnownProxies or KnownNetworks with your proxy IPs.
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
+// Diagnostic middleware to log the scheme/host seen by the app (temporary, helpful while testing with proxy)
+app.Use(async (ctx, next) =>
+{
+    var loggerFactory = ctx.RequestServices.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger("ForwardedDebug");
+    logger.LogInformation("ForwardedDebug: Scheme={Scheme} Host={Host} Path={Path} XFP={XFP}",
+        ctx.Request.Scheme, ctx.Request.Host, ctx.Request.Path, ctx.Request.Headers["X-Forwarded-Proto"].ToString());
+    await next();
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
