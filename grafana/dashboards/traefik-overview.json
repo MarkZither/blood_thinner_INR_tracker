@@ -1,0 +1,1 @@
+{"annotations":{"list":[]},"panels":[{"type":"graph","title":"Requests per Second","targets":[{"expr":"sum(rate(traefik_entrypoint_requests_total[1m])) by (entrypoint)","legendFormat":"{{entrypoint}}"}],"gridPos":{"h":8,"w":24,"x":0,"y":0}}],"schemaVersion":30,"title":"Traefik Overview","version":1}

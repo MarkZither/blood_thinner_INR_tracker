@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: 'traefik'
+    orgId: 1
+    folder: 'Traefik'
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards
