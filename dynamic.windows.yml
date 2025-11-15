@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /certs/cloud.crt
+      keyFile: /certs/cloud.key

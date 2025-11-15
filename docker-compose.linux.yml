@@ -1,0 +1,61 @@
+networks:
+  web:
+    external: false
+
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--log.level=DEBUG"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./dynamic.linux.yml:/etc/traefik/dynamic.yml:ro"
+      - "./certs:/certs:ro,z"
+    networks:
+      - web
+
+  bloodthinner-api:
+    image: markzither/bloodthinner-api:local
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Api/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodthinner-api.rule=Host(`api.local` )"
+      - "traefik.http.routers.bloodthinner-api.entrypoints=web"
+      - "traefik.http.services.bloodthinner-api.loadbalancer.server.port=5234"
+    networks:
+      - web
+    volumes:
+      - btdata:/data
+      - /run/secrets/bloodtracker:/run/secrets:ro,z
+
+  bloodthinner-web:
+    image: markzither/bloodthinner-web:local
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Web/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodthinner-web.rule=Host(`web.local`)"
+      - "traefik.http.routers.bloodthinner-web.entrypoints=web"
+      - "traefik.http.services.bloodthinner-web.loadbalancer.server.port=5235"
+    networks:
+      - web
+    volumes:
+      - /run/secrets/bloodtracker:/run/secrets:ro,z
+
+volumes:
+  btdata:

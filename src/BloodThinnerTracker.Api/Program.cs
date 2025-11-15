@@ -244,11 +244,14 @@ var forwardedOptions = new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
 };
 
-// For development only: clear KnownProxies so forwarded headers are accepted from local proxies.
-// In production, explicitly populate KnownProxies or KnownIPNetworks with your proxy IPs.
-// TODO: Follow-up (see issue #49) — implement reading KnownProxies/KnownNetworks from configuration
-// and add startup warning/log when running in non-Development without configured proxies.
+// For local development with a trusted proxy (Traefik on same host) accept forwarded headers
+// from the host proxy. Clear both KnownProxies and KnownIPNetworks so the middleware will
+// apply X-Forwarded-* headers coming from Docker/Traefik on the host network.
+// NOTE: This is only for development convenience. In production, populate specific
+// KnownProxies / KnownIPNetworks with your proxy IPs or CIDRs (see docs/deployment/forwarded-headers.md).
 forwardedOptions.KnownProxies.Clear();
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.RequireHeaderSymmetry = false;
 app.UseForwardedHeaders(forwardedOptions);
 
 // Diagnostic middleware to log the scheme/host seen by the API (useful while testing)
