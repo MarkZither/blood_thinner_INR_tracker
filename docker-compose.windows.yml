@@ -1,0 +1,105 @@
+networks:
+  web:
+    external: false
+  metrics:
+    external: false
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--log.level=DEBUG"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--accesslog=true"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.entryPoint=metrics"
+      - "--entrypoints.metrics.address=:9100"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+      - "9100:9100" # Prometheus metrics endpoint
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./dynamic.windows.yml:/etc/traefik/dynamic.yml:ro"
+      - "${CERTS_HOST_PATH}:/certs:ro"
+    networks:
+      - web
+      - metrics
+
+  bloodthinner-api:
+    image: markzither/bloodthinner-api:local
+    container_name: bloodapi
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Api/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodapi.rule=Host(`api.local`)"
+      - "traefik.http.routers.bloodapi.entrypoints=websecure"
+      - "traefik.http.routers.bloodapi.tls=true"
+      - "traefik.http.services.bloodapi.loadbalancer.server.port=5234"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+    volumes:
+      - btdata:/data
+      - ./secrets:/run/secrets:ro
+
+  bloodthinner-web:
+    image: markzither/bloodthinner-web:local
+    container_name: bloodweb
+    build:
+      context: .
+      dockerfile: src/BloodThinnerTracker.Web/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodweb.rule=Host(`web.local`)"
+      - "traefik.http.routers.bloodweb.entrypoints=websecure"
+      - "traefik.http.routers.bloodweb.tls=true"
+      - "traefik.http.services.bloodweb.loadbalancer.server.port=5235"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+    volumes:
+      - ./secrets:/run/secrets:ro
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - metrics
+
+  grafana:
+    image: grafana/grafana:9.6.8
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - metrics
+
+volumes:
+  btdata:
+  prometheus_data:
+  grafana_data:
