@@ -166,6 +166,16 @@ namespace BloodThinnerTracker.Shared.Models
         /// </summary>
         public DateTime? ReviewedAt { get; set; }
 
+    /// <summary>
+    /// Gets or sets the last editor's public id (nullable).
+    /// </summary>
+    public Guid? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the id of the user who soft-deleted this record (public id).
+    /// </summary>
+    public Guid? DeletedBy { get; set; }
+
         /// <summary>
         /// Gets or sets a value indicating whether the patient was notified of results.
         /// </summary>

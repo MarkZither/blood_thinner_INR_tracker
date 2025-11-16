@@ -3,7 +3,7 @@
 
 ## Task Checklist
 
-- [ ] T009-001: Add AuditRecord entity and INRTest schema updates
+- [x] T009-001: Add AuditRecord entity and INRTest schema updates
 - [ ] T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor)
 - [ ] T009-003: Add IUserContextProvider / reuse ICurrentUserService
 - [ ] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories
@@ -35,14 +35,15 @@ Follow the repository conventions for short commit messages and include the task
 
 ## ✅ Completed Tasks
 
-None yet.
+- T009-001: Added `AuditRecord` model and added `UpdatedBy`/`DeletedBy` to `INRTest` in the shared models. Shared-model changes compiled in a full solution build (warnings only). Migrations are deferred to DB-specific projects per the task guidance.
 
 ---
 
 ## Tasks
 
 ### T009-001: Add AuditRecord entity and INRTest schema updates [P1]
-**Status**: not-started
+**Status**: completed
+**Notes**: Shared-model subset implemented: added `src/BloodThinnerTracker.Shared/Models/AuditRecord.cs` and added `UpdatedBy`/`DeletedBy` to `src/BloodThinnerTracker.Shared/Models/INRTest.cs`. Solution build succeeded (with existing CS1591 warnings). Per-DB migrations remain deferred until T009-004/T009-002 are implemented.
 **Estimate**: 2.5 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Models/INRTest.cs` (update)
