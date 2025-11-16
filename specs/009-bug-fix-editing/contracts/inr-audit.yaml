@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: INR edit/delete API (spec)
+  version: 1.0.0
+paths:
+  /api/inr/{id}:
+    patch:
+      summary: Update an INR entry (in-place)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: number
+                testDateTimeUtc:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+        '400':
+          description: Validation error
+        '403':
+          description: Unauthorized/forbidden
+    delete:
+      summary: Soft-delete an INR entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Soft-deleted
+        '403':
+          description: Unauthorized/forbidden
+components:
+  schemas:
+    INRTest:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        value:
+          type: number
+        testDateTimeUtc:
+          type: string
+          format: date-time
+        isDeleted:
+          type: boolean
