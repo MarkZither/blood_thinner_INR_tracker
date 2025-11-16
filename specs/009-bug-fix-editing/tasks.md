@@ -1,6 +1,24 @@
 ```markdown
 # Feature 009: Enable edit and delete of INR entries - Tasks
 
+## Task Checklist
+
+- [ ] T009-001: Add AuditRecord entity and INRTest schema updates
+- [ ] T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor)
+- [ ] T009-003: Add IUserContextProvider / reuse ICurrentUserService
+- [ ] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories
+- [ ] T009-005: Implement PATCH /api/inr/{id} endpoint
+- [ ] T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete)
+- [ ] T009-007: Update read queries to exclude soft-deleted entries by default
+- [ ] T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring
+- [ ] T009-009: Add unit/integration tests for API and interceptor
+- [ ] T009-010: Update quickstart and docs, migration notes
+- [ ] T009-011: Run build, tests, and fix issues
+- [ ] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
+- [ ] T009-013: Test coverage plan & CI gate
+- [ ] T009-014: Ensure CS1591 suppression is temporary and removed
+
+
 **Status**: Not Started
 **Branch**: `009-bug-fix-editing`
 **Created**: 2025-11-16
