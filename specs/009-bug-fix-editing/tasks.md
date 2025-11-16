@@ -201,7 +201,8 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: all previous tasks
 
 ### T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue [P2]
-**Status**: not-started
+**Status**: completed
+**Notes**: Temporarily suppressed CS1591 in `Directory.Build.props` with documentation and TTL. Created issue draft `specs/009-bug-fix-editing/issue-improve-api-docs.md` to track restoring XML documentation. Suppression is timeboxed and must be removed per T009-014.
 **Estimate**: 0.5 hours
 **Files/Locations**:
 - `Directory.Build.props` (recommended location to add <NoWarn>CS1591</NoWarn> or to append to existing NoWarn)

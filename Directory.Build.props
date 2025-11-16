@@ -9,6 +9,14 @@
     <!-- Allow NuGet warnings for RC2 preview packages -->
     <WarningsNotAsErrors>NU1605;NU1510</WarningsNotAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      TEMPORARY SUPPRESSION: CS1591 (Missing XML comments)
+      Reason: Large incoming feature work is producing many CS1591 warnings which obscure real build issues.
+      ApprovedBy: feature-owner (automated approval for short-term suppression)
+      ApprovedAt: 2025-11-16
+      RemovalCondition: Remove this suppression when `specs/009-bug-fix-editing/issue-improve-api-docs.md` is closed
+      TTL: 28 days
+    -->
     <NoWarn>$(NoWarn);1591</NoWarn>
 
     <!-- Versioning -->

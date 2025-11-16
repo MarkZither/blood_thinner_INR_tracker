@@ -368,7 +368,6 @@ public class AuthenticationService : IAuthenticationService
     }
 
     /// <summary>
-    /// <summary>
     /// Store refresh token in database with secure hashing
     /// </summary>
     /// <param name="userPublicId">User's public-facing GUID</param>
