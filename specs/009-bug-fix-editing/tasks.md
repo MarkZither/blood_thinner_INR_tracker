@@ -29,8 +29,10 @@ None yet.
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Models/INRTest.cs` (update)
 - `src/BloodThinnerTracker.Api/Models/AuditRecord.cs` (new)
-- `src/BloodThinnerTracker.Api/Data/BloodThinnerDbContext.cs` (model builder / DbSet)
-- `src/BloodThinnerTracker.Api/Migrations/*` (new migration)
+- NOTE: The repository uses a shared ContextBase and DB-specific DbContext implementations.
+- Do NOT add a new `BloodThinnerDbContext` in `src/BloodThinnerTracker.Api`.
+- Instead, update the shared model definitions under `src/BloodThinnerTracker.Api/Models` (or the shared project) and then apply migrations in each DB-specific project (Postgres/SQLite/SQLServer).
+- Migrations should be created in the database-specific projects (e.g., `src/BloodThinnerTracker.Api.Postgres/Migrations`), not in the API surface project.
 **Description**: Add the AuditRecord entity and update the INRTest entity with UpdatedAt, UpdatedBy, IsDeleted, DeletedAt, DeletedBy fields and indexes as defined in `specs/009-bug-fix-editing/data-model.md`.
 **Acceptance**:
 - Project builds
@@ -42,9 +44,10 @@ None yet.
 **Status**: not-started
 **Estimate**: 4 hours
 **Files/Locations**:
-- `src/BloodThinnerTracker.Api/Data/AuditInterceptor.cs` (new)
-- `src/BloodThinnerTracker.Api/Data/BloodThinnerDbContext.cs` (register interceptor)
-- `src/BloodThinnerTracker.Api/Services/IUserContextProvider.cs` (if missing)
+- Consider adding the interceptor to the shared Data project (e.g., `src/BloodThinnerTracker.Api.Data.Shared/` or the DB-specific projects where the DbContext implementations live). Do NOT assume a DbContext in `src/BloodThinnerTracker.Api`.
+- `src/BloodThinnerTracker.Api.Data.Shared/AuditInterceptor.cs` (new) or in each DB-specific project if interceptor needs DB-specific registration.
+- Register the interceptor in the DB-specific DbContext registration (Postgres/SQLite/SQLServer projects) so it runs for the actual DbContext implementation.
+- Reuse existing `ICurrentUserService` (or similarly named) instead of introducing `IUserContextProvider`. If `ICurrentUserService` exists, reference it in acceptance criteria and DI registration notes.
 **Description**: Implement an interceptor that captures entity changes (INRTest edits and soft-deletes) and creates AuditRecord entries with BeforeJson and AfterJson in the same DbContext transaction. Use JSON serialization with stable ordering. Interceptor should be resilient to null ActorId and include correlation id if available.
 **Acceptance**:
 - Editing an INRTest results in one AuditRecord with BeforeJson and AfterJson
@@ -70,6 +73,7 @@ None yet.
 **Estimate**: 1.5 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Data/BloodThinnerDbContext.cs` (optional)
+ - NOTE: Do NOT add or expect a `BloodThinnerDbContext` in the API surface project. The concrete DbContext implementations live in DB-specific projects (Postgres/SQLite/SQLServer) and a shared ContextBase may exist in a Data.Shared project. Make any DbContext wiring changes in the DB-specific projects so the provider registrations and migrations remain colocated.
 - `src/BloodThinnerTracker.Api/Controllers/INRController.cs` (small changes)
 - `src/BloodThinnerTracker.Api/Services/INRService.cs` (if exists)
 **Description**: Ensure UpdatedAt/UpdatedBy are set when an INRTest is modified and DeletedAt/DeletedBy/IsDeleted are set when Delete is invoked. Prefer doing this in a single place (DbContext SaveChanges override or domain method) so interception and other flows get consistent metadata.
@@ -86,6 +90,8 @@ None yet.
 - `src/BloodThinnerTracker.Api/Models/Requests/UpdateINRTestRequest.cs` (new or reuse)
 - `src/BloodThinnerTracker.Api/Services/INRService.cs` (update)
 **Description**: Implement the API per `specs/009-bug-fix-editing/contracts/inr-audit.yaml`. Validate inputs (value in range, date-time sanity), enforce ownership (only owner may edit), apply changes in-place and return 200 with updated resource or 400/403 accordingly. Rely on AuditInterceptor to create audit record.
+
+Important UI note (root cause): The Web UI list historically passed the internal database `Id` into edit/delete handlers which is not intended for public API calls. The UI should pass the stable `PublicId` value. Ensure the PATCH endpoint documents and accepts a public identifier or provide a lightweight mapping endpoint so the client can resolve `PublicId` to the internal id. Coordinate this behavior with T009-008 (UI wiring).
 **Acceptance**:
 - Valid edit returns 200 and updated INRTest
 - Invalid values return 400 and no change/audit
@@ -99,6 +105,8 @@ None yet.
 - `src/BloodThinnerTracker.Api/Controllers/INRController.cs` (add DELETE handler)
 - `src/BloodThinnerTracker.Api/Services/INRService.cs` (update)
 **Description**: Implement soft-delete that sets IsDeleted=true, DeletedAt, DeletedBy and returns 204. Enforce owner-only permission. AuditInterceptor must create corresponding AuditRecord.
+
+Important UI note (root cause): The Delete action from the Web UI must pass `PublicId` (the stable public identifier) rather than the internal `Id`. Either accept `PublicId` directly in the DELETE endpoint or expose a mapping endpoint so the UI can call delete with the public identifier. Document the chosen approach and ensure T009-008 implements the matching client behavior.
 **Acceptance**:
 - Successful delete returns 204 and INRTest.IsDeleted=true
 - Unauthorized delete returns 403 and no change/audit
@@ -125,9 +133,13 @@ None yet.
 - `src/BloodThinnerTracker.Web/Components/Pages/INRList.razor` (delete action)
 - `src/BloodThinnerTracker.Web/Services/INRService.cs` (ensure PATCH/DELETE calls)
 **Description**: Update UI to call the new PATCH and DELETE endpoints. Use existing MudDialog confirmation for delete. Handle 403 by showing an access denied snackbar and prevent UI state drift. After success, refresh lists/charts and close dialogs.
+
+Root cause note: The current INR list implementation used the internal `Id` in OnClick handlers (for example `EditINRTest(test.Id.ToString())`). That caused failures when the API expected a public identifier. The UI must expose and pass `PublicId` to edit/delete flows (e.g., `EditINRTest(test.PublicId.ToString())`). If the API will continue to accept internal ids, add a documented mapping endpoint; otherwise prefer accepting `PublicId` in PATCH/DELETE for safety.
+
 **Acceptance**:
 - UI edit saves and updates list/chart without creating duplicate entries
 - UI delete removes entry from lists/charts
+- UI passes `PublicId` to PATCH/DELETE calls (or calls a documented mapping endpoint)
 - Authorization errors surfaced to user
 **Dependencies**: T009-005, T009-006, T009-007
 
@@ -230,7 +242,13 @@ None yet.
 ## How to run locally (verification checklist)
 
 1. Checkout branch `009-bug-fix-editing`.
-2. Apply the migration: `dotnet ef database update --project src/BloodThinnerTracker.Api` (or run global migration through solution tooling).
+2. Generate and apply migrations in each DB-specific project. For example:
+
+	- Postgres project: `dotnet ef migrations add AddAuditAndSoftDelete --project src/BloodThinnerTracker.Api.Postgres --startup-project src/BloodThinnerTracker.Api && dotnet ef database update --project src/BloodThinnerTracker.Api.Postgres --startup-project src/BloodThinnerTracker.Api`
+	- SQLite project: `dotnet ef migrations add AddAuditAndSoftDelete --project src/BloodThinnerTracker.Api.Sqlite --startup-project src/BloodThinnerTracker.Api && dotnet ef database update --project src/BloodThinnerTracker.Api.Sqlite --startup-project src/BloodThinnerTracker.Api`
+	- SQLServer project: `dotnet ef migrations add AddAuditAndSoftDelete --project src/BloodThinnerTracker.Api.SqlServer --startup-project src/BloodThinnerTracker.Api && dotnet ef database update --project src/BloodThinnerTracker.Api.SqlServer --startup-project src/BloodThinnerTracker.Api`
+
+	Note: The model changes should be made in the shared model area; migrations must be created per DB provider project so provider-specific SQL is generated and tracked in the respective Migrations folders.
 3. Start API and Web projects (or use `dotnet run` tasks provided).
 4. Use the Web UI to edit an INR entry and confirm update.
 5. Use the Web UI to delete an INR entry and confirm it disappears from lists and an AuditRecord exists in DB.
