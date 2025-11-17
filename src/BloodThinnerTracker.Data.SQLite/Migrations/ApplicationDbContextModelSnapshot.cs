@@ -209,6 +209,9 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DosageChanges")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -304,6 +307,9 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")

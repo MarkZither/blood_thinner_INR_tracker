@@ -220,6 +220,9 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("DosageChanges")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -316,6 +319,9 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");

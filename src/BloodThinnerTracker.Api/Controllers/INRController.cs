@@ -409,6 +409,11 @@ public sealed class INRController : ControllerBase
                 test.Notes = request.Notes;
 
             test.UpdatedAt = DateTime.UtcNow;
+            // Set UpdatedBy to current user's PublicId so data-layer interceptor can pick it up
+            if (userPublicId.HasValue)
+            {
+                test.UpdatedBy = userPublicId.Value;
+            }
 
             // Update status based on therapeutic range
             test.Status = test.IsInTargetRange()
@@ -496,6 +501,12 @@ public sealed class INRController : ControllerBase
             // Soft delete
             test.IsDeleted = true;
             test.DeletedAt = DateTime.UtcNow;
+
+            // Set DeletedBy to current user's PublicId so data-layer interceptor can pick it up
+            if (userPublicId.HasValue)
+            {
+                test.DeletedBy = userPublicId.Value;
+            }
 
             await _context.SaveChangesAsync();
 

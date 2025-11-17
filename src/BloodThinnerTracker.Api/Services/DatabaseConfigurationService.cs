@@ -349,8 +349,11 @@ public static class DatabaseConfigurationExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        // Register current user service
-        services.AddScoped<ICurrentUserService, CurrentUserService>();
+    // Register current user service
+    services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+    // Register audit interceptor which will capture INRTest changes and write AuditRecord entries
+    services.AddScoped<AuditInterceptor>();
 
         // Register database configuration service
         services.AddSingleton<IDatabaseConfigurationService, DatabaseConfigurationService>();
@@ -369,6 +372,10 @@ public static class DatabaseConfigurationExtensions
                     {
                         var dbConfig = serviceProvider.GetRequiredService<IDatabaseConfigurationService>();
                         dbConfig.ConfigureDatabase(options, configuration, environment);
+
+                        // Attach the AuditInterceptor so it runs on SaveChanges for this DbContext
+                        var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
+                        options.AddInterceptors(interceptor);
                     });
                 // Register interface pointing to concrete implementation
                 services.AddScoped<IApplicationDbContext>(sp =>
@@ -394,7 +401,12 @@ public static class DatabaseConfigurationExtensions
                     {
                         var dbConfig = serviceProvider.GetRequiredService<IDatabaseConfigurationService>();
                         dbConfig.ConfigureDatabase(options, configuration, environment);
+
+                        // Attach AuditInterceptor when PostgreSQL provider is enabled
+                        var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
+                        options.AddInterceptors(interceptor);
                     });
+
                 services.AddScoped<IApplicationDbContext>(sp =>
                     sp.GetRequiredService<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>());
 
@@ -409,13 +421,17 @@ public static class DatabaseConfigurationExtensions
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>("database");
                 break;
-
+            */
             case DatabaseProvider.SqlServer:
                 services.AddDbContext<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>(
                     (serviceProvider, options) =>
                     {
                         var dbConfig = serviceProvider.GetRequiredService<IDatabaseConfigurationService>();
                         dbConfig.ConfigureDatabase(options, configuration, environment);
+
+                        // Attach the AuditInterceptor so it runs on SaveChanges for this DbContext
+                        var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
+                        options.AddInterceptors(interceptor);
                     });
                 services.AddScoped<IApplicationDbContext>(sp =>
                     sp.GetRequiredService<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>());
@@ -430,7 +446,7 @@ public static class DatabaseConfigurationExtensions
 
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>("database");
-                break;*/
+                break;
 
             default:
                 throw new InvalidOperationException($"Unsupported database provider: {provider}");

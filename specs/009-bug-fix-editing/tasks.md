@@ -5,8 +5,9 @@
 
 - [x] T009-001: Add AuditRecord entity and INRTest schema updates
 - [ ] T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor)
-- [ ] T009-003: Add IUserContextProvider / reuse ICurrentUserService
-- [ ] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories
+- [x] T009-003: Add IUserContextProvider / reuse ICurrentUserService
+- [x] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories
+ 
 - [ ] T009-005: Implement PATCH /api/inr/{id} endpoint
 - [ ] T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete)
 - [ ] T009-007: Update read queries to exclude soft-deleted entries by default
@@ -14,7 +15,7 @@
 - [ ] T009-009: Add unit/integration tests for API and interceptor
 - [ ] T009-010: Update quickstart and docs, migration notes
 - [ ] T009-011: Run build, tests, and fix issues
-- [ ] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
+- [x] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
 - [ ] T009-013: Test coverage plan & CI gate
 - [ ] T009-014: Ensure CS1591 suppression is temporary and removed
 
@@ -86,20 +87,34 @@ Follow the repository conventions for short commit messages and include the task
 - Service returns user id for requests with authenticated principal
 - Service returns null for unauthenticated contexts (tests must handle)
 **Dependencies**: none
+**Status**: completed
+
+**Decision / Notes**:
+- Reuse existing `ICurrentUserService` rather than adding a new `IUserContextProvider` to avoid duplication. The repository already contains:
+	- `src/BloodThinnerTracker.Data.Shared/ICurrentUserService.cs`
+	- `src/BloodThinnerTracker.Api/Services/CurrentUserService.cs`
+
+- Rationale: `ICurrentUserService` is already registered and used by API services. For the audit/interceptor design chosen in this feature we do not need a separate provider: higher-level controllers/services will set `UpdatedBy` / `DeletedBy` (PublicId GUIDs) on entities prior to SaveChanges. `ICurrentUserService` can still be used where callers need the internal DB id (int?) — keep it as-is.
+
+**Acceptance (updated)**:
+- No new provider added. Existing `ICurrentUserService` remains available for services that need the internal DB id.
+- Controllers/services will continue to obtain the user's PublicId from claims (or map as needed) and populate entity `UpdatedBy`/`DeletedBy` prior to SaveChanges. The interceptor reads those fields when creating `AuditRecord` entries.
+
+**Implication**: T009-003 is considered complete for this feature's scope. If later we need a separate provider returning PublicId as a Guid, we can introduce an adapter service (thin wrapper) that composes `ICurrentUserService` and `IHttpContextAccessor`.
 
 ### T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 1.5 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Data/BloodThinnerDbContext.cs` (optional)
  - NOTE: Do NOT add or expect a `BloodThinnerDbContext` in the API surface project. The concrete DbContext implementations live in DB-specific projects (Postgres/SQLite/SQLServer) and a shared ContextBase may exist in a Data.Shared project. Make any DbContext wiring changes in the DB-specific projects so the provider registrations and migrations remain colocated.
 - `src/BloodThinnerTracker.Api/Controllers/INRController.cs` (small changes)
 - `src/BloodThinnerTracker.Api/Services/INRService.cs` (if exists)
-**Description**: Ensure UpdatedAt/UpdatedBy are set when an INRTest is modified and DeletedAt/DeletedBy/IsDeleted are set when Delete is invoked. Prefer doing this in a single place (DbContext SaveChanges override or domain method) so interception and other flows get consistent metadata.
+**Description**: Ensure UpdatedAt/UpdatedBy are set when an INRTest is modified and DeletedAt/DeletedBy/IsDeleted are set when Delete is invoked. Implementation approach: set UpdatedBy/DeletedBy to the current user's PublicId in controller/service layer before SaveChanges so the data layer remains decoupled from HTTP concerns. Interceptor reads these fields when creating AuditRecord entries.
 **Acceptance**:
 - After edits, UpdatedAt and UpdatedBy are set
 - After delete, IsDeleted=true and DeletedAt/DeletedBy set
-**Dependencies**: T009-001, T009-003
+**Dependencies**: T009-001
 
 ### T009-005: Implement PATCH /api/inr/{id} endpoint [P1]
 **Status**: not-started
