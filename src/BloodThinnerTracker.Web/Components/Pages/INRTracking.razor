@@ -9,7 +9,8 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-<PageTitle>INR Tracking - Blood Thinner Tracker</PageTitle>
+                    // Preserve PublicId (GUID) for client-side navigation and API calls
+                    PublicId = Guid.TryParse(r.Id, out var pub) ? pub : Guid.Empty,
 
 <AuthorizeView>
     <Authorized>
@@ -257,12 +258,12 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                               Color="Color.Primary"
                                               Size="Size.Small"
-                                              OnClick="@(() => EditINRTest(test.Id.ToString()))"
+                                              OnClick="@(() => EditINRTest(test.PublicId.ToString()))"
                                               title="Edit" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                               Color="Color.Error"
                                               Size="Size.Small"
-                                              OnClick="@(() => DeleteINRTest(test.Id.ToString()))"
+                                              OnClick="@(() => DeleteINRTest(test.PublicId.ToString()))"
                                               title="Delete" />
                             </MudButtonGroup>
                         </MudTd>
