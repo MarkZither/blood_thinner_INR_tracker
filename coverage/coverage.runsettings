@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!-- Exclude common generated/migrations/object directories -->
+          <ExcludeByFile>**/Migrations/*;**/obj/*;**/Generated/*</ExcludeByFile>
+          <!-- Exclude provider-specific assemblies that skew baseline and migration code -->
+          <Exclude>[BloodThinnerTracker.Data.SqlServer]*;[BloodThinnerTracker.Data.SQLite]*</Exclude>
+          <!-- Exclude attributes commonly applied to generated code -->
+          <ExcludeByAttribute>Obsolete;GeneratedCodeAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
