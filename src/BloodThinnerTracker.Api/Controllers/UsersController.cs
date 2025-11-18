@@ -77,7 +77,7 @@ public sealed class UsersController : ControllerBase
                 .Where(u => u.PublicId == userPublicId.Value && !u.IsDeleted)
                 .Select(u => new UserProfileResponse
                 {
-                    Id = u.PublicId.ToString(), // API returns public GUID
+                    Id = u.PublicId, // API returns public GUID
                     Email = u.Email,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
@@ -183,7 +183,7 @@ public sealed class UsersController : ControllerBase
 
             var response = new UserProfileResponse
             {
-                Id = user.PublicId.ToString(), // API returns public GUID
+                Id = user.PublicId, // API returns public GUID
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -441,7 +441,7 @@ public sealed class UsersController : ControllerBase
 /// </summary>
 public sealed class UserProfileResponse
 {
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? FirstName { get; set; }
     public string? LastName { get; set; }

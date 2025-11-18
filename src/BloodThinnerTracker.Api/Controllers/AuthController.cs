@@ -270,7 +270,7 @@ public class AuthController : ControllerBase
             }
 
             _logger.LogInformation("OAuth authentication successful for user {UserId} via {Provider}",
-                response.User.Id, provider);
+                response.User.PublicId, provider);
 
             // Check if there's a final redirect URI (e.g., /oauth-test.html)
             if (!string.IsNullOrEmpty(finalRedirectUri))
@@ -376,7 +376,7 @@ public class AuthController : ControllerBase
             }
 
             _logger.LogInformation("Mobile OAuth authentication successful for user {UserId} via {Provider}",
-                response.User.Id, request.Provider);
+                response.User.PublicId, request.Provider);
 
             return Ok(response);
         }
@@ -432,7 +432,7 @@ public class AuthController : ControllerBase
                 });
             }
 
-            _logger.LogInformation("Token exchange successful for user: {UserId}", response.User?.Id);
+            _logger.LogInformation("Token exchange successful for user: {UserId}", response.User?.PublicId);
             return Ok(response);
         }
         catch (Exception ex)
@@ -711,7 +711,7 @@ public class AuthController : ControllerBase
 
             var userInfo = new UserInfo
             {
-                Id = userIdStr,  // Return PublicId as string for API consumers
+                PublicId = userPublicId,  // PublicId is a typed Guid
                 Email = User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty,
                 Name = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty,
                 Role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Patient",

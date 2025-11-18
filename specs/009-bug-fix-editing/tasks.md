@@ -4,16 +4,15 @@
 ## Task Checklist
 
 - [x] T009-001: Add AuditRecord entity and INRTest schema updates
-- [ ] T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor)
+- [x] T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor)
 - [x] T009-003: Add IUserContextProvider / reuse ICurrentUserService
-- [x] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories
- 
-- [ ] T009-005: Implement PATCH /api/inr/{id} endpoint
-- [ ] T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete)
-- [ ] T009-007: Update read queries to exclude soft-deleted entries by default
+- [x] T009-004: Wire UpdatedBy/DeletedBy population in DbContext or repositories 
+- [x] T009-005: Implement PATCH /api/inr/{id} endpoint
+- [x] T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete)
+- [x] T009-007: Update read queries to exclude soft-deleted entries by default
 - [ ] T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring
 - [ ] T009-009: Add unit/integration tests for API and interceptor
-- [ ] T009-010: Update quickstart and docs, migration notes
+- [x] T009-010: Update quickstart and docs, migration notes
 - [ ] T009-011: Run build, tests, and fix issues
 - [x] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
 - [ ] T009-013: Test coverage plan & CI gate
@@ -61,7 +60,7 @@ Follow the repository conventions for short commit messages and include the task
 **Dependencies**: none
 
 ### T009-002: Implement EF Core SaveChangesInterceptor (AuditInterceptor) [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 4 hours
 **Files/Locations**:
 - Consider adding the interceptor to the shared Data project (e.g., `src/BloodThinnerTracker.Api.Data.Shared/` or the DB-specific projects where the DbContext implementations live). Do NOT assume a DbContext in `src/BloodThinnerTracker.Api`.
@@ -76,7 +75,7 @@ Follow the repository conventions for short commit messages and include the task
 **Dependencies**: T009-001, T009-004
 
 ### T009-003: Add IUserContextProvider to surface current user id to services [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 1 hour
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Services/IUserContextProvider.cs` (new)
@@ -117,7 +116,7 @@ Follow the repository conventions for short commit messages and include the task
 **Dependencies**: T009-001
 
 ### T009-005: Implement PATCH /api/inr/{id} endpoint [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 3 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Controllers/INRController.cs` (add PATCH handler)
@@ -133,7 +132,7 @@ Important UI note (root cause): The Web UI list historically passed the internal
 **Dependencies**: T009-001, T009-003, T009-004, T009-002
 
 ### T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete) [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 2 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Controllers/INRController.cs` (add DELETE handler)
@@ -147,7 +146,7 @@ Important UI note (root cause): The Delete action from the Web UI must pass `Pub
 **Dependencies**: T009-001, T009-003, T009-004, T009-002
 
 ### T009-007: Update read queries to exclude soft-deleted entries by default [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 1.5 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Api/Repositories/INRRepository.cs` (or DbContext queries)
@@ -194,7 +193,7 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: T009-001..T009-006
 
 ### T009-010: Update quickstart and docs, migration notes [P2]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 1 hour
 **Files/Locations**:
 - `specs/009-bug-fix-editing/quickstart.md` (update)

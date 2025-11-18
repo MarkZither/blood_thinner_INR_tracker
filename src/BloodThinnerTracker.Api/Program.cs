@@ -271,7 +271,7 @@ app.MapScalarApiReference(options =>
         .WithTitle("Blood Thinner Tracker API - JWT Authentication Required")
         .WithTheme(ScalarTheme.Mars)
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
-        .WithModels(false); // Hide schemas section for cleaner UI
+        .HideModels(); // Hide schemas section for cleaner UI
 
     // Note: To test authenticated endpoints in Scalar:
     // 1. Visit /oauth-test.html to get a JWT token
@@ -375,6 +375,18 @@ app.MapDefaultEndpoints();
 
 try
 {
+    // Ensure database is initialized (migrations applied) before the app starts handling requests.
+    // This prevents a race where the app accepts requests that write to tables not yet created
+    // (e.g. AuditRecords), which results in SQLite "no such table" errors.
+    using var scope = app.Services.CreateScope();
+    var sp = scope.ServiceProvider;
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInit");
+
+    logger.LogInformation("Ensuring database is initialized before starting app...");
+    // Use a cancellation token with a reasonable timeout to avoid blocking startup indefinitely.
+    await sp.EnsureDatabaseAsync();
+
+    logger.LogInformation("Database initialization complete. Starting web host.");
     app.Run();
 }
 catch (Exception ex)

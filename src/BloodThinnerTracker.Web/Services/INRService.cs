@@ -34,8 +34,10 @@ public class INRService : IINRService
             if (queryParams.Any())
                 url += "?" + string.Join("&", queryParams);
 
-            var response = await _httpClient.GetFromJsonAsync<INRTestListResponse>(url);
-            return response?.Tests ?? new List<INRTest>();
+            // API returns a list of INRTestResponse DTOs. Map each to the client INRTest domain model.
+            var dtos = await _httpClient.GetFromJsonAsync<List<INRTestResponse>>(url);
+            if (dtos == null) return new List<INRTest>();
+            return dtos.Select(MapResponseToEntity).ToList();
         }
         catch (Exception ex)
         {
@@ -81,11 +83,11 @@ public class INRService : IINRService
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, test);
             response.EnsureSuccessStatusCode();
-            
+
             // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
             var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize created test");
-            
+
             return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
@@ -100,14 +102,14 @@ public class INRService : IINRService
         try
         {
             // Use PublicId for API route
-            var publicId = test.PublicId != Guid.Empty ? test.PublicId : Guid.Empty;
+            var publicId = test.PublicId; // should be set by caller
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{publicId}", test);
             response.EnsureSuccessStatusCode();
-            
+
             // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
             var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize updated test");
-            
+
             return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
@@ -154,8 +156,8 @@ public class INRService : IINRService
     {
         return new INRTest
         {
-            // Map PublicId from API response Id (string GUID)
-            PublicId = Guid.TryParse(response.Id, out var pid) ? pid : Guid.Empty,
+            // Map typed PublicId from API response
+            PublicId = response.PublicId,
             // Note: Client's internal int IDs are not used for API calls; preserve 0
             Id = 0,
             UserId = 0,

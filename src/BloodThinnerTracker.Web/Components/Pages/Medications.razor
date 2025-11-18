@@ -108,11 +108,11 @@
                                     </CardHeaderContent>
                                     <CardHeaderActions>
                                         <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
-                                            <MudMenuItem OnClick="() => EditMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
-                                            <MudMenuItem OnClick="() => ViewHistory(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
-                                            <MudMenuItem OnClick="() => ViewSchedule(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.CalendarMonth">View Schedule</MudMenuItem>
+                                            <MudMenuItem OnClick="() => EditMedication(medication.PublicId)" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                                            <MudMenuItem OnClick="() => ViewHistory(medication.PublicId)" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
+                                            <MudMenuItem OnClick="() => ViewSchedule(medication.PublicId)" Icon="@Icons.Material.Filled.CalendarMonth">View Schedule</MudMenuItem>
                                             <MudDivider />
-                                            <MudMenuItem OnClick="() => DeactivateMedication(medication.PublicId.ToString())" Icon="@Icons.Material.Filled.Pause" IconColor="Color.Error">
+                                            <MudMenuItem OnClick="() => DeactivateMedication(medication.PublicId)" Icon="@Icons.Material.Filled.Pause" IconColor="Color.Error">
                                                 <MudText Color="Color.Error">Deactivate</MudText>
                                             </MudMenuItem>
                                         </MudMenu>
@@ -178,7 +178,7 @@
                                             MedicationId="@medication.PublicId"
                                             ShowEditButton="true"
                                             OnEditPattern="() => OpenPatternDialog(medication)"
-                                            OnViewHistory="() => ViewPatternHistory(medication.PublicId.ToString())" />
+                                            OnViewHistory="() => ViewPatternHistory(medication.PublicId)" />
                                     </div>
 
                                     <!-- Status and Actions -->
@@ -198,7 +198,7 @@
                                                    Color="Color.Primary"
                                                    Size="Size.Small"
                                                    StartIcon="@Icons.Material.Filled.Add"
-                                                   OnClick="() => LogDose(medication.PublicId.ToString())">
+                                                   OnClick="() => LogDose(medication.PublicId)">
                                             Log Dose
                                         </MudButton>
                                     </MudStack>
@@ -445,22 +445,22 @@
     // Navigation methods
     private void NavigateToAddMedications() => Navigation.NavigateTo("/medications/add");
 
-    private void EditMedication(string medicationId)
+    private void EditMedication(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/edit/{medicationId}");
     }
 
-    private void ViewHistory(string medicationId)
+    private void ViewHistory(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/history");
     }
 
-    private void ViewSchedule(string medicationId)
+    private void ViewSchedule(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/schedule");
     }
 
-    private void LogDose(string medicationId)
+    private void LogDose(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/log");
     }
@@ -496,12 +496,12 @@
         StateHasChanged();
     }
 
-    private void ViewPatternHistory(string medicationId)
+    private void ViewPatternHistory(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/{medicationId}/pattern-history");
     }
 
-    private async Task DeactivateMedication(string medicationId)
+    private async Task DeactivateMedication(Guid medicationId)
     {
         var parameters = new DialogParameters
         {

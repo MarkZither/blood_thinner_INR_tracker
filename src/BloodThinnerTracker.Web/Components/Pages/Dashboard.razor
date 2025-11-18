@@ -384,7 +384,8 @@
             {
                 recentINRTests = inrTests.Select(r => new INRTest
                 {
-                    Id = int.TryParse(r.Id, out var id) ? id : 0,
+                    Id = 0,
+                    PublicId = r.PublicId,
                     INRValue = r.INRValue,
                     TestDate = r.TestDate,
                     Status = r.Status,

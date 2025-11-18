@@ -91,7 +91,7 @@ public sealed class MedicationsController : ControllerBase
                 .OrderBy(m => m.Name)
                 .Select(m => new MedicationResponse
                 {
-                    PublicId = m.PublicId.ToString(),
+                    PublicId = m.PublicId,
                     Name = m.Name,
                     BrandName = m.BrandName,
                     GenericName = m.GenericName,
@@ -134,7 +134,7 @@ public sealed class MedicationsController : ControllerBase
     /// <summary>
     /// Gets a specific medication by ID.
     /// </summary>
-    /// <param name="id">Medication ID.</param>
+    /// <param name="publicId">Medication public ID.</param>
     /// <returns>Medication details.</returns>
     /// <response code="200">Medication retrieved successfully.</response>
     /// <response code="401">User is not authenticated.</response>
@@ -159,7 +159,7 @@ public sealed class MedicationsController : ControllerBase
                 .Where(m => m.PublicId == publicId && m.User.PublicId == userPublicId.Value && !m.IsDeleted)
                 .Select(m => new MedicationResponse
                 {
-                    PublicId = m.PublicId.ToString(),
+                    PublicId = m.PublicId,
                     Name = m.Name,
                     BrandName = m.BrandName,
                     GenericName = m.GenericName,
@@ -295,7 +295,7 @@ public sealed class MedicationsController : ControllerBase
 
             var response = new MedicationResponse
             {
-                PublicId = medication.PublicId.ToString(),
+                PublicId = medication.PublicId,
                 Name = medication.Name,
                 BrandName = medication.BrandName,
                 GenericName = medication.GenericName,
@@ -340,7 +340,7 @@ public sealed class MedicationsController : ControllerBase
     /// <summary>
     /// Updates an existing medication.
     /// </summary>
-    /// <param name="id">Medication ID.</param>
+    /// <param name="publicId">Medication public ID.</param>
     /// <param name="request">Updated medication data.</param>
     /// <returns>Updated medication details.</returns>
     /// <response code="200">Medication updated successfully.</response>
@@ -440,7 +440,7 @@ public sealed class MedicationsController : ControllerBase
 
             var response = new MedicationResponse
             {
-                PublicId = medication.PublicId.ToString(),
+                PublicId = medication.PublicId,
                 Name = medication.Name,
                 BrandName = medication.BrandName,
                 GenericName = medication.GenericName,
@@ -485,7 +485,7 @@ public sealed class MedicationsController : ControllerBase
     /// <summary>
     /// Deactivates a medication (soft delete).
     /// </summary>
-    /// <param name="id">Medication ID.</param>
+    /// <param name="publicId">Medication public ID.</param>
     /// <param name="request">Deactivation request with reason.</param>
     /// <returns>Confirmation of medication deactivation.</returns>
     /// <response code="200">Medication deactivated successfully.</response>
@@ -576,7 +576,7 @@ public sealed class MedicationsController : ControllerBase
                 .OrderBy(m => m.Name)
                 .Select(m => new MedicationResponse
                 {
-                    PublicId = m.PublicId.ToString(),
+                    PublicId = m.PublicId,
                     Name = m.Name,
                     BrandName = m.BrandName,
                     GenericName = m.GenericName,
@@ -807,7 +807,7 @@ public sealed class ValidationResult
 /// </summary>
 public sealed class MedicationResponse
 {
-    public string PublicId { get; set; } = string.Empty;
+    public Guid PublicId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? BrandName { get; set; }
     public string? GenericName { get; set; }

@@ -137,8 +137,8 @@ public sealed class MedicationLogsController : ControllerBase
                 .OrderByDescending(ml => ml.ScheduledTime)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.PublicId.ToString(),
-                    MedicationId = medication.PublicId.ToString(),
+                    Id = ml.PublicId,
+                    MedicationId = medication.PublicId,
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -205,8 +205,8 @@ public sealed class MedicationLogsController : ControllerBase
                 .Where(ml => ml.PublicId == publicId && ml.Medication.User.PublicId == userPublicId.Value && !ml.IsDeleted)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.PublicId.ToString(),
-                    MedicationId = ml.Medication.PublicId.ToString(),
+                    Id = ml.PublicId,
+                    MedicationId = ml.Medication.PublicId,
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -277,12 +277,8 @@ public sealed class MedicationLogsController : ControllerBase
                 return Unauthorized("Invalid user authentication");
             }
 
-            // Parse medication PublicId from request
-            if (!Guid.TryParse(request.MedicationId, out var medicationPublicId))
-            {
-                _logger.LogWarning("Invalid medication PublicId format: {MedicationId}", request.MedicationId);
-                return BadRequest("Invalid medication ID format");
-            }
+            // MedicationId is a typed GUID in the request model
+            var medicationPublicId = request.MedicationId;
 
             // Get user's internal Id first
             var user = await _context.Users
@@ -351,8 +347,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = medicationLog.PublicId.ToString(),
-                MedicationId = medication.PublicId.ToString(),
+                Id = medicationLog.PublicId,
+                MedicationId = medication.PublicId,
                 MedicationName = medication.Name,
                 ScheduledTime = medicationLog.ScheduledTime,
                 ActualTime = medicationLog.ActualTime,
@@ -469,8 +465,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = existingLog.PublicId.ToString(),
-                MedicationId = existingLog.Medication.PublicId.ToString(),
+                Id = existingLog.PublicId,
+                MedicationId = existingLog.Medication.PublicId,
                 MedicationName = existingLog.Medication.Name,
                 ScheduledTime = existingLog.ScheduledTime,
                 ActualTime = existingLog.ActualTime,
@@ -680,8 +676,8 @@ public sealed class MedicationLogsController : ControllerBase
 /// </summary>
 public sealed class MedicationLogResponse
 {
-    public string Id { get; set; } = string.Empty;
-    public string MedicationId { get; set; } = string.Empty;
+    public Guid Id { get; set; }
+    public Guid MedicationId { get; set; }
     public string MedicationName { get; set; } = string.Empty;
     public DateTime ScheduledTime { get; set; }
     public DateTime? ActualTime { get; set; }
@@ -736,7 +732,7 @@ public sealed class MedicationLogResponse
 public sealed class LogMedicationRequest
 {
     [Required]
-    public string MedicationId { get; set; } = string.Empty;
+    public Guid MedicationId { get; set; }
 
     public DateTime? ScheduledTime { get; set; }
 

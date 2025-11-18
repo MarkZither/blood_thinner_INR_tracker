@@ -43,6 +43,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
     public DbSet<INRTest> INRTests { get; set; } = null!;
     public DbSet<INRSchedule> INRSchedules { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<AuditRecord> AuditRecords { get; set; } = null!;
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
@@ -93,6 +94,22 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
             entity.HasIndex(e => new { e.EntityName, e.EntityId });
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Timestamp);
+        });
+
+        // Configure legacy-style audit records used by the AuditInterceptor
+        modelBuilder.Entity<AuditRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.EntityPublicId);
+            entity.Property(e => e.EntityType).HasMaxLength(100);
+            entity.Property(e => e.PerformedBy);
+            entity.Property(e => e.OccurredAtUtc).IsRequired();
+            entity.Property(e => e.BeforeJson).HasColumnType("TEXT");
+            entity.Property(e => e.AfterJson).HasColumnType("TEXT");
+            entity.HasIndex(e => e.EntityType);
+            entity.HasIndex(e => e.EntityPublicId);
+            entity.HasIndex(e => e.PerformedBy);
         });
     }
 

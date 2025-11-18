@@ -289,7 +289,7 @@ public class MedicalReminderService : BackgroundService
         {
             Id = Guid.NewGuid().ToString(),
             Type = "MedicationReminder",
-            MedicationId = medication.Id,
+            MedicationId = medication.PublicId.ToString(),
             MedicationName = medication.Name,
             Dosage = medication.Dosage,
             DosageUnit = medication.DosageUnit,
@@ -302,9 +302,9 @@ public class MedicalReminderService : BackgroundService
         };
 
         // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
-        await notificationService.SendMedicationReminderAsync(
-            new List<string> { medication.User.PublicId.ToString() },
-            reminder);
+            await notificationService.SendMedicationReminderAsync(
+                new List<Guid> { medication.User.PublicId },
+                reminder);
 
         _logger.LogInformation("Sent medication reminder for {MedicationName} to user {UserPublicId}",
             medication.Name, medication.User.PublicId);
@@ -342,9 +342,9 @@ public class MedicalReminderService : BackgroundService
         };
 
         // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
-        await notificationService.SendINRReminderAsync(
-            new List<string> { schedule.User.PublicId.ToString() },
-            reminder);
+            await notificationService.SendINRReminderAsync(
+                new List<Guid> { schedule.User.PublicId },
+                reminder);
 
         _logger.LogInformation("Sent INR test reminder for schedule {SchedulePublicId} to user {UserPublicId}",
             schedule.PublicId, schedule.User.PublicId);
@@ -390,9 +390,9 @@ public class MedicalReminderService : BackgroundService
             };
 
             // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
-            await notificationService.SendCriticalAlertAsync(
-                new List<string> { medication.User.PublicId.ToString() },
-                alert);
+                await notificationService.SendCriticalAlertAsync(
+                    new List<Guid> { medication.User.PublicId },
+                    alert);
         }
     }
 
@@ -432,9 +432,9 @@ public class MedicalReminderService : BackgroundService
             };
 
             // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
-            await notificationService.SendCriticalAlertAsync(
-                new List<string> { schedule.User.PublicId.ToString() },
-                alert);
+                await notificationService.SendCriticalAlertAsync(
+                    new List<Guid> { schedule.User.PublicId },
+                    alert);
         }
     }
 
@@ -478,7 +478,7 @@ public class MedicalReminderService : BackgroundService
 
             // ⚠️ SECURITY: Use PublicId (GUID) for external notifications, not internal int ID
             await notificationService.SendCriticalAlertAsync(
-                new List<string> { test.User.PublicId.ToString() },
+                new List<Guid> { test.User.PublicId },
                 alert);
         }
     }

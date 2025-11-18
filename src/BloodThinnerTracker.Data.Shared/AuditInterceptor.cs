@@ -58,21 +58,24 @@ namespace BloodThinnerTracker.Data.Shared
                 {
                     if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.PublicId)))
                     {
-                        entityPublicId = entry.CurrentValues.GetValue<Guid?>(nameof(INRTest.PublicId))
-                                         ?? entry.OriginalValues.GetValue<Guid?>(nameof(INRTest.PublicId));
+                        object? cur = entry.CurrentValues[nameof(INRTest.PublicId)];
+                        object? orig = entry.OriginalValues[nameof(INRTest.PublicId)];
+                        entityPublicId = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
                     }
 
                     // Prefer UpdatedBy/DeletedBy properties on the entity for the actor
                     if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.UpdatedBy)))
                     {
-                        performedBy = entry.CurrentValues.GetValue<Guid?>(nameof(INRTest.UpdatedBy))
-                                      ?? entry.OriginalValues.GetValue<Guid?>(nameof(INRTest.UpdatedBy));
+                        object? cur = entry.CurrentValues[nameof(INRTest.UpdatedBy)];
+                        object? orig = entry.OriginalValues[nameof(INRTest.UpdatedBy)];
+                        performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
                     }
 
                     if (performedBy == null && entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.DeletedBy)))
                     {
-                        performedBy = entry.CurrentValues.GetValue<Guid?>(nameof(INRTest.DeletedBy))
-                                      ?? entry.OriginalValues.GetValue<Guid?>(nameof(INRTest.DeletedBy));
+                        object? cur = entry.CurrentValues[nameof(INRTest.DeletedBy)];
+                        object? orig = entry.OriginalValues[nameof(INRTest.DeletedBy)];
+                        performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
                     }
                 }
                 catch
@@ -110,8 +113,8 @@ namespace BloodThinnerTracker.Data.Shared
                     var after = SerializeEntity(entry.CurrentValues);
 
                     // If IsDeleted changed from false->true, mark action as SoftDelete
-                    var origIsDeleted = entry.OriginalValues.Properties.Any(p => p.Name == "IsDeleted") && entry.OriginalValues.GetValue<bool?>("IsDeleted") == true;
-                    var currIsDeleted = entry.CurrentValues.Properties.Any(p => p.Name == "IsDeleted") && entry.CurrentValues.GetValue<bool?>("IsDeleted") == true;
+                    var origIsDeleted = entry.OriginalValues.Properties.Any(p => p.Name == "IsDeleted") && (entry.OriginalValues["IsDeleted"] as bool? == true);
+                    var currIsDeleted = entry.CurrentValues.Properties.Any(p => p.Name == "IsDeleted") && (entry.CurrentValues["IsDeleted"] as bool? == true);
                     // Action is encoded implicitly in AuditLog/record; keep the model simple and rely on metadata if needed
 
                     var audit = new AuditRecord
@@ -134,7 +137,7 @@ namespace BloodThinnerTracker.Data.Shared
                     var audit = new AuditRecord
                     {
                         EntityType = nameof(INRTest),
-                        EntityPublicId = entityPublicId ?? entry.CurrentValues.GetValue<Guid?>(nameof(INRTest.PublicId)),
+                        EntityPublicId = entityPublicId ?? (entry.CurrentValues[nameof(INRTest.PublicId)] is Guid g ? g : (Guid?)null),
                         PerformedBy = performedBy,
                         OccurredAtUtc = DateTime.UtcNow,
                         BeforeJson = null,

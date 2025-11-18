@@ -143,7 +143,7 @@ public class AuthenticationService : IAuthenticationService
             // ⚠️ SECURITY: Use PublicId (GUID) in JWT claims, never internal Id
             var userInfo = new UserInfo
             {
-                Id = user.PublicId.ToString(), // Public-facing GUID
+                PublicId = user.PublicId, // Public-facing GUID
                 Email = user.Email,
                 Name = user.Name,
                 Role = user.Role.ToString(),
@@ -228,7 +228,7 @@ public class AuthenticationService : IAuthenticationService
             // ⚠️ SECURITY: Use PublicId (GUID) in JWT claims, never internal Id
             var userInfo = new UserInfo
             {
-                Id = user.PublicId.ToString(), // Public-facing GUID
+                PublicId = user.PublicId, // Public-facing GUID
                 Email = user.Email,
                 Name = user.Name,
                 Role = user.Role.ToString(),

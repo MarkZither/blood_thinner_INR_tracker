@@ -40,13 +40,13 @@ public class ApiService : IApiService
         {
             await SetAuthenticationHeaderAsync();
             var response = await _httpClient.GetAsync(endpoint);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<TResult>(content, _jsonOptions);
             }
-            
+
             await HandleErrorResponse(response);
             return default;
         }
@@ -64,15 +64,15 @@ public class ApiService : IApiService
             await SetAuthenticationHeaderAsync();
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            
+
             var response = await _httpClient.PostAsync(endpoint, content);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<TResult>(responseContent, _jsonOptions);
             }
-            
+
             await HandleErrorResponse(response);
             return default;
         }
@@ -90,15 +90,15 @@ public class ApiService : IApiService
             await SetAuthenticationHeaderAsync();
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            
+
             var response = await _httpClient.PutAsync(endpoint, content);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<TResult>(responseContent, _jsonOptions);
             }
-            
+
             await HandleErrorResponse(response);
             return default;
         }
@@ -115,12 +115,12 @@ public class ApiService : IApiService
         {
             await SetAuthenticationHeaderAsync();
             var response = await _httpClient.DeleteAsync(endpoint);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return true;
             }
-            
+
             await HandleErrorResponse(response);
             return false;
         }
@@ -149,7 +149,7 @@ public class ApiService : IApiService
         var token = await _authService.GetAuthTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
-            _httpClient.DefaultRequestHeaders.Authorization = 
+            _httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
     }
@@ -158,7 +158,7 @@ public class ApiService : IApiService
     {
         var content = await response.Content.ReadAsStringAsync();
         System.Diagnostics.Debug.WriteLine($"API Error {response.StatusCode}: {content}");
-        
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             await _authService.LogoutAsync();
@@ -176,18 +176,18 @@ public interface IMedicalDataService
     Task<Medication?> AddMedicationAsync(Medication medication);
     Task<Medication?> UpdateMedicationAsync(Medication medication);
     Task<bool> DeleteMedicationAsync(int medicationId);
-    
+
     // Medication logs
     Task<List<MedicationLog>?> GetMedicationLogsAsync(DateTime? fromDate = null, DateTime? toDate = null);
     Task<MedicationLog?> LogMedicationAsync(MedicationLog log);
     Task<MedicationLog?> UpdateMedicationLogAsync(MedicationLog log);
-    
+
     // INR tests
     Task<List<INRTest>?> GetINRTestsAsync(DateTime? fromDate = null, DateTime? toDate = null);
     Task<INRTest?> AddINRTestAsync(INRTest test);
     Task<INRTest?> UpdateINRTestAsync(INRTest test);
-    Task<bool> DeleteINRTestAsync(int testId);
-    
+    Task<bool> DeleteINRTestAsync(Guid testPublicId);
+
     // Statistics
     Task<MedicationAdherenceStats?> GetMedicationAdherenceAsync(DateTime fromDate, DateTime toDate);
     Task<INRStats?> GetINRStatsAsync(DateTime fromDate, DateTime toDate);
@@ -234,7 +234,7 @@ public class MedicalDataService : IMedicalDataService
             if (toDate.HasValue) query.Add($"toDate={toDate.Value:yyyy-MM-dd}");
             endpoint += "?" + string.Join("&", query);
         }
-        
+
         return await _apiService.GetAsync<List<MedicationLog>>(endpoint);
     }
 
@@ -259,7 +259,7 @@ public class MedicalDataService : IMedicalDataService
             if (toDate.HasValue) query.Add($"toDate={toDate.Value:yyyy-MM-dd}");
             endpoint += "?" + string.Join("&", query);
         }
-        
+
         return await _apiService.GetAsync<List<INRTest>>(endpoint);
     }
 
@@ -270,12 +270,14 @@ public class MedicalDataService : IMedicalDataService
 
     public async Task<INRTest?> UpdateINRTestAsync(INRTest test)
     {
-        return await _apiService.PutAsync<INRTest, INRTest>($"inrtests/{test.Id}", test);
+        // Use PublicId (GUID) for API routes
+        var publicId = test.PublicId != Guid.Empty ? test.PublicId : Guid.Empty;
+        return await _apiService.PutAsync<INRTest, INRTest>($"inrtests/{publicId}", test);
     }
 
-    public async Task<bool> DeleteINRTestAsync(int testId)
+    public async Task<bool> DeleteINRTestAsync(Guid testPublicId)
     {
-        return await _apiService.DeleteAsync($"inrtests/{testId}");
+        return await _apiService.DeleteAsync($"inrtests/{testPublicId}");
     }
 
     // Statistics

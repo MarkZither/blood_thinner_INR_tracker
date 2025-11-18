@@ -102,17 +102,17 @@ public class JwtTokenService : IJwtTokenService
         {
             var claims = new List<Claim>
             {
-                new(ClaimTypes.NameIdentifier, user.Id),
+                new(ClaimTypes.NameIdentifier, user.PublicId.ToString()),
                 new(ClaimTypes.Email, user.Email),
                 new(ClaimTypes.Name, user.Name),
                 new(ClaimTypes.Role, user.Role),
                 new("provider", user.Provider),
                 new("timezone", user.TimeZone),
-                new(JwtRegisteredClaimNames.Sub, user.Id),
+                new(JwtRegisteredClaimNames.Sub, user.PublicId.ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(JwtRegisteredClaimNames.Iat, 
-                    new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(), 
+                new(JwtRegisteredClaimNames.Iat,
+                    new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
                     ClaimValueTypes.Integer64),
                 new("medical_data_access", "true") // Medical data access flag
             };
@@ -124,7 +124,7 @@ public class JwtTokenService : IJwtTokenService
             }
 
             // Add device security claims if available
-            if (!string.IsNullOrEmpty(user.Id))
+            if (user.PublicId != Guid.Empty)
             {
                 claims.Add(new Claim("device_verified", "true"));
             }
@@ -145,14 +145,14 @@ public class JwtTokenService : IJwtTokenService
             var token = _tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = _tokenHandler.WriteToken(token);
 
-            _logger.LogInformation("Generated access token for user {UserId} with {PermissionCount} permissions", 
-                user.Id, permissions.Count());
+            _logger.LogInformation("Generated access token for user {UserPublicId} with {PermissionCount} permissions",
+                user.PublicId, permissions.Count());
 
             return tokenString;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate access token for user {UserId}", user.Id);
+            _logger.LogError(ex, "Failed to generate access token for user {UserPublicId}", user.PublicId);
             throw new InvalidOperationException("Failed to generate access token", ex);
         }
     }
@@ -195,7 +195,7 @@ public class JwtTokenService : IJwtTokenService
             var principal = _tokenHandler.ValidateToken(token, _validationParameters, out var validatedToken);
 
             // Additional medical security validations
-            if (validatedToken is not JwtSecurityToken jwtToken || 
+            if (validatedToken is not JwtSecurityToken jwtToken ||
                 !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
                 _logger.LogWarning("Token validation failed: invalid algorithm");

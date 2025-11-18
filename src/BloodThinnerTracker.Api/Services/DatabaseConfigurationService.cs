@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.DataProtection;
 using BloodThinnerTracker.Data.Shared;
+using System.Data;
+using System.Data.Common;
 
 namespace BloodThinnerTracker.Api.Services;
 
@@ -464,6 +466,7 @@ public static class DatabaseConfigurationExtensions
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseConfigurationService>>();
         var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
         try
         {
@@ -478,7 +481,7 @@ public static class DatabaseConfigurationExtensions
             var cancellationToken = cts.Token;
 
             // Apply migrations with retry logic for database creation race conditions
-            await TryApplyMigrationsWithRetry(dbContext, logger, environment, cancellationToken);
+            await TryApplyMigrationsWithRetry(dbContext, logger, environment, configuration, cancellationToken);
         }
         catch (TimeoutException)
         {
@@ -499,6 +502,7 @@ public static class DatabaseConfigurationExtensions
         DbContext dbContext,
         ILogger<DatabaseConfigurationService> logger,
         IWebHostEnvironment environment,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
         const int maxRetries = 10;
@@ -508,7 +512,7 @@ public static class DatabaseConfigurationExtensions
         {
             try
             {
-                await ApplyPendingMigrations(dbContext, logger, environment, cancellationToken);
+                await ApplyPendingMigrations(dbContext, logger, environment, configuration, cancellationToken);
 
                 // Success - break out of retry loop
                 break;
@@ -549,6 +553,7 @@ public static class DatabaseConfigurationExtensions
         DbContext dbContext,
         ILogger<DatabaseConfigurationService> logger,
         IWebHostEnvironment environment,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
         // Check if database exists and has tables
@@ -564,31 +569,84 @@ public static class DatabaseConfigurationExtensions
         if (!canConnect || pendingMigrations.Any())
         {
             logger.LogInformation("Initializing medical database...");
+            // We'll use a server-side advisory lock for provider databases that support it (Postgres, SQL Server)
+            // so that only one instance attempts to apply migrations at a time when running app-start migrations.
+            var lockAcquired = false;
+            DbConnection? openedConnection = null;
 
-            // Apply pending migrations (this will create the database if it doesn't exist)
-            if (pendingMigrations.Any())
+            try
             {
-                logger.LogInformation("Applying {Count} pending database migrations: {Migrations}",
-                    pendingMigrations.Count(),
-                    string.Join(", ", pendingMigrations));
-
-                try
+                // Open connection explicitly so session-scoped locks (Postgres/SQL Server) are held on this session
+                openedConnection = dbContext.Database.GetDbConnection();
+                if (openedConnection.State != ConnectionState.Open)
                 {
-                    await dbContext.Database.MigrateAsync(cancellationToken);
-                    logger.LogInformation("Database migrations applied successfully");
+                    await dbContext.Database.OpenConnectionAsync(cancellationToken);
                 }
-                catch (OperationCanceledException)
+
+                    // Read configuration for migration locking behavior
+                    var requireLock = configuration.GetValue<bool>("Database:MigrationLock:Require", false);
+                    var postgresBlock = configuration.GetValue<bool>("Database:MigrationLock:PostgresBlock", false);
+
+                    // Try to acquire provider-specific migration lock. If acquiring fails, we log and continue or fail based on config.
+                    lockAcquired = await TryAcquireMigrationLockAsync(dbContext, logger, postgresBlock, cancellationToken);
+                    if (!lockAcquired && requireLock)
+                    {
+                        // Requirement to obtain a lock failed - fail fast to avoid concurrent migrations
+                        throw new InvalidOperationException("Migration lock was required but could not be obtained");
+                    }
+
+                // Apply pending migrations (this will create the database if it doesn't exist)
+                if (pendingMigrations.Any())
                 {
-                    logger.LogError("Database migration timed out after 5 minutes");
-                    throw new TimeoutException("Database migration operation timed out");
+                    logger.LogInformation("Applying {Count} pending database migrations: {Migrations}",
+                        pendingMigrations.Count(),
+                        string.Join(", ", pendingMigrations));
+
+                    try
+                    {
+                        await dbContext.Database.MigrateAsync(cancellationToken);
+                        logger.LogInformation("Database migrations applied successfully");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        logger.LogError("Database migration timed out after 5 minutes");
+                        throw new TimeoutException("Database migration operation timed out");
+                    }
+                }
+                else if (!canConnect)
+                {
+                    // If no migrations are pending but database doesn't exist, create it
+                    logger.LogInformation("Creating database schema...");
+                    await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+                    logger.LogInformation("Database created successfully");
                 }
             }
-            else if (!canConnect)
+            finally
             {
-                // If no migrations are pending but database doesn't exist, create it
-                logger.LogInformation("Creating database schema...");
-                await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-                logger.LogInformation("Database created successfully");
+                // Always attempt to release the lock if we acquired it, then close the connection we opened
+                if (lockAcquired)
+                {
+                    try
+                    {
+                        await TryReleaseMigrationLockAsync(dbContext, logger, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly");
+                    }
+                }
+
+                if (openedConnection != null && openedConnection.State == ConnectionState.Open)
+                {
+                    try
+                    {
+                        await dbContext.Database.CloseConnectionAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogDebug(ex, "Error closing database connection after migrations");
+                    }
+                }
             }
         }
         else
@@ -600,5 +658,136 @@ public static class DatabaseConfigurationExtensions
         var databaseProvider = dbContext.Database.ProviderName;
         logger.LogInformation("Medical database initialized successfully using {Provider} for {Environment}",
             databaseProvider, environment.EnvironmentName);
+    }
+
+    /// <summary>
+    /// Attempts to acquire a provider-specific advisory lock to serialize migrations across instances.
+    /// Returns true if the lock was acquired (or if locking is unsupported), false if lock could not be obtained.
+    /// </summary>
+    private static async Task<bool> TryAcquireMigrationLockAsync(DbContext dbContext, ILogger<DatabaseConfigurationService> logger, bool postgresBlock, CancellationToken cancellationToken)
+    {
+        var provider = dbContext.Database.ProviderName ?? string.Empty;
+
+        try
+        {
+            var conn = dbContext.Database.GetDbConnection();
+            // Ensure connection is open
+            if (conn.State != ConnectionState.Open)
+            {
+                await dbContext.Database.OpenConnectionAsync(cancellationToken);
+            }
+
+            using var cmd = conn.CreateCommand();
+
+            if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) || provider.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                // Use a fixed advisory lock key. This is a large signed bigint.
+                const long lockKey = 4242424242424242L;
+                var param = cmd.CreateParameter();
+                param.ParameterName = "p0";
+                param.Value = lockKey;
+                cmd.Parameters.Add(param);
+
+                if (postgresBlock)
+                {
+                    // Blocking lock - will wait until lock is obtained. Use cancellation token via command timeout if desired.
+                    cmd.CommandText = "SELECT pg_advisory_lock($1); SELECT 1;";
+                    var result = await cmd.ExecuteScalarAsync(cancellationToken);
+                    // If we return, lock was acquired
+                    logger.LogInformation("Postgres advisory lock (blocking) acquired");
+                    return true;
+                }
+                else
+                {
+                    // Non-blocking try-lock
+                    cmd.CommandText = "SELECT pg_try_advisory_lock($1);";
+                    var result = await cmd.ExecuteScalarAsync(cancellationToken);
+                    if (result is bool b)
+                    {
+                        logger.LogInformation("Postgres advisory lock attempt returned {Result}", b);
+                        return b;
+                    }
+
+                    return Convert.ToInt32(result) == 1;
+                }
+            }
+            else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) || provider.Contains("Microsoft.Data.SqlClient", StringComparison.OrdinalIgnoreCase))
+            {
+                // Use sp_getapplock to request an exclusive lock for this session.
+                cmd.CommandText = "DECLARE @result int; EXEC @result = sp_getapplock @Resource = @res, @LockMode = 'Exclusive', @LockTimeout = 60000, @LockOwner = 'Session'; SELECT @result;";
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@res";
+                param.Value = "BloodThinnerTracker_Migrations";
+                cmd.Parameters.Add(param);
+
+                var result = await cmd.ExecuteScalarAsync(cancellationToken);
+                var status = Convert.ToInt32(result);
+                // Per sp_getapplock docs, >= 0 is success
+                var success = status >= 0;
+                logger.LogInformation("SQL Server sp_getapplock returned {Status}", status);
+                return success;
+            }
+
+            // Provider does not support advisory locks (e.g., SQLite) - treat as locked/OK
+            logger.LogDebug("Database provider {Provider} does not support advisory locks; proceeding without lock", provider);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to acquire migration advisory lock - proceeding without lock");
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Attempts to release a provider-specific advisory lock. Exceptions are logged but do not stop shutdown.
+    /// </summary>
+    private static async Task TryReleaseMigrationLockAsync(DbContext dbContext, ILogger<DatabaseConfigurationService> logger, CancellationToken cancellationToken)
+    {
+        var provider = dbContext.Database.ProviderName ?? string.Empty;
+
+        try
+        {
+            var conn = dbContext.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+            {
+                // Nothing to do if connection isn't open
+                return;
+            }
+
+            using var cmd = conn.CreateCommand();
+
+            if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) || provider.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                const long lockKey = 4242424242424242L;
+                cmd.CommandText = "SELECT pg_advisory_unlock($1);";
+                var param = cmd.CreateParameter();
+                param.ParameterName = "p0";
+                param.Value = lockKey;
+                cmd.Parameters.Add(param);
+
+                var result = await cmd.ExecuteScalarAsync(cancellationToken);
+                logger.LogInformation("Postgres advisory unlock result: {Result}", result);
+            }
+            else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) || provider.Contains("Microsoft.Data.SqlClient", StringComparison.OrdinalIgnoreCase))
+            {
+                cmd.CommandText = "EXEC sp_releaseapplock @Resource = @res, @LockOwner = 'Session';";
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@res";
+                param.Value = "BloodThinnerTracker_Migrations";
+                cmd.Parameters.Add(param);
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                logger.LogInformation("SQL Server sp_releaseapplock executed");
+            }
+            else
+            {
+                logger.LogDebug("No advisory lock to release for provider {Provider}", provider);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to release advisory lock");
+        }
     }
 }

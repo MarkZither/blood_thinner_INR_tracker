@@ -23,28 +23,21 @@ public class DatabaseMigrationHostedService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Database migration service starting...");
-
         try
         {
-            // Run migrations in a background task so the app can start accepting requests
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    _logger.LogInformation("Beginning database migration...");
-                    await _serviceProvider.EnsureDatabaseAsync();
-                    _logger.LogInformation("Database migration completed successfully");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Database migration failed");
-                    // Don't crash the app - let it stay running so we can diagnose the issue
-                }
-            }, cancellationToken);
+            // Run migrations synchronously during host startup so the application
+            // does not accept requests that may write to schema elements which
+            // are not yet created (prevents 'no such table' errors).
+            _logger.LogInformation("Beginning database migration...");
+            await _serviceProvider.EnsureDatabaseAsync();
+            _logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start database migration");
+            // Log and rethrow to fail fast if migrations cannot be applied - this
+            // avoids running the application with a partially-initialized schema.
+            _logger.LogError(ex, "Database migration failed during startup");
+            throw;
         }
     }
 

@@ -1,6 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
@@ -80,9 +83,17 @@ namespace BloodThinnerTracker.Api.Tests
         }
 
         // Minimal test helpers
+        // Lightweight IDataProtectionProvider for tests - performs no encryption, just returns bytes as-is.
         private class EphemeralDataProtectionProvider : IDataProtectionProvider
         {
-            public Microsoft.AspNetCore.DataProtection.IDataProtector CreateProtector(string purpose) => throw new NotImplementedException();
+            public Microsoft.AspNetCore.DataProtection.IDataProtector CreateProtector(string purpose) => new SimpleDataProtector();
+        }
+
+        private class SimpleDataProtector : Microsoft.AspNetCore.DataProtection.IDataProtector
+        {
+            public Microsoft.AspNetCore.DataProtection.IDataProtector CreateProtector(string purpose) => this;
+            public byte[] Protect(byte[] plaintext) => plaintext ?? Array.Empty<byte>();
+            public byte[] Unprotect(byte[] protectedData) => protectedData ?? Array.Empty<byte>();
         }
 
         private class TestCurrentUserService : ICurrentUserService
