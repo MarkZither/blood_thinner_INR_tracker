@@ -10,16 +10,17 @@
 - [x] T009-005: Implement PATCH /api/inr/{id} endpoint
 - [x] T009-006: Implement DELETE /api/inr/{id} endpoint (soft-delete)
 - [x] T009-007: Update read queries to exclude soft-deleted entries by default
-- [ ] T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring
-- [ ] T009-009: Add unit/integration tests for API and interceptor
+- [x] T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring
+- [x] T009-009: Add unit/integration tests for API and interceptor
 - [x] T009-010: Update quickstart and docs, migration notes
 - [ ] T009-011: Run build, tests, and fix issues
+ - [x] T009-011: Run build, tests, and fix issues
 - [x] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
 - [ ] T009-013: Test coverage plan & CI gate
 - [ ] T009-014: Ensure CS1591 suppression is temporary and removed
 
 
-**Status**: Not Started
+**Status**: In Progress
 **Branch**: `009-bug-fix-editing`
 **Created**: 2025-11-16
 
@@ -159,7 +160,7 @@ Important UI note (root cause): The Delete action from the Web UI must pass `Pub
 **Dependencies**: T009-001
 
 ### T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 3 hours
 **Files/Locations**:
 - `src/BloodThinnerTracker.Web/Components/Pages/INREdit.razor` (update form to PATCH)
@@ -177,7 +178,7 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: T009-005, T009-006, T009-007
 
 ### T009-009: Add unit/integration tests for API and interceptor [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 4 hours
 **Files/Locations**:
 - `tests/BloodThinnerTracker.Api.Tests/INRControllerTests.cs` (new tests)
@@ -205,13 +206,14 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: T009-001, T009-005, T009-006
 
 ### T009-011: Run build, tests, and fix issues [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 1-2 hours
 **Files/Locations**:
 - root solution
 **Description**: Run `dotnet build` and `dotnet test`, fix any compilation, lint, or test failures introduced by the changes.
 **Acceptance**:
 - Build passes and tests pass
+**Notes**: Build and tests passed locally on branch `009-bug-fix-editing` (unit + integration tests relevant to this feature).
 **Dependencies**: all previous tasks
 
 ### T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue [P2]

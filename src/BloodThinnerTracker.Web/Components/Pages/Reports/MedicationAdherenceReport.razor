@@ -14,7 +14,7 @@
         <div class="d-flex align-items-center">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <div>
-                <strong>Medical Disclaimer:</strong> This report is for tracking purposes only. 
+                <strong>Medical Disclaimer:</strong> This report is for tracking purposes only.
                 Never skip or double doses without consulting your healthcare provider.
             </div>
         </div>
@@ -52,7 +52,7 @@
                         {
                             @foreach (var med in medications)
                             {
-                                <option value="@med.Id">@med.Name</option>
+                                <option value="@med.PublicId">@med.Name</option>
                             }
                         }
                     </select>
@@ -224,7 +224,7 @@
     private List<Medication>? medications;
     private int selectedPeriod = 30;
     private string selectedMedicationId = "";
-    
+
     // Statistics
     private int adherenceRate = 0;
     private int dosesTaken = 0;
@@ -243,7 +243,7 @@
         {
             // TODO: T018d - Replace with actual API endpoint
             // medications = await Http.GetFromJsonAsync<List<Medication>>("/api/medications");
-            
+
             // Mock data for now
             medications = new List<Medication>();
         }
@@ -259,7 +259,7 @@
         {
             var fromDate = DateTime.Now.AddDays(-selectedPeriod);
             var url = $"/api/medication-logs?from={fromDate:yyyy-MM-dd}";
-            
+
             if (!string.IsNullOrEmpty(selectedMedicationId))
             {
                 url += $"&medicationId={selectedMedicationId}";
@@ -267,10 +267,10 @@
 
             // TODO: T018d - Replace with actual API endpoint
             // logs = await Http.GetFromJsonAsync<List<MedicationLog>>(url);
-            
+
             // Mock data for now
             logs = new List<MedicationLog>();
-            
+
             // Calculate statistics
             CalculateStatistics();
         }
@@ -294,10 +294,10 @@
 
         dosesTaken = logs.Count(l => l.Status == MedicationLogStatus.Taken);
         dosesMissed = logs.Count(l => l.Status == MedicationLogStatus.Skipped);
-        
+
         var totalExpectedDoses = logs.Count;
-        adherenceRate = totalExpectedDoses > 0 
-            ? (int)Math.Round((double)dosesTaken / totalExpectedDoses * 100) 
+        adherenceRate = totalExpectedDoses > 0
+            ? (int)Math.Round((double)dosesTaken / totalExpectedDoses * 100)
             : 0;
 
         // Calculate current streak (consecutive days with all doses taken)
