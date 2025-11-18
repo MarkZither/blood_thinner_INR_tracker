@@ -42,7 +42,7 @@ jobs:
             echo "Running tests for: $proj"
             # Use XPlat collector provided by coverlet.collector package referenced in test projects
             # Use coverage runsettings to exclude migrations, generated files and provider assemblies
-            dotnet test "$proj" -c Release --nologo --collect:"XPlat Code Coverage" --settings "coverage/coverage.runsettings"
+            dotnet test "$proj" -c Release --nologo --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
           done
 
       - name: Merge coverage reports (HTML)
