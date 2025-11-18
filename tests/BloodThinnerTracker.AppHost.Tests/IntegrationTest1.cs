@@ -21,7 +21,7 @@ public sealed class AppHostFixture : IAsyncLifetime
     {
         var cancellationToken = CancellationToken.None;
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.BloodThinnerTracker_AppHost>(cancellationToken);
-        
+
         appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {
             clientBuilder.AddStandardResilienceHandler();
