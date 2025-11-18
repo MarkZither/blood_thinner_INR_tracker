@@ -25,11 +25,18 @@ public sealed class AppHostFixture : IAsyncLifetime
         appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {
             clientBuilder.AddStandardResilienceHandler();
-            // In CI the AppHost uses a self-signed certificate; accept it for test HTTP clients.
-            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+
+            // Only accept dangerous self-signed certificates when running in CI
+            // (many CI runners set the `CI` env var to "true"). This keeps local
+            // developer runs strict while allowing CI to succeed with test certs.
+            var isCi = string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase);
+            if (isCi)
             {
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            });
+                clientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                });
+            }
         });
 
         _app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
