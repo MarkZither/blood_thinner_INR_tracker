@@ -13,11 +13,10 @@
 - [x] T009-008: Update Web UI (MudBlazor) - Edit form and Delete confirmation wiring
 - [x] T009-009: Add unit/integration tests for API and interceptor
 - [x] T009-010: Update quickstart and docs, migration notes
-- [ ] T009-011: Run build, tests, and fix issues
- - [x] T009-011: Run build, tests, and fix issues
+- [x] T009-011: Run build, tests, and fix issues
 - [x] T009-012: Suppress CS1591 compiler warnings and create follow-up API docs issue
-- [ ] T009-013: Test coverage plan & CI gate
-- [ ] T009-014: Ensure CS1591 suppression is temporary and removed
+- [x] T009-013: Test coverage plan & CI gate
+- [x] T009-014: Ensure CS1591 suppression is temporary and removed
 
 
 **Status**: In Progress
@@ -232,7 +231,7 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: none
 
 ### T009-013: Test coverage plan & CI gate [P1]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 4 hours
 **Files/Locations**:
 - `specs/009-bug-fix-editing/tasks.md` (update)
@@ -245,7 +244,7 @@ Root cause note: The current INR list implementation used the internal `Id` in O
 **Dependencies**: T009-009
 
 ### T009-014: Ensure CS1591 suppression is temporary and removed [P2]
-**Status**: not-started
+**Status**: completed
 **Estimate**: 0.5 hours
 **Files/Locations**:
 - `Directory.Build.props` (change to remove NoWarn)
