@@ -72,7 +72,7 @@ jobs:
 
           $thresholds = @{
             'BloodThinnerTracker.Data.Shared' = 90
-            'BloodThinnerTracker.Api' = 35
+            'BloodThinnerTracker.Api' = 38
           }
 
           $fail = $false
