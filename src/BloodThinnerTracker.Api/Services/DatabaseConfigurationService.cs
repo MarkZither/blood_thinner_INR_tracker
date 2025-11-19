@@ -789,7 +789,7 @@ public static class DatabaseConfigurationExtensions
                 logger.LogDebug("No advisory lock to release for provider {Provider}", provider);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and ex is not StackOverflowException and ex is not ThreadAbortException)
         {
         catch (OperationCanceledException)
         {
