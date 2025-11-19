@@ -61,6 +61,12 @@ jobs:
           name: coverage-report
           path: coverage/report
 
+      - name: Upload coverage summary (text)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage/report-summary
+
       - name: Enforce per-assembly thresholds
         shell: pwsh
         run: |
@@ -78,13 +84,43 @@ jobs:
           $fail = $false
           foreach ($assembly in $thresholds.Keys) {
             $min = $thresholds[$assembly]
-            $pattern = [regex]::Escape($assembly) + '\s+(\d+)%'
-            $m = [regex]::Match($summary, $pattern)
-            if (-not $m.Success) {
+
+            # Try a few regex strategies because ReportGenerator output can vary:
+            # 1) Exact assembly name followed by percentage (e.g. "AssemblyName 85%")
+            # 2) Assembly DLL name (AssemblyName.dll 85%)
+            # 3) Any line containing the assembly name with a percent value somewhere on the line
+            $pct = $null
+
+            $opts = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+
+            $patterns = @(
+              [regex]::Escape($assembly) + '\s+(\d+(?:\.\d+)?)%'
+              , [regex]::Escape($assembly) + '\.dll\s+(\d+(?:\.\d+)?)%'
+              , [regex]::Escape(($assembly -split '\.')[-1]) + '.*?(\d+(?:\.\d+)?)%'
+              , '^(?:.*' + [regex]::Escape($assembly) + '.*?)(\d+(?:\.\d+)?)%'  # any line containing assembly then percent
+            )
+
+            foreach ($pat in $patterns) {
+              $m = [regex]::Match($summary, $pat, $opts -bor [System.Text.RegularExpressions.RegexOptions]::Singleline)
+              if ($m.Success) {
+                # Groups[1] contains the percent number (may be decimal). Convert to int (round)
+                $raw = $m.Groups[1].Value
+                try {
+                  $pct = [int][math]::Round([double]$raw)
+                } catch {
+                  $pct = [int]$raw
+                }
+                break
+              }
+            }
+
+            if (-not $pct) {
               Write-Host "Assembly '$assembly' not found in summary. Treating as failure."
+              Write-Host "---- Coverage summary (for debugging) ----"
+              Write-Host $summary
+              Write-Host "-----------------------------------------"
               $fail = $true
             } else {
-              $pct = [int]$m.Groups[1].Value
               Write-Host "Assembly ${assembly}: ${pct}% (threshold ${min}%)"
               if ($pct -lt $min) {
                 Write-Host "Threshold failed for ${assembly}: ${pct}% < ${min}%"
