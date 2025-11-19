@@ -41,6 +41,49 @@ public sealed class AppHostFixture : IAsyncLifetime
 
         _app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
         await _app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+
+        // On CI runners containers/images can take significantly longer to become healthy
+        // Pre-wait for core resources so individual tests don't fail with short timeouts.
+        var isCi = string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase)
+                   || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
+
+        if (isCi)
+        {
+            var prewaitTimeout = TimeSpan.FromMinutes(5);
+            var ct = CancellationToken.None;
+            try
+            {
+                // Wait for database first (may require image pull).
+                await _app.ResourceNotifications.WaitForResourceHealthyAsync("postgres", ct).WaitAsync(prewaitTimeout, ct);
+            }
+            catch (Exception ex)
+            {
+                // Do not throw here - surface a helpful log so CI output shows what happened,
+                // but allow tests to run; individual tests will still assert resource health.
+                var logger = _app.Services.GetService<ILogger<AppHostFixture>>();
+                logger?.LogWarning(ex, "Pre-wait for 'postgres' failed or timed out in CI.");
+            }
+
+            try
+            {
+                await _app.ResourceNotifications.WaitForResourceHealthyAsync("api", ct).WaitAsync(prewaitTimeout, ct);
+            }
+            catch (Exception ex)
+            {
+                var logger = _app.Services.GetService<ILogger<AppHostFixture>>();
+                logger?.LogWarning(ex, "Pre-wait for 'api' failed or timed out in CI.");
+            }
+
+            try
+            {
+                await _app.ResourceNotifications.WaitForResourceHealthyAsync("web", ct).WaitAsync(prewaitTimeout, ct);
+            }
+            catch (Exception ex)
+            {
+                var logger = _app.Services.GetService<ILogger<AppHostFixture>>();
+                logger?.LogWarning(ex, "Pre-wait for 'web' failed or timed out in CI.");
+            }
+        }
     }
 
     public async Task DisposeAsync()
