@@ -630,9 +630,13 @@ public static class DatabaseConfigurationExtensions
                     {
                         await TryReleaseMigrationLockAsync(dbContext, logger, CancellationToken.None);
                     }
-                    catch (Exception ex)
+                    catch (DbException ex)
                     {
-                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly");
+                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly (DbException)");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly (InvalidOperationException)");
                     }
                 }
 
@@ -691,7 +695,7 @@ public static class DatabaseConfigurationExtensions
                 if (postgresBlock)
                 {
                     // Blocking lock - will wait until lock is obtained. Use cancellation token via command timeout if desired.
-                    cmd.CommandText = "SELECT pg_advisory_lock($1); SELECT 1;";
+                    cmd.CommandText = "SELECT pg_advisory_lock($1);";
                     var result = await cmd.ExecuteScalarAsync(cancellationToken);
                     // If we return, lock was acquired
                     logger.LogInformation("Postgres advisory lock (blocking) acquired");
@@ -785,9 +789,32 @@ public static class DatabaseConfigurationExtensions
                 logger.LogDebug("No advisory lock to release for provider {Provider}", provider);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and ex is not StackOverflowException and ex is not ThreadAbortException)
         {
-            logger.LogWarning(ex, "Failed to release advisory lock");
+        catch (OperationCanceledException)
+        {
+            // Propagate cancellation
+            throw;
         }
+        catch (DbException dbEx)
+        {
+            logger.LogWarning(dbEx, "Database error while releasing advisory lock");
+        }
+        catch (InvalidOperationException invOpEx)
+        {
+            logger.LogWarning(invOpEx, "Invalid operation while releasing advisory lock");
+        }
+    }
+    }
+
+    /// <summary>
+    /// Determines if the exception is critical and should not be caught.
+    /// </summary>
+    private static bool IsCriticalException(Exception ex)
+    {
+        return ex is OutOfMemoryException
+            || ex is StackOverflowException
+            || ex is AccessViolationException
+            || ex is System.Threading.ThreadAbortException;
     }
 }
