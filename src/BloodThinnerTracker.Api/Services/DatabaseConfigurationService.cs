@@ -630,9 +630,13 @@ public static class DatabaseConfigurationExtensions
                     {
                         await TryReleaseMigrationLockAsync(dbContext, logger, CancellationToken.None);
                     }
-                    catch (Exception ex)
+                    catch (DbException ex)
                     {
-                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly");
+                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly (DbException)");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        logger.LogWarning(ex, "Failed to release migration advisory lock cleanly (InvalidOperationException)");
                     }
                 }
 
