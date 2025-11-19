@@ -791,7 +791,20 @@ public static class DatabaseConfigurationExtensions
         }
         catch (Exception ex)
         {
+            if (IsCriticalException(ex))
+                throw;
             logger.LogWarning(ex, "Failed to release advisory lock");
         }
+    }
+
+    /// <summary>
+    /// Determines if the exception is critical and should not be caught.
+    /// </summary>
+    private static bool IsCriticalException(Exception ex)
+    {
+        return ex is OutOfMemoryException
+            || ex is StackOverflowException
+            || ex is AccessViolationException
+            || ex is System.Threading.ThreadAbortException;
     }
 }
