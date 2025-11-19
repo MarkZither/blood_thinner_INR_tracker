@@ -34,8 +34,10 @@ public class INRService : IINRService
             if (queryParams.Any())
                 url += "?" + string.Join("&", queryParams);
 
-            var response = await _httpClient.GetFromJsonAsync<INRTestListResponse>(url);
-            return response?.Tests ?? new List<INRTest>();
+            // API returns a list of INRTestResponse DTOs. Map each to the client INRTest domain model.
+            var dtos = await _httpClient.GetFromJsonAsync<List<INRTestResponse>>(url);
+            if (dtos == null) return new List<INRTest>();
+            return dtos.Select(MapResponseToEntity).ToList();
         }
         catch (Exception ex)
         {
@@ -48,11 +50,24 @@ public class INRService : IINRService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<INRTest>($"{BaseUrl}/{testId}");
+            var url = $"{BaseUrl}/{testId}";
+            // Use GetAsync so we can log response body on 404 for diagnostics
+            using var resp = await _httpClient.GetAsync(url);
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("INR test {TestId} not found for URL {Url}. Response: {Body}", testId, url, body);
+                return null;
+            }
+
+            resp.EnsureSuccessStatusCode();
+            var dto = await resp.Content.ReadFromJsonAsync<INRTestResponse>();
+            if (dto == null) return null;
+            return MapResponseToEntity(dto);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("INR test {TestId} not found", testId);
+            _logger.LogWarning(ex, "INR test {TestId} not found (HttpRequestException)", testId);
             return null;
         }
         catch (Exception ex)
@@ -68,11 +83,11 @@ public class INRService : IINRService
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, test);
             response.EnsureSuccessStatusCode();
-            
+
             // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
             var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize created test");
-            
+
             return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
@@ -86,18 +101,20 @@ public class INRService : IINRService
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{test.Id}", test);
+            // Use PublicId for API route
+            var publicId = test.PublicId; // should be set by caller
+            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{publicId}", test);
             response.EnsureSuccessStatusCode();
-            
+
             // FIX: API returns INRTestResponse with string IDs (GUIDs), convert to INRTest with int IDs
             var responseDto = await response.Content.ReadFromJsonAsync<INRTestResponse>()
                 ?? throw new InvalidOperationException("Failed to deserialize updated test");
-            
+
             return MapResponseToEntity(responseDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating INR test {TestId}", test.Id);
+            _logger.LogError(ex, "Error updating INR test {TestPublicId}", test.PublicId);
             throw;
         }
     }
@@ -139,8 +156,9 @@ public class INRService : IINRService
     {
         return new INRTest
         {
-            // Note: Cannot parse GUID string to int, so set to 0
-            // The UI should use PublicId (GUID) for operations, not int Id
+            // Map typed PublicId from API response
+            PublicId = response.PublicId,
+            // Note: Client's internal int IDs are not used for API calls; preserve 0
             Id = 0,
             UserId = 0,
             TestDate = response.TestDate,

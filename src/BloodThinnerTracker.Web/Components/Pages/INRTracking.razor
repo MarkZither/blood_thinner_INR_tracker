@@ -9,7 +9,9 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-<PageTitle>INR Tracking - Blood Thinner Tracker</PageTitle>
+                    // Preserve PublicId (GUID) for client-side navigation and API calls
+                    // (use typed PublicId from the API DTO)
+                    PublicId = r.PublicId,
 
 <AuthorizeView>
     <Authorized>
@@ -257,12 +259,12 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                               Color="Color.Primary"
                                               Size="Size.Small"
-                                              OnClick="@(() => EditINRTest(test.Id.ToString()))"
+                                              OnClick="@(() => EditINRTest(test.PublicId))"
                                               title="Edit" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                               Color="Color.Error"
                                               Size="Size.Small"
-                                              OnClick="@(() => DeleteINRTest(test.Id.ToString()))"
+                                              OnClick="@(() => DeleteINRTest(test.PublicId))"
                                               title="Delete" />
                             </MudButtonGroup>
                         </MudTd>
@@ -349,8 +351,11 @@
                 // Map response to INRTest entities
                 inrTests = response.Select(r => new INRTest
                 {
-                    Id = int.TryParse(r.Id, out var id) ? id : 0,
-                    UserId = int.TryParse(r.UserId, out var userId) ? userId : 0,
+                    // Keep internal int Id unused when coming from API; prefer PublicId
+                    Id = 0,
+                    PublicId = r.PublicId,
+                    // Server now returns typed Guid PublicId/UserId. The client-side internal int FK is unused here.
+                    UserId = 0,
                     TestDate = r.TestDate,
                     INRValue = r.INRValue,
                     TargetINRMin = r.TargetINRMin,
@@ -497,7 +502,7 @@
         }
     }
 
-    private void EditINRTest(string testId)
+    private void EditINRTest(Guid testId)
     {
         Navigation.NavigateTo($"/inr/edit/{testId}");
     }
@@ -513,7 +518,7 @@
     private void ChangeChartPeriod1Y() => ChangeChartPeriod("1y");
     private void ChangeChartPeriodAll() => ChangeChartPeriod("all");
 
-    private async Task DeleteINRTest(string testId)
+    private async Task DeleteINRTest(Guid testId)
     {
         // Show MudBlazor confirmation dialog
         var result = await DialogService.ShowMessageBox(

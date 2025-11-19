@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ILogger<INREdit> Logger
 @rendermode InteractiveServer
 
 <PageTitle>Edit INR Test</PageTitle>
@@ -266,6 +267,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Logger.LogDebug("INREdit initialized with TestId={TestId}", TestId);
         await LoadTest();
     }
 
@@ -274,6 +276,7 @@
         _isLoading = true;
         try
         {
+            Logger.LogDebug("INREdit.LoadTest: requesting test {TestId} via service", TestId);
             _test = await INRService.GetTestByIdAsync(TestId);
             if (_test != null)
             {

@@ -102,8 +102,9 @@ public sealed class INRController : ControllerBase
                 .Take(take)
                 .Select(t => new INRTestResponse
                 {
-                    Id = t.PublicId.ToString(),
-                    UserId = t.User.PublicId.ToString(),
+                    PublicId = t.PublicId,
+                    // Id (string) removed — use typed PublicId (GUID)
+                    UserId = t.User.PublicId,
                     TestDate = t.TestDate,
                     INRValue = t.INRValue,
                     TargetINRMin = t.TargetINRMin,
@@ -147,7 +148,7 @@ public sealed class INRController : ControllerBase
     /// <summary>
     /// Retrieves a specific INR test by ID.
     /// </summary>
-    /// <param name="id">The test ID.</param>
+        /// <param name="publicId">The test public ID.</param>
     /// <returns>The INR test record.</returns>
     /// <response code="200">Returns the INR test.</response>
     /// <response code="401">User is not authenticated.</response>
@@ -170,8 +171,9 @@ public sealed class INRController : ControllerBase
                 .Where(t => t.PublicId == publicId && t.User.PublicId == userPublicId.Value && !t.IsDeleted)
                 .Select(t => new INRTestResponse
                 {
-                    Id = t.PublicId.ToString(),
-                    UserId = t.User.PublicId.ToString(),
+                    PublicId = t.PublicId,
+                    // Id (string) removed — use typed PublicId (GUID)
+                    UserId = t.User.PublicId,
                     TestDate = t.TestDate,
                     INRValue = t.INRValue,
                     TargetINRMin = t.TargetINRMin,
@@ -291,8 +293,9 @@ public sealed class INRController : ControllerBase
 
             var response = new INRTestResponse
             {
-                Id = test.PublicId.ToString(),
-                UserId = user.PublicId.ToString(),
+                PublicId = test.PublicId,
+                // Id (string) removed — use typed PublicId (GUID)
+                UserId = user.PublicId,
                 TestDate = test.TestDate,
                 INRValue = test.INRValue,
                 TargetINRMin = test.TargetINRMin,
@@ -409,6 +412,11 @@ public sealed class INRController : ControllerBase
                 test.Notes = request.Notes;
 
             test.UpdatedAt = DateTime.UtcNow;
+            // Set UpdatedBy to current user's PublicId so data-layer interceptor can pick it up
+            if (userPublicId.HasValue)
+            {
+                test.UpdatedBy = userPublicId.Value;
+            }
 
             // Update status based on therapeutic range
             test.Status = test.IsInTargetRange()
@@ -421,8 +429,9 @@ public sealed class INRController : ControllerBase
 
             var response = new INRTestResponse
             {
-                Id = test.PublicId.ToString(),
-                UserId = test.User.PublicId.ToString(),
+                PublicId = test.PublicId,
+                // Id (string) removed — use typed PublicId (GUID)
+                UserId = test.User.PublicId,
                 TestDate = test.TestDate,
                 INRValue = test.INRValue,
                 TargetINRMin = test.TargetINRMin,
@@ -463,6 +472,137 @@ public sealed class INRController : ControllerBase
     }
 
     /// <summary>
+    /// Partially updates an existing INR test (PATCH semantics).
+    /// Accepts the same fields as UpdateINRTestRequest; only provided fields are updated.
+    /// </summary>
+    /// <param name="publicId">The test public ID to patch.</param>
+    /// <param name="request">Partial INR test data.</param>
+    [HttpPatch("{publicId:guid}")]
+    [ProducesResponseType(typeof(INRTestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<INRTestResponse>> PatchINRTest(Guid publicId, [FromBody] UpdateINRTestRequest request)
+    {
+        try
+        {
+            var userPublicId = GetCurrentUserPublicId();
+            if (userPublicId == null)
+            {
+                return Unauthorized("Invalid user authentication");
+            }
+
+            // Validate INR value range if provided
+            if (request.INRValue.HasValue && (request.INRValue < 0.5m || request.INRValue > 8.0m))
+            {
+                return BadRequest("INR value must be between 0.5 and 8.0");
+            }
+
+            var test = await _context.INRTests
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.PublicId == publicId && t.User.PublicId == userPublicId.Value && !t.IsDeleted);
+
+            if (test == null)
+            {
+                return NotFound($"INR test with ID {publicId} not found");
+            }
+
+            // Apply only provided updates (same semantics as PUT handler)
+            if (request.TestDate.HasValue)
+                test.TestDate = request.TestDate.Value;
+            if (request.INRValue.HasValue)
+                test.INRValue = request.INRValue.Value;
+            if (request.TargetINRMin.HasValue)
+                test.TargetINRMin = request.TargetINRMin;
+            if (request.TargetINRMax.HasValue)
+                test.TargetINRMax = request.TargetINRMax;
+            if (request.ProthrombinTime.HasValue)
+                test.ProthrombinTime = request.ProthrombinTime;
+            if (request.PartialThromboplastinTime.HasValue)
+                test.PartialThromboplastinTime = request.PartialThromboplastinTime;
+            if (request.Laboratory != null)
+                test.Laboratory = request.Laboratory;
+            if (request.OrderedBy != null)
+                test.OrderedBy = request.OrderedBy;
+            if (request.TestMethod != null)
+                test.TestMethod = request.TestMethod;
+            if (request.IsPointOfCare.HasValue)
+                test.IsPointOfCare = request.IsPointOfCare.Value;
+            if (request.WasFasting.HasValue)
+                test.WasFasting = request.WasFasting;
+            if (request.LastMedicationTime.HasValue)
+                test.LastMedicationTime = request.LastMedicationTime;
+            if (request.MedicationsTaken != null)
+                test.MedicationsTaken = request.MedicationsTaken;
+            if (request.FoodsConsumed != null)
+                test.FoodsConsumed = request.FoodsConsumed;
+            if (request.HealthConditions != null)
+                test.HealthConditions = request.HealthConditions;
+            if (request.DosageChanges != null)
+                test.DosageChanges = request.DosageChanges;
+            if (request.Notes != null)
+                test.Notes = request.Notes;
+
+            test.UpdatedAt = DateTime.UtcNow;
+            if (userPublicId.HasValue)
+            {
+                test.UpdatedBy = userPublicId.Value;
+            }
+
+            // Recompute status
+            test.Status = test.IsInTargetRange()
+                ? INRResultStatus.InRange
+                : (test.INRValue < (test.TargetINRMin ?? 0)
+                    ? INRResultStatus.BelowRange
+                    : INRResultStatus.AboveRange);
+
+            await _context.SaveChangesAsync();
+
+            var response = new INRTestResponse
+            {
+                PublicId = test.PublicId,
+                // Id (string) removed — use typed PublicId (GUID)
+                UserId = test.User.PublicId,
+                TestDate = test.TestDate,
+                INRValue = test.INRValue,
+                TargetINRMin = test.TargetINRMin,
+                TargetINRMax = test.TargetINRMax,
+                ProthrombinTime = test.ProthrombinTime,
+                PartialThromboplastinTime = test.PartialThromboplastinTime,
+                Laboratory = test.Laboratory,
+                OrderedBy = test.OrderedBy,
+                TestMethod = test.TestMethod,
+                IsPointOfCare = test.IsPointOfCare,
+                WasFasting = test.WasFasting,
+                LastMedicationTime = test.LastMedicationTime,
+                MedicationsTaken = test.MedicationsTaken,
+                FoodsConsumed = test.FoodsConsumed,
+                HealthConditions = test.HealthConditions,
+                Status = test.Status,
+                RecommendedActions = test.RecommendedActions,
+                DosageChanges = test.DosageChanges,
+                NextTestDate = test.NextTestDate,
+                Notes = test.Notes,
+                ReviewedByProvider = test.ReviewedByProvider,
+                ReviewedBy = test.ReviewedBy,
+                ReviewedAt = test.ReviewedAt,
+                PatientNotified = test.PatientNotified,
+                NotificationMethod = test.NotificationMethod,
+                CreatedAt = test.CreatedAt,
+                UpdatedAt = test.UpdatedAt
+            };
+
+            _logger.LogInformation("Patched INR test {PublicId} for user {UserPublicId}", publicId, userPublicId);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error patching INR test {PublicId}", publicId);
+            return StatusCode(500, "An error occurred while patching the INR test");
+        }
+    }
+
+    /// <summary>
     /// Deletes an INR test (soft delete).
     /// </summary>
     /// <param name="publicId">The test public ID to delete.</param>
@@ -496,6 +636,12 @@ public sealed class INRController : ControllerBase
             // Soft delete
             test.IsDeleted = true;
             test.DeletedAt = DateTime.UtcNow;
+
+            // Set DeletedBy to current user's PublicId so data-layer interceptor can pick it up
+            if (userPublicId.HasValue)
+            {
+                test.DeletedBy = userPublicId.Value;
+            }
 
             await _context.SaveChangesAsync();
 

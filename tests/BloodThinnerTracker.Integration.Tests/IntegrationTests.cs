@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 
 /// <summary>
@@ -45,6 +46,8 @@ public sealed class IntegrationTests
         services.AddLogging();
 
         // Provide minimal services required by ApplicationDbContext
+        // Minimal IConfiguration required by EnsureDatabaseAsync
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
         // Data protection provider is required by the context constructor
         services.AddSingleton<IDataProtectionProvider>(DataProtectionProvider.Create("BloodThinnerTracker.Tests"));
         // Current user service for user context (returns null in tests)

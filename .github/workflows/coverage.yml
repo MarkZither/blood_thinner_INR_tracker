@@ -1,0 +1,132 @@
+name: Coverage
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install reportgenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Run tests with XPlat Code Coverage
+        run: |
+          set -e
+          projects=( \
+            "tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj" \
+            "tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj" \
+            "tests/BloodThinnerTracker.Web.Tests/BloodThinnerTracker.Web.Tests.csproj" \
+            "tests/BloodThinnerTracker.Shared.Tests/BloodThinnerTracker.Shared.Tests.csproj" \
+            "tests/BloodThinnerTracker.AppHost.Tests/BloodThinnerTracker.AppHost.Tests.csproj" \
+            "tests/BloodThinnerTracker.ServiceDefaults.Tests/BloodThinnerTracker.ServiceDefaults.Tests.csproj" \
+            # Exclude the e2e project from the baseline coverage run to avoid host-dependent failures
+            # "tests/BloodThinnerTracker.Web.e2e.Tests/BloodThinnerTracker.Web.e2e.Tests.csproj" \
+          )
+
+          for proj in "${projects[@]}"; do
+            echo "Running tests for: $proj"
+            # Use XPlat collector provided by coverlet.collector package referenced in test projects
+            # Use coverage runsettings to exclude migrations, generated files and provider assemblies
+            dotnet test "$proj" -c Release --nologo --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
+          done
+
+      - name: Merge coverage reports (HTML)
+        run: |
+          reports=$(printf '%s;' tests/**/TestResults/**/coverage.cobertura.xml)
+          echo "Reports: $reports"
+          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report -reporttypes:HtmlInline_AzurePipelines || true
+
+      - name: Generate text summary
+        run: |
+          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report-summary -reporttypes:TextSummary || true
+
+      - name: Upload coverage report (HTML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/report
+
+      - name: Upload coverage summary (text)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage/report-summary
+
+      - name: Enforce per-assembly thresholds
+        shell: pwsh
+        run: |
+          $summary = Get-Content -Raw coverage/report-summary/Summary.txt -ErrorAction SilentlyContinue
+          if (-not $summary) {
+            Write-Error "Coverage summary not found"
+            exit 1
+          }
+
+          $thresholds = @{
+            'BloodThinnerTracker.Data.Shared' = 90
+            'BloodThinnerTracker.Api' = 38
+          }
+
+          $fail = $false
+          foreach ($assembly in $thresholds.Keys) {
+            $min = $thresholds[$assembly]
+
+            # Try a few regex strategies because ReportGenerator output can vary:
+            # 1) Exact assembly name followed by percentage (e.g. "AssemblyName 85%")
+            # 2) Assembly DLL name (AssemblyName.dll 85%)
+            # 3) Any line containing the assembly name with a percent value somewhere on the line
+            $pct = $null
+
+            $opts = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+
+            $patterns = @(
+              [regex]::Escape($assembly) + '\s+(\d+(?:\.\d+)?)%'
+              , [regex]::Escape($assembly) + '\.dll\s+(\d+(?:\.\d+)?)%'
+              , [regex]::Escape(($assembly -split '\.')[-1]) + '.*?(\d+(?:\.\d+)?)%'
+              , '^(?:.*' + [regex]::Escape($assembly) + '.*?)(\d+(?:\.\d+)?)%'  # any line containing assembly then percent
+            )
+
+            foreach ($pat in $patterns) {
+              $m = [regex]::Match($summary, $pat, $opts -bor [System.Text.RegularExpressions.RegexOptions]::Singleline)
+              if ($m.Success) {
+                # Groups[1] contains the percent number (may be decimal). Convert to int (round)
+                $raw = $m.Groups[1].Value
+                try {
+                  $pct = [int][math]::Round([double]$raw)
+                } catch {
+                  $pct = [int]$raw
+                }
+                break
+              }
+            }
+
+            if (-not $pct) {
+              Write-Host "Assembly '$assembly' not found in summary. Treating as failure."
+              Write-Host "---- Coverage summary (for debugging) ----"
+              Write-Host $summary
+              Write-Host "-----------------------------------------"
+              $fail = $true
+            } else {
+              Write-Host "Assembly ${assembly}: ${pct}% (threshold ${min}%)"
+              if ($pct -lt $min) {
+                Write-Host "Threshold failed for ${assembly}: ${pct}% < ${min}%"
+                $fail = $true
+              }
+            }
+          }
+
+          if ($fail) { throw 'Coverage thresholds not met' }

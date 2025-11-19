@@ -73,6 +73,42 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.AuditRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("EntityPublicId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PerformedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityPublicId");
+
+                    b.HasIndex("EntityType");
+
+                    b.HasIndex("PerformedBy");
+
+                    b.ToTable("AuditRecords");
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.INRSchedule", b =>
                 {
                     b.Property<int>("Id")
@@ -209,6 +245,9 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DosageChanges")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -304,6 +343,9 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")

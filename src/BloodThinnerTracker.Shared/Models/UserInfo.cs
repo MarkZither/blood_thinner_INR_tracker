@@ -14,7 +14,7 @@ namespace BloodThinnerTracker.Shared.Models.Authentication
         /// Gets or sets the unique user identifier.
         /// </summary>
         [Required]
-        public string Id { get; set; } = string.Empty;
+        public Guid PublicId { get; set; }
 
         /// <summary>
         /// Gets or sets the user email address.

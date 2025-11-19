@@ -8,8 +8,17 @@ namespace BloodThinnerTracker.Shared.Models;
 /// </summary>
 public class INRTestResponse
 {
-    public string Id { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
+    /// <summary>
+    /// Stable public identifier (GUID) for the INR test.
+    /// Prefer this property for client-side operations instead of string Id.
+    /// </summary>
+    public Guid PublicId { get; set; }
+
+    /// <summary>
+    /// NOTE: legacy string `Id` removed — clients must use typed <see cref="PublicId"/> (Guid).
+    /// The associated user's public id is a typed GUID.
+    /// </summary>
+    public Guid UserId { get; set; }
     public DateTime TestDate { get; set; }
     public decimal INRValue { get; set; }
     public decimal? TargetINRMin { get; set; }
