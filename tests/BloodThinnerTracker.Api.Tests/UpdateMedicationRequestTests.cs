@@ -13,17 +13,16 @@ namespace BloodThinnerTracker.Api.Tests
         public void UpdateMedicationRequest_AutoFaker_RoundTrip_Valid()
         {
             var faker = new AutoFaker<UpdateMedicationRequest>()
-                .RuleFor(x => x.PublicId, f => f.Random.Guid())
                 .RuleFor(x => x.Name, f => f.Commerce.ProductName())
-                .RuleFor(x => x.Dosage, f => f.Random.Decimal(0.5m, 100m));
+                .RuleFor(x => x.Dosage, f => (decimal?)f.Random.Decimal(0.5m, 100m));
 
             var dto = faker.Generate();
-            Assert.NotEqual(default, dto.PublicId);
             Assert.False(string.IsNullOrWhiteSpace(dto.Name));
 
             var json = JsonSerializer.Serialize(dto, _opts);
             var dto2 = JsonSerializer.Deserialize<UpdateMedicationRequest>(json, _opts);
-            Assert.Equal(dto.PublicId, dto2.PublicId);
+            Assert.NotNull(dto2);
+            Assert.Equal(dto.Name, dto2!.Name);
             Assert.Equal(dto.Dosage, dto2.Dosage);
         }
     }

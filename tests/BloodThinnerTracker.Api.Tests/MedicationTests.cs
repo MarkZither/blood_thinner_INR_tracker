@@ -24,7 +24,8 @@ namespace BloodThinnerTracker.Api.Tests
 
             var json = JsonSerializer.Serialize(dto, _opts);
             var dto2 = JsonSerializer.Deserialize<Medication>(json, _opts);
-            Assert.Equal(dto.PublicId, dto2.PublicId);
+            Assert.NotNull(dto2);
+            Assert.Equal(dto.PublicId, dto2!.PublicId);
             Assert.Equal(dto.Name, dto2.Name);
         }
     }
