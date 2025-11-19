@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AutoBogus;
+using Bogus;
 using Xunit;
 using BloodThinnerTracker.Shared.Models;
 
@@ -11,18 +11,19 @@ namespace BloodThinnerTracker.Api.Tests
         private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         [Fact]
-        public void ScheduleEntry_AutoFaker_RoundTrip_Valid()
+        public void ScheduleEntry_RoundTrip_Valid()
         {
-            var faker = new AutoFaker<ScheduleEntry>()
-                .RuleFor(x => x.Date, f => f.Date.Recent().ToUniversalTime())
-                .RuleFor(x => x.DayOfWeek, f => f.Date.Weekday())
-                .RuleFor(x => x.Dosage, f => f.Random.Decimal(0.5m, 10m))
-                .RuleFor(x => x.PatternDay, f => f.Random.Int(1, 6))
-                .RuleFor(x => x.PatternLength, f => f.Random.Int(1, 6))
-                .RuleFor(x => x.IsPatternChange, f => true)
-                .RuleFor(x => x.PatternChangeNote, f => f.Lorem.Sentence());
+            var dto = new ScheduleEntry
+            {
+                Date = DateTime.UtcNow.Date,
+                DayOfWeek = DateTime.UtcNow.DayOfWeek.ToString(),
+                Dosage = 2.0m,
+                PatternDay = 1,
+                PatternLength = 6,
+                IsPatternChange = true,
+                PatternChangeNote = "Adjusted dose"
+            };
 
-            var dto = faker.Generate();
             Assert.NotEqual(default, dto.Date);
             Assert.False(string.IsNullOrWhiteSpace(dto.DayOfWeek));
             Assert.True(dto.IsPatternChange);

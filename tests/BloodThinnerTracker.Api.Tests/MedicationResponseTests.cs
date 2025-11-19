@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AutoBogus;
+using Bogus;
 using Xunit;
 using BloodThinnerTracker.Api.Controllers;
 
@@ -11,14 +11,15 @@ namespace BloodThinnerTracker.Api.Tests
         private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         [Fact]
-        public void MedicationResponse_AutoFaker_RoundTrip_Valid()
+        public void MedicationResponse_RoundTrip_Valid()
         {
-            var faker = new AutoFaker<MedicationResponse>()
-                .RuleFor(x => x.PublicId, f => f.Random.Guid())
-                .RuleFor(x => x.Name, f => f.Lorem.Word())
-                .RuleFor(x => x.Dosage, f => f.Random.Decimal(0.5m, 10m));
+            var dto = new MedicationResponse
+            {
+                PublicId = Guid.NewGuid(),
+                Name = "MedName",
+                Dosage = 1.25m
+            };
 
-            var dto = faker.Generate();
             Assert.NotEqual(default, dto.PublicId);
             Assert.False(string.IsNullOrWhiteSpace(dto.Name));
 
