@@ -1,4 +1,6 @@
 using Microsoft.Data.Sqlite;
+using System.Reflection;
+using System.Collections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.DataProtection;
@@ -38,6 +40,29 @@ namespace BloodThinnerTracker.Api.Tests
         {
             // Return a stable test user id so ApplicationDbContextBase validation passes for medical entities
             public int? GetCurrentUserId() => 1;
+        }
+
+        public static void ClearNavigationProperties<T>(T obj)
+        {
+            if (obj == null) return;
+
+            var type = obj.GetType();
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!prop.CanWrite) continue;
+
+                var pt = prop.PropertyType;
+                if (pt == typeof(string) || pt.IsValueType || pt.IsEnum) continue;
+
+                // Clear collections and complex navigation properties to avoid deep graphs in tests
+                if (typeof(IEnumerable).IsAssignableFrom(pt))
+                {
+                    prop.SetValue(obj, null);
+                    continue;
+                }
+
+                prop.SetValue(obj, null);
+            }
         }
     }
 }

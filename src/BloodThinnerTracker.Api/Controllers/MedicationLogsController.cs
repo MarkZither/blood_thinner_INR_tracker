@@ -137,8 +137,8 @@ public sealed class MedicationLogsController : ControllerBase
                 .OrderByDescending(ml => ml.ScheduledTime)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.PublicId,
-                    MedicationId = medication.PublicId,
+                    PublicId = ml.PublicId,
+                    MedicationPublicId = medication.PublicId,
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -205,8 +205,8 @@ public sealed class MedicationLogsController : ControllerBase
                 .Where(ml => ml.PublicId == publicId && ml.Medication.User.PublicId == userPublicId.Value && !ml.IsDeleted)
                 .Select(ml => new MedicationLogResponse
                 {
-                    Id = ml.PublicId,
-                    MedicationId = ml.Medication.PublicId,
+                    PublicId = ml.PublicId,
+                    MedicationPublicId = ml.Medication.PublicId,
                     MedicationName = ml.Medication.Name,
                     ScheduledTime = ml.ScheduledTime,
                     ActualTime = ml.ActualTime,
@@ -347,8 +347,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = medicationLog.PublicId,
-                MedicationId = medication.PublicId,
+                PublicId = medicationLog.PublicId,
+                MedicationPublicId = medication.PublicId,
                 MedicationName = medication.Name,
                 ScheduledTime = medicationLog.ScheduledTime,
                 ActualTime = medicationLog.ActualTime,
@@ -465,8 +465,8 @@ public sealed class MedicationLogsController : ControllerBase
 
             var response = new MedicationLogResponse
             {
-                Id = existingLog.PublicId,
-                MedicationId = existingLog.Medication.PublicId,
+                PublicId = existingLog.PublicId,
+                MedicationPublicId = existingLog.Medication.PublicId,
                 MedicationName = existingLog.Medication.Name,
                 ScheduledTime = existingLog.ScheduledTime,
                 ActualTime = existingLog.ActualTime,
@@ -676,8 +676,8 @@ public sealed class MedicationLogsController : ControllerBase
 /// </summary>
 public sealed class MedicationLogResponse
 {
-    public Guid Id { get; set; }
-    public Guid MedicationId { get; set; }
+    public Guid PublicId { get; set; }
+    public Guid MedicationPublicId { get; set; }
     public string MedicationName { get; set; } = string.Empty;
     public DateTime ScheduledTime { get; set; }
     public DateTime? ActualTime { get; set; }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AutoBogus;
 using Xunit;
 using BloodThinnerTracker.Api.Controllers;
@@ -7,7 +8,7 @@ namespace BloodThinnerTracker.Api.Tests
 {
     public class LogMedicationRequestTests
     {
-        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };
+        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         [Fact]
         public void LogMedicationRequest_AutoFaker_RoundTrip_Valid()

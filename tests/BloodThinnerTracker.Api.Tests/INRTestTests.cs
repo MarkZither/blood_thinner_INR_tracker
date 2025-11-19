@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AutoBogus;
 using Xunit;
 using BloodThinnerTracker.Shared.Models;
@@ -7,7 +8,7 @@ namespace BloodThinnerTracker.Api.Tests
 {
     public class INRTestTests
     {
-        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };
+        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         [Fact]
         public void INRTest_AutoFaker_RoundTrip_Valid()
@@ -18,6 +19,7 @@ namespace BloodThinnerTracker.Api.Tests
                 .RuleFor(x => x.INRValue, f => f.Random.Decimal(0.5m, 8.0m));
 
             var dto = faker.Generate();
+            TestHelpers.ClearNavigationProperties(dto);
             Assert.NotEqual(default, dto.PublicId);
             Assert.InRange(dto.INRValue, 0.1m, 100m);
 

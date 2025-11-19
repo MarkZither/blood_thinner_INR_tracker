@@ -1,18 +1,19 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AutoBogus;
 using Xunit;
-using BloodThinnerTracker.Shared.Models;
+using BloodThinnerTracker.Api.Controllers;
 
 namespace BloodThinnerTracker.Api.Tests
 {
     public class MedicationLogTests
     {
-        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };
+        private readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
 
         [Fact]
-        public void MedicationLog_AutoFaker_RoundTrip_Valid()
+        public void MedicationLogResponse_AutoFaker_RoundTrip_Valid()
         {
-            var faker = new AutoFaker<MedicationLog>()
+            var faker = new AutoFaker<MedicationLogResponse>()
                 .RuleFor(x => x.PublicId, f => f.Random.Guid())
                 .RuleFor(x => x.ActualDosage, f => (decimal?)f.Random.Decimal(0.5m, 50m))
                 .RuleFor(x => x.ScheduledTime, f => f.Date.Recent().ToUniversalTime())
@@ -23,7 +24,7 @@ namespace BloodThinnerTracker.Api.Tests
             Assert.InRange(dto.ActualDosage ?? 0m, 0.01m, 1000m);
 
             var json = JsonSerializer.Serialize(dto, _opts);
-            var dto2 = JsonSerializer.Deserialize<MedicationLog>(json, _opts);
+            var dto2 = JsonSerializer.Deserialize<MedicationLogResponse>(json, _opts);
             Assert.NotNull(dto2);
             Assert.Equal(dto.PublicId, dto2!.PublicId);
             Assert.Equal(dto.ActualDosage, dto2.ActualDosage);
