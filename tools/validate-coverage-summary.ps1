@@ -92,7 +92,7 @@ foreach ($assembly in $thresholds.Keys) {
     }
 }
 
-if ($fail) { 
+if ($fail) {
     Write-Host "One or more coverage thresholds failed." -ForegroundColor Red
     exit 2
 } else {

@@ -56,26 +56,29 @@ namespace BloodThinnerTracker.Data.Shared
 
                 try
                 {
-                    if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.PublicId)))
+                    if(entry.State != EntityState.Added)
                     {
-                        object? cur = entry.CurrentValues[nameof(INRTest.PublicId)];
-                        object? orig = entry.OriginalValues[nameof(INRTest.PublicId)];
-                        entityPublicId = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
-                    }
+                        if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.PublicId)))
+                        {
+                            object? cur = entry.CurrentValues[nameof(INRTest.PublicId)];
+                            object? orig = entry.OriginalValues[nameof(INRTest.PublicId)];
+                            entityPublicId = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
+                        }
 
-                    // Prefer UpdatedBy/DeletedBy properties on the entity for the actor
-                    if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.UpdatedBy)))
-                    {
-                        object? cur = entry.CurrentValues[nameof(INRTest.UpdatedBy)];
-                        object? orig = entry.OriginalValues[nameof(INRTest.UpdatedBy)];
-                        performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
-                    }
+                        // Prefer UpdatedBy/DeletedBy properties on the entity for the actor
+                        if (entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.UpdatedBy)))
+                        {
+                            object? cur = entry.CurrentValues[nameof(INRTest.UpdatedBy)];
+                            object? orig = entry.OriginalValues[nameof(INRTest.UpdatedBy)];
+                            performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
+                        }
 
-                    if (performedBy == null && entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.DeletedBy)))
-                    {
-                        object? cur = entry.CurrentValues[nameof(INRTest.DeletedBy)];
-                        object? orig = entry.OriginalValues[nameof(INRTest.DeletedBy)];
-                        performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
+                        if (performedBy == null && entry.Properties.Any(p => p.Metadata.Name == nameof(INRTest.DeletedBy)))
+                        {
+                            object? cur = entry.CurrentValues[nameof(INRTest.DeletedBy)];
+                            object? orig = entry.OriginalValues[nameof(INRTest.DeletedBy)];
+                            performedBy = cur is Guid gcur ? gcur : (orig is Guid gorig ? gorig : (Guid?)null);
+                        }
                     }
                 }
                 catch

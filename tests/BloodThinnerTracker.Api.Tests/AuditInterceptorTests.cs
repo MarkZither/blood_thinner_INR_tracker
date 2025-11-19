@@ -1,11 +1,8 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Data.Shared;
+using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Shared.Models;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
