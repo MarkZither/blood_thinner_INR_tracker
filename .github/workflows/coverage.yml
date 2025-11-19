@@ -85,9 +85,9 @@ jobs:
               $fail = $true
             } else {
               $pct = [int]$m.Groups[1].Value
-              Write-Host "Assembly $assembly: $pct% (threshold $min%)"
+              Write-Host "Assembly ${assembly}: ${pct}% (threshold ${min}%)"
               if ($pct -lt $min) {
-                Write-Host "Threshold failed for $assembly: $pct% < $min%"
+                Write-Host "Threshold failed for ${assembly}: ${pct}% < ${min}%"
                 $fail = $true
               }
             }
