@@ -691,7 +691,7 @@ public static class DatabaseConfigurationExtensions
                 if (postgresBlock)
                 {
                     // Blocking lock - will wait until lock is obtained. Use cancellation token via command timeout if desired.
-                    cmd.CommandText = "SELECT pg_advisory_lock($1); SELECT 1;";
+                    cmd.CommandText = "SELECT pg_advisory_lock($1);";
                     var result = await cmd.ExecuteScalarAsync(cancellationToken);
                     // If we return, lock was acquired
                     logger.LogInformation("Postgres advisory lock (blocking) acquired");
