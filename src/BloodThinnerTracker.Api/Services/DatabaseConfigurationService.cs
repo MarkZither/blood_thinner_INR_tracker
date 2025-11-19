@@ -791,10 +791,20 @@ public static class DatabaseConfigurationExtensions
         }
         catch (Exception ex)
         {
-            if (IsCriticalException(ex))
-                throw;
-            logger.LogWarning(ex, "Failed to release advisory lock");
+        catch (OperationCanceledException)
+        {
+            // Propagate cancellation
+            throw;
         }
+        catch (DbException dbEx)
+        {
+            logger.LogWarning(dbEx, "Database error while releasing advisory lock");
+        }
+        catch (InvalidOperationException invOpEx)
+        {
+            logger.LogWarning(invOpEx, "Invalid operation while releasing advisory lock");
+        }
+    }
     }
 
     /// <summary>
