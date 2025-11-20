@@ -764,7 +764,7 @@
                 ReminderMinutes = 30,
                 MaxDailyDose = maxDailyDose,
                 MinHoursBetweenDoses = CalculateMinHoursBetweenDoses(frequencyEnum),
-                IsBloodThinner = true, // All medications in this tracker are blood thinners
+                IsBloodThinner = DetermineIsBloodThinner(medicationType),
                 RequiresINRMonitoring = requiresINR,
                 INRTargetMin = inrMin,
                 INRTargetMax = inrMax
@@ -930,5 +930,17 @@
 
         // Default for other types - typically don't require INR
         return (false, null, null);
+    }
+
+    private bool DetermineIsBloodThinner(MedicationType type)
+    {
+        // Blood thinner medication types
+        return type == MedicationType.VitKAntagonist ||
+               type == MedicationType.DOAC ||
+               type == MedicationType.Heparin ||
+               type == MedicationType.LMWH ||
+               type == MedicationType.Antiplatelet;
+        
+        // ACE Inhibitors and Beta Blockers are cardiovascular medications, not blood thinners
     }
 }
