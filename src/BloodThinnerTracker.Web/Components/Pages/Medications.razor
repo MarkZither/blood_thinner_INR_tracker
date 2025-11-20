@@ -64,6 +64,7 @@
                             <MudSelectItem Value="@("active")">Active Only</MudSelectItem>
                             <MudSelectItem Value="@("inactive")">Inactive Only</MudSelectItem>
                             <MudSelectItem Value="@("blood-thinners")">Blood Thinners Only</MudSelectItem>
+                            <MudSelectItem Value="@("cardiovascular")">Cardiovascular Meds</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
@@ -401,6 +402,7 @@
             "active" => query.Where(m => m.IsActive),
             "inactive" => query.Where(m => !m.IsActive),
             "blood-thinners" => query.Where(m => m.Type == MedicationType.VitKAntagonist || m.Type == MedicationType.DOAC || m.Type == MedicationType.Heparin || m.Type == MedicationType.LMWH),
+            "cardiovascular" => query.Where(m => m.Type == MedicationType.ACEInhibitor || m.Type == MedicationType.BetaBlocker),
             _ => query
         };
 
@@ -533,6 +535,8 @@
             MedicationType.Heparin => Color.Info,
             MedicationType.LMWH => Color.Info,
             MedicationType.Antiplatelet => Color.Secondary,
+            MedicationType.ACEInhibitor => Color.Success,
+            MedicationType.BetaBlocker => Color.Primary,
             _ => Color.Default
         };
     }
