@@ -35,6 +35,10 @@ namespace BloodThinnerTracker.Web.Tests.Components
             var dialogMock = new Mock<IDialogService>();
             Services.AddSingleton(dialogMock.Object);
 
+            // Mock IPageStateService for INR tracking page
+            var pageStateServiceMock = new Mock<BloodThinnerTracker.Web.Services.IPageStateService>();
+            Services.AddSingleton(pageStateServiceMock.Object);
+
             // HttpClient used by pages can be a default one (won't be called in NotAuthorized)
             Services.AddSingleton<HttpClient>(sp => new HttpClient { BaseAddress = new System.Uri("https://localhost/") });
         }
