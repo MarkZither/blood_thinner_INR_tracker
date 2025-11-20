@@ -61,22 +61,80 @@ public class AuthorizationMessageHandler : DelegatingHandler
         // Handle 401 Unauthorized - token might be expired
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            _logger.LogWarning("Received 401 Unauthorized response from {Uri}. This is expected until token exchange is implemented.",
+            _logger.LogWarning("Received 401 Unauthorized response from {Uri}, attempting token refresh",
                 request.RequestUri);
 
-            // TODO: Implement automatic token refresh using refresh token
-            // TODO: Implement token exchange with API to get proper JWT
-            // For now, DON'T log the user out - they're authenticated with OAuth
-            // The 401 is expected because API doesn't accept Microsoft tokens yet
-
-            // Commenting out automatic logout until token exchange is implemented
-            // if (_authStateProvider is CustomAuthenticationStateProvider provider)
-            // {
-            //     _logger.LogInformation("Logging out user due to 401 response");
-            //     await provider.MarkUserAsLoggedOutAsync();
-            // }
+            if (_authStateProvider is CustomAuthenticationStateProvider provider)
+            {
+                // Check if we can refresh the authentication state
+                var authState = await provider.GetAuthenticationStateAsync();
+                
+                // If still authenticated after state check (which triggers refresh), retry the request
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    _logger.LogInformation("Authentication state refreshed, retrying request to {Uri}", request.RequestUri);
+                    
+                    // Clone the request for retry
+                    var retryRequest = await CloneHttpRequestAsync(request);
+                    
+                    // Get the new token
+                    var newToken = await provider.GetTokenAsync();
+                    if (!string.IsNullOrEmpty(newToken))
+                    {
+                        retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
+                        var retryResponse = await base.SendAsync(retryRequest, cancellationToken);
+                        
+                        if (retryResponse.IsSuccessStatusCode)
+                        {
+                            _logger.LogInformation("Request retry successful after token refresh");
+                            return retryResponse;
+                        }
+                    }
+                }
+                
+                // If refresh failed or user is not authenticated, log them out
+                _logger.LogWarning("Token refresh failed or user not authenticated, logging out");
+                await provider.MarkUserAsLoggedOutAsync();
+            }
         }
 
         return response;
+    }
+
+    /// <summary>
+    /// Clones an HTTP request message for retry scenarios.
+    /// </summary>
+    private static async Task<HttpRequestMessage> CloneHttpRequestAsync(HttpRequestMessage request)
+    {
+        var clone = new HttpRequestMessage(request.Method, request.RequestUri)
+        {
+            Version = request.Version
+        };
+
+        // Copy headers
+        foreach (var header in request.Headers)
+        {
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        // Copy content if present
+        if (request.Content != null)
+        {
+            var ms = new MemoryStream();
+            await request.Content.CopyToAsync(ms);
+            ms.Position = 0;
+            clone.Content = new StreamContent(ms);
+
+            // Copy content headers
+            if (request.Content.Headers != null)
+            {
+                foreach (var header in request.Content.Headers)
+                {
+                    clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+            }
+        }
+
+        return clone;
     }
 }

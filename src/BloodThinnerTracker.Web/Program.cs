@@ -138,7 +138,21 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = MicrosoftAccountDefaults.AuthenticationScheme;
 })
-    .AddCookie()
+    .AddCookie(options =>
+    {
+        // Configure cookie lifetime to match our token lifetime
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true; // Extend cookie on activity
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        
+        // Redirect to login on unauthorized access
+        options.LoginPath = "/login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/access-denied";
+    })
     .AddMicrosoftAccount(options =>
     {
         var adOptions = builder.Configuration.GetSection("Authentication:AzureAd").Get<BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig>() ?? new BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig();
@@ -220,6 +234,9 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 // Add HttpContextAccessor for OAuth callback handling (T003-001)
 builder.Services.AddHttpContextAccessor();
 
+// Add HttpClient factory for creating bare HTTP clients (for token refresh without auth header)
+builder.Services.AddHttpClient();
+
 // Register services for UI (T003-004, T003-005, T003-005b)
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationService, BloodThinnerTracker.Web.Services.MedicationService>();
@@ -243,13 +260,16 @@ builder.Services.AddScoped(sp =>
 });
 
 
-// Configure cookie policy and cookie options to work correctly when behind a TLS-terminating
-// reverse proxy (Traefik, nginx, etc.). These settings make cookies secure and allow
-// cross-site OAuth redirects when the external endpoint is HTTPS.
+// Configure cookie policy to work correctly when behind a TLS-terminating
+// reverse proxy (Traefik, nginx, etc.). Note: Cookie authentication options above
+// configure the authentication cookie settings, while this section configures
+// the general cookie policy for the application.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
 });
 
 var app = builder.Build();
