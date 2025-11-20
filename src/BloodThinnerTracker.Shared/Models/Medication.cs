@@ -695,7 +695,8 @@ public class Medication : MedicalEntityBase
     }
 
     /// <summary>
-    /// Types of blood thinner medications.
+    /// Types of medications tracked in the system.
+    /// Includes blood thinners and cardiovascular medications.
     /// </summary>
     public enum MedicationType
     {
@@ -725,7 +726,19 @@ public class Medication : MedicalEntityBase
         Antiplatelet = 4,
 
         /// <summary>
-        /// Other blood thinner types.
+        /// ACE Inhibitors (Angiotensin-Converting Enzyme Inhibitors).
+        /// Used for blood pressure and heart conditions.
+        /// </summary>
+        ACEInhibitor = 5,
+
+        /// <summary>
+        /// Beta Blockers (Beta-Adrenergic Blocking Agents).
+        /// Used for blood pressure, heart rate, and heart conditions.
+        /// </summary>
+        BetaBlocker = 6,
+
+        /// <summary>
+        /// Other medication types.
         /// </summary>
         Other = 99
     }

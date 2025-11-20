@@ -47,6 +47,33 @@ public static class CommonBloodThinners
 
         // Combination Products
         new("Aspirin/Dipyridamole", "Aggrenox", "Combination Antiplatelet", "Antiplatelet Agent", "Capsule"),
+
+        // ACE Inhibitors (Angiotensin-Converting Enzyme Inhibitors)
+        new("Perindopril", "Coversyl, Aceon", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Enalapril", "Vasotec", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Lisinopril", "Prinivil, Zestril", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Ramipril", "Altace, Tritace", "ACE Inhibitor", "Hypertension/Heart Failure", "Capsule"),
+        new("Captopril", "Capoten", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Quinapril", "Accupril", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Fosinopril", "Monopril", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+        new("Benazepril", "Lotensin", "ACE Inhibitor", "Hypertension/Heart Failure", "Tablet"),
+
+        // Beta Blockers (Beta-Adrenergic Blocking Agents)
+        new("Propranolol", "Inderal, Hemangeol", "Beta Blocker", "Hypertension/Arrhythmia/Angina", "Tablet"),
+        new("Bisoprolol", "Concor, Cardicor, Zebeta", "Beta Blocker", "Hypertension/Heart Failure", "Tablet"),
+        new("Metoprolol", "Lopressor, Toprol-XL", "Beta Blocker", "Hypertension/Angina/Heart Failure", "Tablet"),
+        new("Atenolol", "Tenormin", "Beta Blocker", "Hypertension/Angina", "Tablet"),
+        new("Carvedilol", "Coreg", "Beta Blocker", "Hypertension/Heart Failure", "Tablet"),
+        new("Nebivolol", "Bystolic", "Beta Blocker", "Hypertension", "Tablet"),
+        new("Labetalol", "Trandate, Normodyne", "Beta Blocker", "Hypertension", "Tablet"),
+        new("Sotalol", "Betapace, Sorine", "Beta Blocker", "Arrhythmia", "Tablet"),
+
+        // Stomach protectants / Proton Pump Inhibitors
+        new("Esomeprazole", "Nexium", "Proton Pump Inhibitor", "Gastric protection / Stomach protecting", "Capsule"),
+
+        // Point-of-care consumables / Test supplies
+        new("Softclix Lancet", "Roche Softclix", "Point-of-care Consumable", "Lancet for finger-prick sampling (CoaguChek)", "Lancet"),
+        new("CoaguChek XS Test Strip", "Roche CoaguChek XS", "Point-of-care Consumable", "INR test strip for CoaguChek XS meters", "Test Strip"),
     };
 
     /// <summary>

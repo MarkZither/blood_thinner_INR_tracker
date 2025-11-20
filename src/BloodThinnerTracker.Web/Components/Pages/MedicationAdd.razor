@@ -764,7 +764,7 @@
                 ReminderMinutes = 30,
                 MaxDailyDose = maxDailyDose,
                 MinHoursBetweenDoses = CalculateMinHoursBetweenDoses(frequencyEnum),
-                IsBloodThinner = true, // All medications in this tracker are blood thinners
+                IsBloodThinner = DetermineIsBloodThinner(medicationType),
                 RequiresINRMonitoring = requiresINR,
                 INRTargetMin = inrMin,
                 INRTargetMax = inrMax
@@ -837,6 +837,28 @@
             name.Contains("plavix") || name.Contains("brilinta") || name.Contains("effient"))
             return MedicationType.Antiplatelet;
 
+        // ACE Inhibitors
+        if (name.Contains("perindopril") || name.Contains("coversyl") || name.Contains("aceon") ||
+            name.Contains("enalapril") || name.Contains("vasotec") ||
+            name.Contains("lisinopril") || name.Contains("prinivil") || name.Contains("zestril") ||
+            name.Contains("ramipril") || name.Contains("altace") || name.Contains("tritace") ||
+            name.Contains("captopril") || name.Contains("capoten") ||
+            name.Contains("quinapril") || name.Contains("accupril") ||
+            name.Contains("fosinopril") || name.Contains("monopril") ||
+            name.Contains("benazepril") || name.Contains("lotensin"))
+            return MedicationType.ACEInhibitor;
+
+        // Beta Blockers
+        if (name.Contains("propranolol") || name.Contains("inderal") || name.Contains("hemangeol") ||
+            name.Contains("bisoprolol") || name.Contains("zebeta") || name.Contains("cardicor") ||
+            name.Contains("metoprolol") || name.Contains("lopressor") || name.Contains("toprol") ||
+            name.Contains("atenolol") || name.Contains("tenormin") ||
+            name.Contains("carvedilol") || name.Contains("coreg") ||
+            name.Contains("nebivolol") || name.Contains("bystolic") ||
+            name.Contains("labetalol") || name.Contains("trandate") || name.Contains("normodyne") ||
+            name.Contains("sotalol") || name.Contains("betapace") || name.Contains("sorine"))
+            return MedicationType.BetaBlocker;
+
         return MedicationType.Other;
     }
 
@@ -908,5 +930,17 @@
 
         // Default for other types - typically don't require INR
         return (false, null, null);
+    }
+
+    private bool DetermineIsBloodThinner(MedicationType type)
+    {
+        // Blood thinner medication types
+        return type == MedicationType.VitKAntagonist ||
+               type == MedicationType.DOAC ||
+               type == MedicationType.Heparin ||
+               type == MedicationType.LMWH ||
+               type == MedicationType.Antiplatelet;
+        
+        // ACE Inhibitors and Beta Blockers are cardiovascular medications, not blood thinners
     }
 }
