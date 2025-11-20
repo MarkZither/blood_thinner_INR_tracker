@@ -1,0 +1,218 @@
+@page "/medications/{Id:guid}/pattern/edit"
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.Components.Medications
+@using BloodThinnerTracker.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IMedicationService MedicationService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject ILogger<MedicationPatternEdit> Logger
+@rendermode InteractiveServer
+
+<PageTitle>Edit Dosage Pattern - Blood Thinner Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="mt-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            <MudText Typo="Typo.body1">Loading medication...</MudText>
+        </MudStack>
+    }
+    else if (_medication == null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            Medication not found or you don't have access to it.
+        </MudAlert>
+        <MudButton Variant="Variant.Text" 
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Navigation.NavigateTo("/medications"))">
+            Back to Medications
+        </MudButton>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header Section with Breadcrumbs -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Spacing="2">
+                    <!-- Breadcrumbs -->
+                    <MudBreadcrumbs Items="_breadcrumbs" Separator=">"></MudBreadcrumbs>
+                    
+                    <!-- Page Header -->
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.h4">
+                                <MudIcon Icon="@Icons.Material.Filled.Pattern" Class="mr-2" />
+                                Edit Dosage Pattern
+                            </MudText>
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">
+                                <strong>Medication:</strong> @_medication.Name
+                                @if (!string.IsNullOrEmpty(_medication.BrandName))
+                                {
+                                    <text> (@_medication.BrandName)</text>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Manage variable dosage schedules and pattern changes
+                            </MudText>
+                        </MudStack>
+                        <MudButton Variant="Variant.Text"
+                                   StartIcon="@Icons.Material.Filled.Close"
+                                   OnClick="Cancel"
+                                   Color="Color.Default">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Medical Disclaimer -->
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                <MudText Typo="Typo.body2">
+                    <strong>Medical Notice:</strong> Always consult your healthcare provider before changing your medication dosage.
+                    Pattern changes will affect your medication schedule and historical dose tracking.
+                </MudText>
+            </MudAlert>
+
+            <!-- Current Pattern Display (Read-Only) -->
+            @if (_hasActivePattern)
+            {
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Current Active Pattern</MudText>
+                        <MudDivider />
+                        <PatternDisplayComponent 
+                            MedicationId="@Id"
+                            ShowEditButton="false" />
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <!-- Pattern Entry Component -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">
+                        @(_hasActivePattern ? "Create New Pattern" : "Create First Pattern")
+                    </MudText>
+                    <MudDivider />
+                    
+                    @if (_hasActivePattern)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Creating a new pattern will supersede the current active pattern. 
+                            Check the "Close previous active pattern" option to automatically end the current pattern.
+                        </MudAlert>
+                    }
+
+                    <PatternEntryComponent 
+                        MedicationId="@Id"
+                        OnPatternSaved="HandlePatternSaved"
+                        OnCancelled="Cancel" />
+                </MudStack>
+            </MudPaper>
+
+            <!-- Quick Actions -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h6">Quick Actions</MudText>
+                    <MudDivider />
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.History"
+                                   OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/pattern-history"))">
+                            View Pattern History
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.CalendarMonth"
+                                   OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/schedule"))">
+                            View Schedule
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => Navigation.NavigateTo($"/medications/edit/{Id}"))">
+                            Edit Medication Details
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Medication? _medication;
+    private bool _isLoading = true;
+    private bool _hasActivePattern = false;
+    private List<BreadcrumbItem> _breadcrumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMedicationAsync();
+        SetupBreadcrumbs();
+    }
+
+    private async Task LoadMedicationAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _medication = await MedicationService.GetMedicationByIdAsync(Id.ToString());
+            
+            if (_medication != null)
+            {
+                _hasActivePattern = _medication.HasPatternSchedule;
+                Logger.LogInformation("Loaded medication {MedicationId} for pattern editing. Has active pattern: {HasPattern}", 
+                    Id, _hasActivePattern);
+            }
+            else
+            {
+                Logger.LogWarning("Medication {MedicationId} not found for pattern editing", Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading medication {MedicationId} for pattern editing", Id);
+            Snackbar.Add($"Error loading medication: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SetupBreadcrumbs()
+    {
+        _breadcrumbs = new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem("Home", href: "/"),
+            new BreadcrumbItem("Medications", href: "/medications"),
+            new BreadcrumbItem(_medication?.Name ?? "Unknown", href: $"/medications/edit/{Id}"),
+            new BreadcrumbItem("Edit Pattern", href: null, disabled: true)
+        };
+    }
+
+    private async Task HandlePatternSaved()
+    {
+        Snackbar.Add("Dosage pattern saved successfully!", Severity.Success);
+        
+        // Reload medication to reflect changes
+        await LoadMedicationAsync();
+        
+        // Navigate back to medication edit page after a brief delay
+        await Task.Delay(1500);
+        Navigation.NavigateTo($"/medications/edit/{Id}");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo($"/medications/edit/{Id}");
+    }
+}

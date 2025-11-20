@@ -109,6 +109,8 @@
                                     <CardHeaderActions>
                                         <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
                                             <MudMenuItem OnClick="() => EditMedication(medication.PublicId)" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                                            <MudMenuItem OnClick="() => EditDosagePattern(medication.PublicId)" Icon="@Icons.Material.Filled.Pattern">Edit Dosage Pattern</MudMenuItem>
+                                            <MudDivider />
                                             <MudMenuItem OnClick="() => ViewHistory(medication.PublicId)" Icon="@Icons.Material.Filled.History">View History</MudMenuItem>
                                             <MudMenuItem OnClick="() => ViewSchedule(medication.PublicId)" Icon="@Icons.Material.Filled.CalendarMonth">View Schedule</MudMenuItem>
                                             <MudDivider />
@@ -448,6 +450,11 @@
     private void EditMedication(Guid medicationId)
     {
         Navigation.NavigateTo($"/medications/edit/{medicationId}");
+    }
+
+    private void EditDosagePattern(Guid medicationId)
+    {
+        Navigation.NavigateTo($"/medications/{medicationId}/pattern/edit");
     }
 
     private void ViewHistory(Guid medicationId)
