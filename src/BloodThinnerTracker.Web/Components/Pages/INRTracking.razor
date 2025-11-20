@@ -1,5 +1,7 @@
 @page "/inr"
 @using BloodThinnerTracker.Shared.Models
+@using BloodThinnerTracker.Web.Services
+@using BloodThinnerTracker.Web.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
@@ -7,6 +9,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IPageStateService PageStateService
 @rendermode InteractiveServer
 
                     // Preserve PublicId (GUID) for client-side navigation and API calls
@@ -207,7 +210,8 @@
         <div class="card-body">
             @if (inrTests?.Any() == true)
             {
-                <MudTable Items="@inrTests.OrderByDescending(t => t.TestDate)"
+                <MudTable @ref="_table"
+                          Items="@inrTests.OrderByDescending(t => t.TestDate)"
                           Hover="true"
                           Breakpoint="Breakpoint.Sm"
                           Dense="false"
@@ -309,6 +313,13 @@
 </AuthorizeView>
 
 @code {
+    // Constants
+    private const string PageStateKey = "inr-list";
+
+    // References
+    private MudTable<INRTest>? _table;
+    private bool _stateRestored = false;
+
     // Current status data
     private decimal? currentINR = 2.3m;
     private DateTime? currentINRDate = DateTime.Today.AddDays(-5);
@@ -325,9 +336,8 @@
     private string[] chartLabels = Array.Empty<string>();
     private ChartOptions chartOptions = new ChartOptions();
 
-    // Pagination
-    private int currentPage = 1;
-    private int pageSize = 10;
+    // Pagination state
+    private PageState? _savedState;
     private int totalPages = 1;
 
     // Data
@@ -335,8 +345,54 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await RestorePageState();
         await LoadINRData();
         PrepareChartData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _table != null && _savedState != null && !_stateRestored)
+        {
+            // Restore the table state after first render
+            _table.RowsPerPage = _savedState.PageSize;
+            _table.CurrentPage = _savedState.CurrentPage - 1; // MudTable uses 0-based index
+            _stateRestored = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestorePageState()
+    {
+        try
+        {
+            _savedState = await PageStateService.LoadStateAsync<PageState>(PageStateKey);
+        }
+        catch (Exception ex)
+        {
+            // Log error but continue with defaults
+            Console.WriteLine($"Error restoring page state: {ex.Message}");
+        }
+    }
+
+    private async Task SavePageState()
+    {
+        try
+        {
+            if (_table == null) return;
+
+            var state = new PageState
+            {
+                PageSize = _table.RowsPerPage,
+                CurrentPage = _table.CurrentPage + 1 // Save as 1-based index
+            };
+            await PageStateService.SaveStateAsync(PageStateKey, state);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't interrupt user flow
+            Console.WriteLine($"Error saving page state: {ex.Message}");
+        }
     }
 
     private async Task LoadINRData()
@@ -420,7 +476,10 @@
 
             // Calculate pagination
             var totalItems = inrTests?.Count ?? 0;
-            totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            if (_table != null)
+            {
+                totalPages = (int)Math.Ceiling((double)totalItems / _table.RowsPerPage);
+            }
         }
         catch (HttpRequestException ex)
         {
@@ -495,20 +554,24 @@
 
     private void ChangePage(int page)
     {
-        if (page >= 1 && page <= totalPages)
+        if (_table != null && page >= 1 && page <= totalPages)
         {
-            currentPage = page;
+            _table.NavigateTo(page - 1); // MudTable uses 0-based index
             StateHasChanged();
         }
     }
 
-    private void EditINRTest(Guid testId)
+    private async Task EditINRTest(Guid testId)
     {
+        // Save current page state before navigating
+        await SavePageState();
         Navigation.NavigateTo($"/inr/edit/{testId}");
     }
 
-    private void NavigateToAddINR()
+    private async Task NavigateToAddINR()
     {
+        // Save current page state before navigating
+        await SavePageState();
         Navigation.NavigateTo("/inr/add");
     }
 

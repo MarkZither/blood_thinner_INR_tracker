@@ -226,6 +226,7 @@ builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationService, 
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationLogService, BloodThinnerTracker.Web.Services.MedicationLogService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationPatternService, BloodThinnerTracker.Web.Services.MedicationPatternService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationScheduleService, BloodThinnerTracker.Web.Services.MedicationScheduleService>();
+builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IPageStateService, BloodThinnerTracker.Web.Services.PageStateService>();
 
 // Add HttpClient for API calls with authentication (T003-001)
 builder.Services.AddTransient<AuthorizationMessageHandler>();
