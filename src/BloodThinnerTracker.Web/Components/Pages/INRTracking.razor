@@ -9,10 +9,6 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-                    // Preserve PublicId (GUID) for client-side navigation and API calls
-                    // (use typed PublicId from the API DTO)
-                    PublicId = r.PublicId,
-
 <AuthorizeView>
     <Authorized>
         <div class="inr-container">
