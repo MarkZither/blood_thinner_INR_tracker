@@ -10,12 +10,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IPageStateService PageStateService
+@* JS interop removed — charts use MudBlazor chart options only *@
 @rendermode InteractiveServer
-
-                    // Preserve PublicId (GUID) for client-side navigation and API calls
-                    // (use typed PublicId from the API DTO)
-                    PublicId = r.PublicId,
-
 <AuthorizeView>
     <Authorized>
         <div class="inr-container">
@@ -130,12 +126,12 @@
         @if (inrTests?.Any() == true)
         {
             <MudChart ChartType="ChartType.Line"
-                      ChartSeries="@chartSeries"
-                      XAxisLabels="@chartLabels"
-                      Width="100%"
-                      Height="400px"
-                      ChartOptions="@chartOptions">
-            </MudChart>
+                  ChartSeries="@chartSeries"
+                  XAxisLabels="@chartLabels"
+                  Width="100%"
+                  Height="400px"
+                  ChartOptions="@chartOptions"
+                  AxisChartOptions="@axisChartOptions" />
 
             <!-- Chart Legend -->
             <div class="mt-4">
@@ -335,6 +331,9 @@
     private List<ChartSeries> chartSeries = new();
     private string[] chartLabels = Array.Empty<string>();
     private ChartOptions chartOptions = new ChartOptions();
+    private AxisChartOptions axisChartOptions = new AxisChartOptions { XAxisLabelRotation = 45 };
+    // Chart container id (keep for potential future use)
+    private readonly string _chartContainerId = "inrTrend_" + System.Guid.NewGuid().ToString("N");
 
     // Pagination state
     private PageState? _savedState;
@@ -502,28 +501,67 @@
             return;
         }
 
-        // Filter data based on selected period
-        var filteredTests = FilterTestsByPeriod(inrTests, chartPeriod);
-        var orderedTests = filteredTests.OrderBy(t => t.TestDate).ToList();
+        // Original behavior: use only test dates as labels and plot every test as a point.
+        var filteredTests = FilterTestsByPeriod(inrTests, chartPeriod)
+            .OrderBy(t => t.TestDate)
+            .ToList();
 
-        // Prepare chart labels (dates)
-        chartLabels = orderedTests.Select(t => t.TestDate.ToString("MMM dd")).ToArray();
+        // 1. Get min and max dates from your filtered data
+        var minDate = filteredTests.Min(t => t.TestDate).Date;
+        var maxDate = filteredTests.Max(t => t.TestDate).Date;
 
-        // INR Values series
-        var inrValues = orderedTests.Select(t => (double)t.INRValue).ToArray();
+        // 2. Generate a full list of dates between min and max
+        var fullDateRange = Enumerable.Range(0, (maxDate - minDate).Days + 1)
+            .Select(offset => minDate.AddDays(offset))
+            .ToList();
 
-        // Target range series (min and max)
-        var targetMin = Enumerable.Repeat(2.0, orderedTests.Count).ToArray();
-        var targetMax = Enumerable.Repeat(3.0, orderedTests.Count).ToArray();
+        // 3. Format for X-axis labels
+        var allLabels = fullDateRange.Select(d => d.ToString("MMM dd")).ToList();
+
+        // Thinning logic: display at most this many labels on the X axis to avoid overlap
+        const int maxVisibleLabels = 8;
+        var dataCount = allLabels.Count;
+        var labelInterval = Math.Max(1, (int)Math.Ceiling(dataCount / (double)maxVisibleLabels));
+
+        chartLabels = allLabels
+            .Select((lbl, idx) => idx % labelInterval == 0 ? lbl : string.Empty)
+            .ToArray();
+
+        // INR Values series (one value per label)
+        Dictionary<DateTime, decimal>? testDataByDate = filteredTests
+            .GroupBy(t => t.TestDate.Date)
+            .ToDictionary(g => g.Key, g => g.Average(t => t.INRValue));
+
+        double? lastValue = null;
+
+        double[] alignedData = fullDateRange
+            .Select(date =>
+            {
+                if (testDataByDate.TryGetValue(date, out var value))
+                {
+                    lastValue = (double)value;
+                    return lastValue.Value;
+                }
+                else
+                {
+                    return lastValue ?? 0.0; // Or use double.NaN if no prior value exists
+                }
+            })
+            .ToArray();
+
+        var inrValues = alignedData;
+
+        // Target range series (min and max) aligned to the same labels
+        var targetMin = Enumerable.Repeat(2.0, alignedData.Count()).ToArray();
+        var targetMax = Enumerable.Repeat(3.0, alignedData.Count()).ToArray();
 
         chartSeries = new List<ChartSeries>
         {
-            new ChartSeries { Name = "INR Value", Data = inrValues },
             new ChartSeries { Name = "Target Min (2.0)", Data = targetMin },
-            new ChartSeries { Name = "Target Max (3.0)", Data = targetMax }
+            new ChartSeries { Name = "Target Max (3.0)", Data = targetMax },
+            new ChartSeries { Name = "INR Value", Data = inrValues, ShowDataMarkers = false }
         };
 
-        // Configure chart options
         chartOptions = new ChartOptions
         {
             YAxisTicks = 1,
