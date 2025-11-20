@@ -33,10 +33,19 @@
                         <MudText Typo="Typo.h5">@_medication.Name</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Dosage Pattern History</MudText>
                     </MudStack>
-                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
-                               OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/edit"))">
-                        Back to Medication
-                    </MudButton>
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/pattern/edit"))">
+                            Edit Pattern
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" 
+                                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/edit"))">
+                            Back to Medication
+                        </MudButton>
+                    </MudStack>
                 </MudStack>
             </MudPaper>
 

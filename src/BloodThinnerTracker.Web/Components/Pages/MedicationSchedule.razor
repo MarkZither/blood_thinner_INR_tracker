@@ -41,12 +41,20 @@
                         Dosage Schedule: @_schedule.StartDate.ToString("MMM dd, yyyy") - @_schedule.EndDate.ToString("MMM dd, yyyy")
                     </MudText>
                 </div>
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.ArrowBack"
-                           Href="/medications">
-                    Back
-                </MudButton>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => Navigation.NavigateTo($"/medications/{Id}/pattern/edit"))">
+                        Edit Pattern
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               Href="/medications">
+                        Back
+                    </MudButton>
+                </MudStack>
             </MudStack>
         </MudPaper>
 
