@@ -17,11 +17,18 @@ namespace BloodThinnerTracker.Web.Tests.Auth
         {
             var logger = Mock.Of<ILogger<AuthController>>();
 
-            // CustomAuthenticationStateProvider requires constructor args; create a mock with constructor parameters
+            // CustomAuthenticationStateProvider requires constructor args; create a mock with updated constructor
             var mockCache = new Mock<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
             var mockHttp = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
             var mockLoggerProvider = new Mock<ILogger<CustomAuthenticationStateProvider>>();
-            var authStateProvider = new Mock<CustomAuthenticationStateProvider>(mockCache.Object, mockHttp.Object, mockLoggerProvider.Object).Object;
+            var mockHttpClientFactory = new Mock<IHttpClientFactory>();
+            var mockConfiguration = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+            var authStateProvider = new Mock<CustomAuthenticationStateProvider>(
+                mockCache.Object, 
+                mockHttp.Object, 
+                mockLoggerProvider.Object,
+                mockHttpClientFactory.Object,
+                mockConfiguration.Object).Object;
 
             var controller = new AuthController(logger, authStateProvider);
 

@@ -5,6 +5,7 @@ namespace BloodThinnerTracker.Web.Services;
 
 using System.Security.Claims;
 using System.Text.Json;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -17,10 +18,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     private readonly IMemoryCache _cache;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private const string TokenKey = "authToken";
     private const string RefreshTokenKey = "refreshToken";
     private const string UserInfoKey = "userInfo";
     private const string ClaimsKey = "userClaims";
+    private static readonly SemaphoreSlim RefreshSemaphore = new SemaphoreSlim(1, 1);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomAuthenticationStateProvider"/> class.
@@ -28,14 +32,20 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     /// <param name="cache">Memory cache for token storage.</param>
     /// <param name="httpContextAccessor">HTTP context accessor for session identification.</param>
     /// <param name="logger">Logger instance.</param>
+    /// <param name="httpClientFactory">HTTP client factory for API calls.</param>
+    /// <param name="configuration">Configuration for API base URL.</param>
     public CustomAuthenticationStateProvider(
         IMemoryCache cache,
         IHttpContextAccessor httpContextAccessor,
-        ILogger<CustomAuthenticationStateProvider> logger)
+        ILogger<CustomAuthenticationStateProvider> logger,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _cache = cache;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     private string GetCacheKey(string key, string? userIdentifier = null)
@@ -144,16 +154,49 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 return CreateAnonymousState();
             }
 
-            // Check if token is expired
+            // Check if token is expired or about to expire (within 5 minutes)
             var expiryClaim = claims.FirstOrDefault(c => c.Type == "exp");
             if (expiryClaim != null)
             {
                 var expiryTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expiryClaim.Value));
-                if (expiryTime <= DateTimeOffset.UtcNow)
+                var now = DateTimeOffset.UtcNow;
+                
+                // If token has already expired
+                if (expiryTime <= now)
                 {
-                    _logger.LogInformation("Token has expired, clearing authentication state");
-                    await ClearAuthenticationAsync();
-                    return CreateAnonymousState();
+                    _logger.LogInformation("Token has expired at {ExpiryTime}, attempting refresh", expiryTime);
+                    var refreshed = await TryRefreshTokenAsync();
+                    if (!refreshed)
+                    {
+                        _logger.LogWarning("Token refresh failed, clearing authentication state");
+                        await ClearAuthenticationAsync();
+                        return CreateAnonymousState();
+                    }
+                    
+                    // Get refreshed token and claims
+                    token = await GetTokenAsync();
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        return CreateAnonymousState();
+                    }
+                    
+                    claimsJson = await GetItemAsync(ClaimsKey);
+                    if (!string.IsNullOrEmpty(claimsJson))
+                    {
+                        var claimData = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(claimsJson);
+                        claims = claimData?.Select(c => new Claim(c["Type"], c["Value"])) ?? Enumerable.Empty<Claim>();
+                    }
+                    else
+                    {
+                        claims = ParseClaimsFromJwt(token);
+                    }
+                }
+                // If token expires within 5 minutes, proactively refresh
+                else if (expiryTime <= now.AddMinutes(5))
+                {
+                    _logger.LogInformation("Token expiring soon at {ExpiryTime}, proactively refreshing", expiryTime);
+                    // Fire and forget - don't wait for refresh to complete
+                    _ = Task.Run(async () => await TryRefreshTokenAsync());
                 }
             }
 
@@ -472,6 +515,93 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         {
             _logger.LogError(ex, "Error removing {Key} from cache", key);
             return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// Attempts to refresh the access token using the stored refresh token.
+    /// Uses a semaphore to prevent concurrent refresh attempts.
+    /// </summary>
+    /// <returns>True if refresh successful, false otherwise.</returns>
+    private async Task<bool> TryRefreshTokenAsync()
+    {
+        // Use semaphore to prevent concurrent refresh attempts
+        if (!await RefreshSemaphore.WaitAsync(0))
+        {
+            _logger.LogDebug("Token refresh already in progress, skipping duplicate request");
+            return false;
+        }
+
+        try
+        {
+            var refreshToken = await GetRefreshTokenAsync();
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                _logger.LogWarning("No refresh token available for token refresh");
+                return false;
+            }
+
+            _logger.LogInformation("Attempting to refresh access token");
+
+            // Create a bare HTTP client without authorization header to avoid circular dependency
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(_configuration["ApiBaseUrl"] ?? "https://localhost:7234");
+
+            var request = new BloodThinnerTracker.Shared.Models.Authentication.RefreshTokenRequest
+            {
+                RefreshToken = refreshToken,
+                DeviceId = "web-app"
+            };
+
+            var response = await httpClient.PostAsJsonAsync("api/auth/refresh", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var authResponse = await response.Content.ReadFromJsonAsync<BloodThinnerTracker.Shared.Models.Authentication.AuthenticationResponse>();
+
+                if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
+                {
+                    _logger.LogInformation("Token refresh successful");
+
+                    // Update stored tokens
+                    var claims = ParseClaimsFromJwt(authResponse.AccessToken);
+                    var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+                    var sub = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var userIdentifier = email ?? sub ?? "anonymous";
+
+                    await SetItemAsync(TokenKey, authResponse.AccessToken, userIdentifier);
+                    
+                    if (!string.IsNullOrEmpty(authResponse.RefreshToken))
+                    {
+                        await SetRefreshTokenAsync(authResponse.RefreshToken, userIdentifier);
+                    }
+
+                    // Update claims
+                    await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })), userIdentifier);
+
+                    // Notify Blazor of authentication state change
+                    var identity = new ClaimsIdentity(claims, "oauth");
+                    var user = new ClaimsPrincipal(identity);
+                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+
+                    return true;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Token refresh failed with status code: {StatusCode}", response.StatusCode);
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing token");
+            return false;
+        }
+        finally
+        {
+            RefreshSemaphore.Release();
         }
     }
 }
