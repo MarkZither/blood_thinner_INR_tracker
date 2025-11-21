@@ -22,6 +22,8 @@ AT-002 (SC-002) — INR list display after login
 - Steps:
   1. Start with app at login screen.
   2. Submit credentials using test user (see `env.md`).
+  2.a Verify OAuth/OIDC flow: ensure the OIDC callback returns an `id_token` to the app (or capture proof of id_token receipt via the test harness).
+  2.b Exchange step: verify the app POSTs the `id_token` to `POST /auth/exchange` and receives an internal bearer token; capture response.
   3. Start timer when Submit is tapped, stop when the INR list is rendered and shows at least one item or the empty state.
   4. Repeat 5 times, record median and max.
 - Pass criteria: median <= 10 seconds.

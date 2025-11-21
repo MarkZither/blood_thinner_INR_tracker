@@ -28,7 +28,7 @@ All code MUST adhere to .NET coding conventions and C# best practices. Code MUST
 **Rationale**: Medical applications require enterprise-grade code quality for reliability, maintainability, and regulatory compliance. .NET ecosystem provides robust tooling for enforcing these standards.
 
 ### II. Testing Discipline & Coverage
-All functional code MUST achieve minimum 90% test coverage with unit, integration, and end-to-end tests. Tests MUST be written using xUnit for .NET backend, Playwright for UI automation, BUnit for Blazor components and Pester for Powershell scripts. Critical user flows (medication reminders, INR logging, authentication) MUST have comprehensive test scenarios covering happy path, edge cases, and error conditions. No production deployment without passing CI/CD pipeline including all test suites.
+All functional code MUST achieve minimum 80% test coverage with unit and integration test. Extra confidence can be gained with end-to-end tests but not counted towards the coverage. Tests MUST be written using xUnit for .NET backend, Playwright/Appium for UI automation, BUnit for Blazor components and Pester for Powershell scripts. Critical user flows (medication reminders, INR logging, authentication) MUST have comprehensive test scenarios covering happy path, edge cases, and error conditions. No production deployment without passing CI/CD pipeline including all test suites.
 
 **Rationale**: Patient safety depends on thoroughly tested functionality. Automated testing prevents regression and ensures consistent behavior across platforms.
 
@@ -43,7 +43,7 @@ Application MUST respond to user interactions within 200ms for local operations 
 **Rationale**: Poor performance can cause users to abandon critical health tasks. Medication reminders require immediate responsiveness for patient safety.
 
 ### V. Security & OWASP Compliance
-All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use ASP.NET Core Identity with multi-factor authentication support. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
+All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use OAuth2/OpenID Connect with external providers Azure and Google. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
 
 **Rationale**: Health data requires maximum security protection. OWASP compliance is essential for protecting patient privacy and meeting healthcare regulations.
 
@@ -53,7 +53,7 @@ API services MUST use **source-based deployments** to Azure Container Apps lever
 **Rationale**: Source-based builds align with modern .NET 10+ capabilities, reduce maintenance overhead, eliminate Dockerfile complexity, and leverage Azure's optimized build pipelines. This approach follows Microsoft's recommended practices for .NET cloud-native applications and simplifies the deployment process while maintaining security and reliability.
 
 ### VIII. Feature Sizing & Scope Management
-Features MUST be scoped to 2-3 weeks maximum effort per feature. Features exceeding this size MUST be split into smaller, independently deliverable features. Each feature MUST have clear boundaries with a single primary concern (authentication OR deployment OR UI, not multiple). Pull requests MUST be ≤500 lines of changed code (excluding generated code, migrations, package-lock files). Features MUST be independently deployable behind feature flags. Feature specs MUST define explicit non-goals to prevent scope creep. Branch naming MUST follow `feature/NNN-short-description` convention where NNN is a zero-padded feature number.
+Features MUST be scoped to 2-3 weeks maximum effort per feature. Features exceeding this size MUST be split into smaller, independently deliverable features. Each feature MUST have clear boundaries with a single primary concern (authentication OR deployment OR UI, not multiple). Pull requests MUST be ≤500 lines of changed code (excluding generated code, migrations, package-lock files). Features MUST be independently deployable behind feature flags. Feature specs MUST define explicit non-goals to prevent scope creep. Branch naming MUST follow `NNN-short-description` convention where NNN is a zero-padded feature number.
 
 **Rationale**: Large features increase review time, testing complexity, and deployment risk. Smaller features enable faster feedback cycles, easier rollback, parallel development, and more predictable delivery. The 2-3 week limit ensures features remain focused and prevent scope creep that delays valuable functionality from reaching users. Feature flags enable gradual rollout and quick rollback without deployment.
 

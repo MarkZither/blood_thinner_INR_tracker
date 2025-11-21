@@ -53,9 +53,6 @@ Next steps: produce `data-model.md`, API `contracts/openapi.yaml`, and `quicksta
 
 Clarification — existing project
 
-The repository already contains a mobile project named `BloodThinnerTracker.Mobile`. It has some existing content, but per direction this project may be replaced (clean delete + scaffold) if that yields a cleaner, maintainable starting point. The implementation plan and quickstart have been adjusted to reference `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj` as the canonical project path. When scaffolding, we will either:
+The repository already contains a mobile project named `BloodThinnerTracker.Mobile`. It has some existing content; after review you asked to prefer a clean replacement. Therefore the plan will choose to delete the existing `BloodThinnerTracker.Mobile` folder and scaffold a fresh MAUI project with the same name. This destructive operation is considered safe because the repository is under source control and all committed content can be recovered from Git history. Ensure any uncommitted local changes are saved or stashed before proceeding.
 
-- Option A (safe): Rename the existing folder to `BloodThinnerTracker.Mobile.bak` and create a new `BloodThinnerTracker.Mobile` scaffold, allowing an easy rollback.
-- Option B (clean): Delete the existing `BloodThinnerTracker.Mobile` folder and scaffold a fresh MAUI project with the same name.
-
-Recommendation: prefer Option A (rename/backup) during initial scaffolding to avoid accidental data loss. If you confirm you want a full replace, I will delete and re-scaffold.
+Selected approach: Delete-and-scaffold (clean replacement). If you later prefer a non-destructive path, we can switch to renaming to `BloodThinnerTracker.Mobile.bak` instead.

@@ -22,6 +22,10 @@ Build a cross-platform .NET MAUI mobile client (initial targets: Windows and And
 **Storage**:
 - Local: encrypted cache (AES-256) stored via platform secure storage; cache metadata persisted as JSON in app-local storage.
 - Remote: REST API (authenticated via OAuth bearer tokens) — mock API used for local development.
+**Authentication / Token Exchange**:
+- Mobile performs Authorization Code + PKCE (OIDC) against external providers (Azure, Google). The provider returns an `id_token` to the mobile client via the OIDC callback.
+- The mobile client MUST POST the `id_token` to a backend token-exchange endpoint (e.g., `POST /auth/exchange`) to obtain an internal bearer token used for API requests. The backend MUST validate the `id_token` (issuer, audience, signature, expiry) and may apply additional checks (scopes, account status) before issuing the internal bearer token.
+- The mobile client stores the internal bearer token in platform `SecureStorage` and uses it for authenticated API calls.
 **Testing**:
 - Unit tests: xUnit (shared library)
 - UI tests: MAUI Test (or Appium) for cross-platform automation
@@ -81,7 +85,35 @@ specs/010-title-mobile-splash/
     └── results.md
 ```
 
-**Structure Decision**: Use a single MAUI app project `Mobile.BloodThinnerTracker` under `src/` with a services folder to host `IInrService`. Provide two implementations: `ApiInrService` (calls remote API) and `MockInrService` (in-memory mock) registered at startup by environment/DI. Tests live under `tests/` matching MAUI project structure.
+**Structure Decision**: Use a single MAUI app project `BloodThinnerTracker.Mobile` under `src/` with a services folder to host `IInrService`. Provide two implementations: `ApiInrService` (calls remote API) and `MockInrService` (in-memory mock) registered at startup by environment/DI. Tests live under `tests/` matching MAUI project structure.
+
+**Repository safety note**: The implementation will perform a clean scaffold of `src/BloodThinnerTracker.Mobile` and the plan's tasks (see `tasks.md`) intentionally include deleting the existing folder. This is considered safe because the repository is version-controlled and all current content is recoverable from Git history. Ensure any uncommitted local changes are saved or stashed before running destructive steps.
+
+**Branch naming (Constitution compliance)**: The project Constitution mandates branch names use the `feature/NNN-short-description` pattern. Current feature branch naming should be aligned accordingly (for example: `feature/010-mobile-splash`). To rename the local branch safely, use:
+
+```
+git branch -m 010-title-mobile-splash feature/010-mobile-splash
+git push origin :010-title-mobile-splash
+git push -u origin feature/010-mobile-splash
+```
+
+If you prefer to preserve the current branch name, a formal constitution amendment is required (see Constitution/Governance). Please choose which path before running destructive scaffold steps.
+
+**Testing policy exception (MAUI native UI)**: The repository Constitution prescribes Playwright for UI automation for web/Blazor surfaces. Native MAUI mobile UI automation is not Playwright-native. This plan documents a formal exception to allow platform-appropriate native UI tooling (MAUI Test or Appium) for MAUI client automated UI tests. The exception must be recorded in the feature's acceptance notes and the CI pipeline. If you prefer to enforce the Constitution strictly, we will instead limit Playwright to web surfaces and defer native UI automation until a constitution amendment is ratified.
+
+CI implications for native UI automation:
+
+- **Runner requirements**: Native UI tests require platform-specific runners: Android emulator support is available on GitHub-hosted Linux/Windows runners (via `actions/setup-android` and emulator start), while Windows MAUI UI tests require Windows runners (GitHub `windows-latest`) or self-hosted Windows runners for reliable UI automation. Consider device-farm options (Firebase Test Lab, AppCenter, or cloud device farms) for broad device coverage.
+- **Emulator setup**: CI jobs must install SDK components, start an emulator, and wait for readiness. Include reproducible emulator images and network profiles for performance tests.
+- **Test artifacts**: CI should collect UI test logs, screenshots, and video artifacts for failed runs. Store artifacts in workflow run or upload to an artifacts bucket for debugging.
+- **Security & secrets**: CI runs that exercise authentication flows must avoid using real production credentials. Use staging identity providers or mocked OIDC endpoints and inject credentials via repository secrets or OIDC where necessary.
+- **Coverage & gating**: Add CI workflow steps to run unit tests and UI tests, collect coverage metrics, and gate merges on required coverage thresholds (see tasks T035/T036 added to `tasks.md`).
+
+Implementation tasks (CI-focused) will include:
+
+- Add a CI workflow to provision Android emulators and run MAUI Test/Appium UI suites on `windows-latest` / `ubuntu-latest` as appropriate.
+- Add steps to capture artifacts (screenshots, logs, traces) on failure.
+- Add workflow to run performance telemetry (cold-start, render timing) under a controlled network profile and publish metrics.
 
 ## Complexity Tracking
 

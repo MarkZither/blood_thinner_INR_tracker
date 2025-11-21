@@ -52,3 +52,19 @@ CachedBundleDto:
 - Generate a random AES-256 key on first-run; store the AES key encrypted by platform `SecureStorage` (which uses the OS keystore / Keychain).
 - Use `AesGcm` for authenticated encryption where available; store IV and Tag with the ciphertext.
 - Do not persist raw keys in plain files or logs.
+
+### Key management guidance (implementation MUST follow these constraints)
+
+- **Per-device key derivation**: Derive a per-device data-encryption key (DEK) using a platform-protected root secret (e.g., Keychain/Keystore). Use a KDF such as HKDF or PBKDF2 to derive the DEK from the root secret and a device-unique salt. Do NOT store raw DEKs in plain text.
+
+- **Authenticated encryption**: Use `AesGcm` (or equivalent AEAD) with Associated Authenticated Data (AAD). Include AAD fields such as `version` and `deviceId` to bind ciphertext to a specific app version and device.
+
+- **IV/Nonce & Tag handling**: Generate a unique nonce/IV per encryption operation (recommended 12 bytes for AesGcm) and store the IV and authentication tag alongside the ciphertext in `CachedInrBundle`.
+
+- **Key rotation & migration**: Implement key versioning. When rotating keys, the app MUST be able to re-encrypt existing cached bundles with the new key or keep previous keys available to decrypt until migration completes. Add metadata in the cache blob indicating `keyVersion` and the algorithm used.
+
+- **Storage of wrapping keys**: The DEK may be wrapped (encrypted) by a key stored in platform `SecureStorage` or protected by the OS keystore. Wrapping reduces exposure of the raw DEK.
+
+- **Testing requirements**: Unit tests MUST include encrypt/decrypt roundtrips, tamper-detection (invalid tag/iv), and rotation/migration scenarios. Integration tests SHOULD verify cross-version compatibility when keyVersion changes.
+
+- **Operational notes**: On sign-out or device reset, ensure wrapped keys are removed from platform secure storage and cached blobs are deleted to prevent unauthorized access.

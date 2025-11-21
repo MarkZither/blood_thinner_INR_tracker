@@ -49,6 +49,16 @@ Phase 4 — Polish & Cross-cutting concerns
 - [ ] T028 Add example GitHub Actions workflow `/.github/workflows/mobile-build.yml` to build `src/BloodThinnerTracker.Mobile` for `net10.0-android` and `net10.0-windows10.0.19041.0`
 - [ ] T029 Add a placeholder workflow `/.github/workflows/mobile-publish.yml` with steps for Play Store / Microsoft Store publishing (use secrets/OIDC guidance in `specs/010-title-mobile-splash/research.md`)
 
+- [ ] T030 Document server-side token-exchange endpoint contract in `specs/010-title-mobile-splash/contracts/auth-exchange.md` (describe `POST /auth/exchange` request/response and validation rules)
+- [ ] T031 [P] Add integration test `tests/Integration/AuthExchangeTests.cs` that simulates obtaining an `id_token` (mocked) and verifies the backend validates the `id_token` and issues an internal bearer token
+- [ ] T032 [US1] Update acceptance tests in `specs/010-title-mobile-splash/tests/acceptance.md` to include id_token → internal-bearer exchange evidence steps (capture id_token receipt, token-exchange response, authenticated API call)
+- [ ] T033 Add CI/QA check `/.github/workflows/check-auth-exchange.yml` to run `tests/Integration/AuthExchangeTests.cs` against a staging auth endpoint (requires secrets / staging config)
+
+- [ ] T034 Implement encryption key-management tasks: KDF/HKDF or PBKDF2 derivation, per-device key derivation, and key-rotation/migration support; add unit tests for rotation and tamper detection.
+- [ ] T035 Add CI coverage gating: collect XPlat code coverage for `tests/Mobile.UnitTests` and fail CI if coverage < 80% for feature projects; add workflow snippet to `.github/workflows/coverage-check.yml`.
+- [ ] T036 Add performance telemetry tasks: implement cold-start and render timing telemetry, create a CI benchmark job to validate SC-001/SC-002 under a defined network profile.
+- [ ] T037 Correct tasks metadata and summary: update the summary counts and ensure the README/summary accurately reflects the task list.
+
 Dependencies (story completion order)
 
 - US1 must be implemented before full US2 verification (users must authenticate before viewing private INR data).  
@@ -81,7 +91,7 @@ Files created/edited by tasks (high-level)
 
 Summary
 
-- Total tasks: 29
+- Total tasks: 37
 - Tasks for US1: 5 (+2 test tasks)  
 - Tasks for US2: 5 (+1 test task)  
 - Tasks for US3: 3 (+1 test task)  
