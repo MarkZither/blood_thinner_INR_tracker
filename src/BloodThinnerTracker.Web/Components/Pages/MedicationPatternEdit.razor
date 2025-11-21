@@ -25,7 +25,7 @@
         <MudAlert Severity="Severity.Error" Class="mb-4">
             Medication not found or you don't have access to it.
         </MudAlert>
-        <MudButton Variant="Variant.Text" 
+        <MudButton Variant="Variant.Text"
                    StartIcon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Navigation.NavigateTo("/medications"))">
             Back to Medications
@@ -39,7 +39,7 @@
                 <MudStack Spacing="2">
                     <!-- Breadcrumbs -->
                     <MudBreadcrumbs Items="_breadcrumbs" Separator=">"></MudBreadcrumbs>
-                    
+
                     <!-- Page Header -->
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudStack Spacing="1">
@@ -83,7 +83,7 @@
                     <MudStack Spacing="2">
                         <MudText Typo="Typo.h6">Current Active Pattern</MudText>
                         <MudDivider />
-                        <PatternDisplayComponent 
+                        <PatternDisplayComponent
                             MedicationId="@Id"
                             ShowEditButton="false" />
                     </MudStack>
@@ -97,16 +97,16 @@
                         @(_hasActivePattern ? "Create New Pattern" : "Create First Pattern")
                     </MudText>
                     <MudDivider />
-                    
+
                     @if (_hasActivePattern)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true">
-                            Creating a new pattern will supersede the current active pattern. 
+                            Creating a new pattern will supersede the current active pattern.
                             Check the "Close previous active pattern" option to automatically end the current pattern.
                         </MudAlert>
                     }
 
-                    <PatternEntryComponent 
+                    <PatternEntryComponent
                         MedicationId="@Id"
                         OnPatternSaved="HandlePatternSaved"
                         OnCancelled="Cancel" />
@@ -165,11 +165,11 @@
         try
         {
             _medication = await MedicationService.GetMedicationByIdAsync(Id.ToString());
-            
+
             if (_medication != null)
             {
                 _hasActivePattern = _medication.HasPatternSchedule;
-                Logger.LogInformation("Loaded medication {MedicationId} for pattern editing. Has active pattern: {HasPattern}", 
+                Logger.LogInformation("Loaded medication {MedicationId} for pattern editing. Has active pattern: {HasPattern}",
                     Id, _hasActivePattern);
             }
             else
@@ -202,12 +202,11 @@
     private async Task HandlePatternSaved()
     {
         Snackbar.Add("Dosage pattern saved successfully!", Severity.Success);
-        
+
         // Reload medication to reflect changes
         await LoadMedicationAsync();
-        
-        // Navigate back to medication edit page after a brief delay
-        await Task.Delay(1500);
+
+        // Navigate back to medication edit page
         Navigation.NavigateTo($"/medications/edit/{Id}");
     }
 
