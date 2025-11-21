@@ -56,14 +56,14 @@
                         <MudItem xs="12" sm="6">
                             <MudAutocomplete T="MedicationSuggestion"
                                            Label="Search Medication *"
-                                           @bind-Value="selectedMedication"
+                                           Value="selectedMedication"
+                                           ValueChanged="OnMedicationValueChanged"
                                            SearchFunc="@SearchMedications"
                                            ToStringFunc="@(m => m?.DisplayText ?? string.Empty)"
                                            Variant="Variant.Outlined"
                                            Clearable="true"
                                            HelperText="Start typing to search common blood thinners"
-                                           Immediate="true"
-                                           OnBlur="OnMedicationSelected">
+                                           Immediate="true">
                                 <ItemTemplate Context="item">
                                     <MudStack Spacing="0">
                                         <MudText Typo="Typo.body1"><strong>@item.GenericName</strong> (@item.BrandNames)</MudText>
@@ -588,8 +588,10 @@
         return CommonBloodThinners.Search(value);
     }
 
-    private void OnMedicationSelected()
+    private void OnMedicationValueChanged(MedicationSuggestion? value)
     {
+        selectedMedication = value;
+        
         if (selectedMedication != null)
         {
             // Store both generic and brand names for medical records
