@@ -6,11 +6,11 @@ Spec: `specs/010-title-mobile-splash/spec.md`
 
 Phase 1 — Setup (project initialization)
 
-- [ ] T001 Delete existing project folder `src/BloodThinnerTracker.Mobile`
-- [ ] T002 Create new .NET MAUI project `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj` (scaffold app skeleton)
-- [ ] T003 Add NuGet package references in `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj`: `CommunityToolkit.Mvvm`, `CommunityToolkit.Maui`, `Microsoft.Maui.Essentials` (or `Microsoft.Maui.Storage`), `Refit` (optional)
-- [ ] T004 Create test projects: `tests/Mobile.UnitTests/Mobile.UnitTests.csproj` and `tests/Mobile.UITests/Mobile.UITests.csproj` and reference the main project
-- [ ] T005 Add Dependency Injection bootstrap in `src/BloodThinnerTracker.Mobile/App.xaml.cs` to enable service registration
+- [x] T001 Delete existing project folder `src/BloodThinnerTracker.Mobile`
+- [x] T002 Create new .NET MAUI project `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj` (scaffold app skeleton)
+- [x] T003 Add NuGet package references in `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj`: `CommunityToolkit.Mvvm`, `CommunityToolkit.Maui`, `Microsoft.Maui.Essentials` (or `Microsoft.Maui.Storage`), `Refit` (optional)
+- [x] T004 Create test projects: `tests/Mobile.UnitTests/Mobile.UnitTests.csproj` and `tests/Mobile.UITests/Mobile.UITests.csproj` and reference the main project
+- [x] T005 Add Dependency Injection bootstrap in `src/BloodThinnerTracker.Mobile/App.xaml.cs` to enable service registration
 
 Phase 2 — Foundational (blocking prerequisites)
 
@@ -21,6 +21,13 @@ Phase 2 — Foundational (blocking prerequisites)
 - [ ] T010 Create encryption helper `src/BloodThinnerTracker.Mobile/Services/EncryptionService.cs` (AES-256/AesGcm wrapper for encrypt/decrypt)
 - [ ] T011 Create secure storage wrapper `src/BloodThinnerTracker.Mobile/Services/SecureStorageService.cs` to persist AES key (uses platform secure storage)
 - [ ] T012 Create authentication helper `src/BloodThinnerTracker.Mobile/Services/AuthService.cs` (OAuth PKCE flow stub + token storage in `SecureStorageService`)
+ - [x] T006 Create domain model `src/BloodThinnerTracker.Mobile/Models/INRTest.cs` (properties: Id, Value, Units, CollectedAt, ReportedAt, Notes)
+ - [x] T007 Create `src/BloodThinnerTracker.Mobile/Services/IInrService.cs` interface defining `Task<IEnumerable<INRTestDto>> GetRecentAsync(int count)`
+ - [x] T008 Create `src/BloodThinnerTracker.Mobile/Services/MockInrService.cs` implementing `IInrService` with canned data and simulated latency
+ - [x] T009 Create `src/BloodThinnerTracker.Mobile/Services/ApiInrService.cs` stub implementing `IInrService` that uses `HttpClient` and bearer tokens (implementation detail: use `Refit` or HttpClient)
+ - [x] T010 Create encryption helper `src/BloodThinnerTracker.Mobile/Services/EncryptionService.cs` (AES-256/AesGcm wrapper for encrypt/decrypt)
+ - [x] T011 Create secure storage wrapper `src/BloodThinnerTracker.Mobile/Services/SecureStorageService.cs` to persist AES key (uses platform secure storage)
+ - [x] T012 Create authentication helper `src/BloodThinnerTracker.Mobile/Services/AuthService.cs` (OAuth PKCE flow stub + token storage in `SecureStorageService`)
 
 Phase 3 — User Story Implementation (priority order)
 
