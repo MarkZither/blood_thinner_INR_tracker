@@ -1,7 +1,0 @@
-feat(mobile): Scaffold MAUI app and add foundational services
-
-- Added MAUI project, DI bootstrap, MainPage
-- Added INR models/services: IInrService, Mock/Api services
-- Added Encryption, SecureStorage, Auth service stubs
-- Referenced shared DTOs and added InrListItem VM
-- Updated tasks and specs for feature progress

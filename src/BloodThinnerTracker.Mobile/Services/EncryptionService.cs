@@ -29,7 +29,7 @@ namespace BloodThinnerTracker.Mobile.Services
             var tag = new byte[16];
             var ciphertext = new byte[plaintextBytes.Length];
 
-            using (var aes = new AesGcm(key))
+            using (var aes = new AesGcm(key, 16))
             {
                 aes.Encrypt(iv, plaintextBytes, ciphertext, tag);
             }
@@ -49,7 +49,7 @@ namespace BloodThinnerTracker.Mobile.Services
             var tag = Convert.FromBase64String(payload.TagBase64);
             var plaintext = new byte[ciphertext.Length];
 
-            using (var aes = new AesGcm(key))
+            using (var aes = new AesGcm(key, 16))
             {
                 aes.Decrypt(iv, ciphertext, tag, plaintext);
             }

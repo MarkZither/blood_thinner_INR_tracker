@@ -19,7 +19,7 @@ namespace BloodThinnerTracker.Mobile.Services
         public DateTimeOffset Issued_At { get; set; }
     }
 
-    public class AuthService
+    public class AuthService : IAuthService
     {
         private readonly ISecureStorageService _secureStorage;
         private readonly HttpClient _httpClient;
