@@ -5,22 +5,29 @@
              Title="Sign in">
 
     <StackLayout Padding="24" VerticalOptions="Center" Spacing="16">
-        <Label Text="Sign in to view your INR results" 
+        <Label Text="Sign in to view your INR results"
                HorizontalOptions="Center"
                FontSize="16" />
-        
-        <!-- Sign in button -->
-        <Button x:Name="SignInButton" 
-                Text="Sign in with OAuth" 
+
+        <!-- Azure AD button -->
+        <Button x:Name="AzureButton"
+                Text="Sign in with Azure AD"
                 Margin="0,20,0,0"
-                Command="{Binding SignInAsyncCommand}"
+                Command="{Binding SignInWithAzureAsyncCommand}"
                 IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
-        
+
+        <!-- Google button -->
+        <Button x:Name="GoogleButton"
+                Text="Sign in with Google"
+                Margin="0,8,0,0"
+                Command="{Binding SignInWithGoogleAsyncCommand}"
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+
         <!-- Loading indicator -->
-        <ActivityIndicator IsVisible="{Binding IsBusy}" 
+        <ActivityIndicator IsVisible="{Binding IsBusy}"
                           IsRunning="{Binding IsBusy}"
                           Color="Blue" />
-        
+
         <!-- Error message -->
         <Label Text="{Binding ErrorMessage}"
                TextColor="Red"

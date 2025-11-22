@@ -20,22 +20,47 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         [ObservableProperty]
         private bool isBusy;
 
+        [ObservableProperty]
+        private string? selectedProvider = "azure";
+
+        /// <summary>
+        /// Event raised when login succeeds, allowing the view to navigate.
+        /// </summary>
+        public event EventHandler? LoginSucceeded;
+
         public LoginViewModel(IAuthService authService)
         {
             _authService = authService;
         }
 
         /// <summary>
-        /// Initiates the OAuth sign-in flow.
-        /// Returns true if successful; false otherwise.
+        /// Sign in with Azure AD provider.
         /// </summary>
         [RelayCommand]
-        public async Task SignInAsync()
+        public async Task SignInWithAzureAsync()
+        {
+            await PerformSignInAsync("azure");
+        }
+
+        /// <summary>
+        /// Sign in with Google provider.
+        /// </summary>
+        [RelayCommand]
+        public async Task SignInWithGoogleAsync()
+        {
+            await PerformSignInAsync("google");
+        }
+
+        /// <summary>
+        /// Internal method to perform sign-in with specified provider.
+        /// </summary>
+        private async Task PerformSignInAsync(string provider)
         {
             try
             {
                 IsBusy = true;
                 ErrorMessage = null;
+                SelectedProvider = provider;
 
                 // Step 1: Initiate OAuth flow to get id_token
                 var idToken = await _authService.SignInAsync();
@@ -46,14 +71,20 @@ namespace BloodThinnerTracker.Mobile.ViewModels
                 }
 
                 // Step 2: Exchange id_token for internal bearer token
-                var exchanged = await _authService.ExchangeIdTokenAsync(idToken);
+                var exchanged = await _authService.ExchangeIdTokenAsync(idToken, provider);
                 if (!exchanged)
                 {
                     ErrorMessage = "Unable to complete sign-in. Please try again.";
                     return;
                 }
 
-                // Success - navigate away handled by caller
+                // Success - raise event for view to handle navigation
+                LoginSucceeded?.Invoke(this, EventArgs.Empty);
+            }
+            catch (OperationCanceledException)
+            {
+                // User cancelled sign-in flow
+                ErrorMessage = "Sign-in cancelled.";
             }
             catch
             {

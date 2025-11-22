@@ -44,22 +44,86 @@ namespace Mobile.UnitTests
             Assert.NotNull(vm);
             Assert.Null(vm.ErrorMessage);
             Assert.False(vm.IsBusy);
+            Assert.Equal("azure", vm.SelectedProvider);
         }
 
         [Fact]
-        public async Task LoginViewModel_InitiallyHasNoErrorMessage()
+        public async Task LoginViewModel_SignInWithAzureAsync_SucceedsWithValidAuth()
         {
             // Arrange
             var auth = new FakeAuthSuccess();
             var vm = new LoginViewModel(auth);
+            bool loginSucceededCalled = false;
+            vm.LoginSucceeded += (s, e) => loginSucceededCalled = true;
+
+            // Act - Call the method directly
+            await vm.SignInWithAzureAsync();
 
             // Assert
+            Assert.True(loginSucceededCalled);
             Assert.Null(vm.ErrorMessage);
+            Assert.False(vm.IsBusy);
+            Assert.Equal("azure", vm.SelectedProvider);
+        }
+
+        [Fact]
+        public async Task LoginViewModel_SignInWithGoogleAsync_SucceedsWithValidAuth()
+        {
+            // Arrange
+            var auth = new FakeAuthSuccess();
+            var vm = new LoginViewModel(auth);
+            bool loginSucceededCalled = false;
+            vm.LoginSucceeded += (s, e) => loginSucceededCalled = true;
+
+            // Act
+            await vm.SignInWithGoogleAsync();
+
+            // Assert
+            Assert.True(loginSucceededCalled);
+            Assert.Null(vm.ErrorMessage);
+            Assert.False(vm.IsBusy);
+            Assert.Equal("google", vm.SelectedProvider);
+        }
+
+        [Fact]
+        public async Task LoginViewModel_SignInWithAzureAsync_SetsErrorOnFailedSignIn()
+        {
+            // Arrange
+            var auth = new FakeAuthFailSignIn();
+            var vm = new LoginViewModel(auth);
+            bool loginSucceededCalled = false;
+            vm.LoginSucceeded += (s, e) => loginSucceededCalled = true;
+
+            // Act
+            await vm.SignInWithAzureAsync();
+
+            // Assert
+            Assert.False(loginSucceededCalled);
+            Assert.NotNull(vm.ErrorMessage);
+            Assert.Contains("failed", vm.ErrorMessage, System.StringComparison.OrdinalIgnoreCase);
             Assert.False(vm.IsBusy);
         }
 
         [Fact]
-        public void LoginViewModel_PropertyChangedFires()
+        public async Task LoginViewModel_SignInWithGoogleAsync_SetsErrorOnFailedExchange()
+        {
+            // Arrange
+            var auth = new FakeAuthFailExchange();
+            var vm = new LoginViewModel(auth);
+            bool loginSucceededCalled = false;
+            vm.LoginSucceeded += (s, e) => loginSucceededCalled = true;
+
+            // Act
+            await vm.SignInWithGoogleAsync();
+
+            // Assert
+            Assert.False(loginSucceededCalled);
+            Assert.NotNull(vm.ErrorMessage);
+            Assert.False(vm.IsBusy);
+        }
+
+        [Fact]
+        public void LoginViewModel_PropertyChanged_FiresForIsBusy()
         {
             // Arrange
             var auth = new FakeAuthSuccess();
