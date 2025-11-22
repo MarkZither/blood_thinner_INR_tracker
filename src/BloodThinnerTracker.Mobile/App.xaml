@@ -4,6 +4,10 @@
              xmlns:converters="clr-namespace:BloodThinnerTracker.Mobile.Converters"
              x:Class="BloodThinnerTracker.Mobile.App">
   <Application.Resources>
+    <!-- Theme Resources - Merged Dictionaries -->
+    <ResourceDictionary Source="Themes/AppColors.xaml" />
+    <ResourceDictionary Source="Themes/AppStyles.xaml" />
+
     <!-- Value Converters -->
     <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />

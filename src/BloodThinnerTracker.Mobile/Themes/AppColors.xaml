@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Primary Colors - Medical Blue Theme -->
+    <Color x:Key="PrimaryBlue">#0066CC</Color>
+    <Color x:Key="PrimaryBlueDark">#004999</Color>
+    <Color x:Key="PrimaryBlueDarker">#003366</Color>
+
+    <!-- Accent Colors - Medical Red for alerts -->
+    <Color x:Key="AccentRed">#DC3545</Color>
+    <Color x:Key="AccentRedDark">#A02830</Color>
+
+    <!-- Status Colors -->
+    <Color x:Key="StatusGreen">#28A745</Color>
+    <Color x:Key="StatusOrange">#FFC107</Color>
+    <Color x:Key="StatusRed">#DC3545</Color>
+
+    <!-- Neutral Colors - Gray scale -->
+    <Color x:Key="TextDark">#333333</Color>
+    <Color x:Key="TextMedium">#666666</Color>
+    <Color x:Key="TextLight">#999999</Color>
+    <Color x:Key="BorderGray">#CCCCCC</Color>
+    <Color x:Key="BackgroundGray">#F5F5F5</Color>
+    <Color x:Key="BackgroundWhite">#FFFFFF</Color>
+
+    <!-- Page Background - used by page-level controls -->
+    <Color x:Key="PageBackground">#FFFFFF</Color>
+
+    <!-- Dark Mode -->
+    <Color x:Key="DarkModeBackground">#1F1F1F</Color>
+    <Color x:Key="DarkModeCardBackground">#2D2D2D</Color>
+    <Color x:Key="DarkModeText">#FFFFFF</Color>
+    <Color x:Key="DarkModeTextSecondary">#CCCCCC</Color>
+    <Color x:Key="DarkModeBorder">#404040</Color>
+
+</ResourceDictionary>

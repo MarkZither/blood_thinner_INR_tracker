@@ -64,7 +64,7 @@ User Story 2 (US2) — View recent INR values (Priority: P1)
   - Error state with retry button on load failure
   - Tests: Add `InrListViewTests.cs` with UI state assertions
 
-- [ ] **T043** [NEW] Implement app theme with sensible color scheme
+- [x] **T043** [NEW] Implement app theme with sensible color scheme
   - Create `src/BloodThinnerTracker.Mobile/Themes/AppColors.xaml` with color definitions
     - Primary: Medical blue (#0066CC)
     - Accent: Medical red (#DC3545) for elevated INR values

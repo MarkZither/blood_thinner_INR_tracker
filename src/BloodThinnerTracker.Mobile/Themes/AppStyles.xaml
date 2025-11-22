@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- CRITICAL: Merge AppColors into AppStyles so that {StaticResource TextDark} can be resolved
+         when this ResourceDictionary is initialized by the XAML source generator -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="AppColors.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Label Styles (colors are now available from merged AppColors.xaml) -->
+    <Style x:Key="PageTitleLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="SectionTitleLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+        <Setter Property="Margin" Value="0,0,0,5" />
+    </Style>
+
+    <Style x:Key="SubtitleLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextMedium}, Dark={StaticResource DarkModeTextSecondary}}" />
+    </Style>
+
+    <Style x:Key="BodyLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextMedium}, Dark={StaticResource DarkModeTextSecondary}}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <!-- Button Styles -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource PrimaryBlue}" />
+        <Setter Property="TextColor" Value="{StaticResource BackgroundWhite}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BorderGray}, Dark={StaticResource DarkModeBorder}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <Style x:Key="DangerButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource AccentRed}" />
+        <Setter Property="TextColor" Value="{StaticResource BackgroundWhite}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <!-- Border Styles (Frame deprecated) -->
+    <Style x:Key="CardFrame" TargetType="Border">
+        <Setter Property="Background" Value="{AppThemeBinding Light={StaticResource BackgroundGray}, Dark={StaticResource DarkModeCardBackground}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderGray}, Dark={StaticResource DarkModeBorder}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Padding" Value="15" />
+        <Setter Property="Margin" Value="0,5,0,5" />
+    </Style>
+
+    <Style x:Key="AlertFrame" TargetType="Border">
+        <Setter Property="Background" Value="{AppThemeBinding Light={StaticResource BackgroundGray}, Dark={StaticResource DarkModeCardBackground}}" />
+        <Setter Property="Stroke" Value="{StaticResource StatusRed}" />
+        <Setter Property="StrokeThickness" Value="2" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Margin" Value="0,5,0,10" />
+    </Style>
+
+    <!-- Entry/Picker Styles -->
+    <Style x:Key="StandardEntry" TargetType="Entry">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource DarkModeTextSecondary}}" />
+    </Style>
+
+</ResourceDictionary>

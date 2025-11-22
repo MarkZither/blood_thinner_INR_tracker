@@ -11,9 +11,9 @@
     <!-- Flyout Header -->
     <Shell.FlyoutHeader>
         <Grid RowDefinitions="Auto" Padding="0,40,0,10" BackgroundColor="#F3F3F3">
-            <Label 
-                Text="Blood Thinner Tracker" 
-                FontSize="20" 
+            <Label
+                Text="Blood Thinner Tracker"
+                FontSize="20"
                 FontAttributes="Bold"
                 Margin="20,0" />
         </Grid>
@@ -21,7 +21,7 @@
 
     <!-- Flyout Items - Always accessible -->
     <FlyoutItem Title="Home" Icon="home" Route="flyouthome">
-        <ShellContent 
+        <ShellContent
             Title="INR Logs"
             ContentTemplate="{DataTemplate views:InrListView}"
             Route="inrlist" />
@@ -29,7 +29,7 @@
 
     <!-- About in Flyout - accessible from anywhere -->
     <FlyoutItem Title="About" Icon="info" Route="flyoutabout">
-        <ShellContent 
+        <ShellContent
             Title="About"
             ContentTemplate="{DataTemplate views:AboutView}"
             Route="about" />

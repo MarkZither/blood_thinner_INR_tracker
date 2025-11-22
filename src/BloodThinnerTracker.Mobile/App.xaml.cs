@@ -20,7 +20,7 @@ namespace BloodThinnerTracker.Mobile
         {
             // Create AppShell with default login route
             var appShell = new AppShell();
-            
+
             // Check authentication and navigate appropriately
             var authService = _services.GetRequiredService<Services.IAuthService>();
             var token = authService.GetAccessTokenAsync().GetAwaiter().GetResult();

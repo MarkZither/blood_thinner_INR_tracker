@@ -45,7 +45,8 @@ public static class MauiProgram
 
         // Register Feature services - use configuration flag instead of #if DEBUG
         // Features.UseMockServices: true = mock, false = real API
-        var useMockServices = builder.Configuration["Features:UseMockServices"] == "true";
+        // Note: JSON boolean true becomes string "True" (capitalized) - use case-insensitive comparison
+        var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
 
         builder.Services.AddSingleton<Services.IInrService>(sp =>
         {

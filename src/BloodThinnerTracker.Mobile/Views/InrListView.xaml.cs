@@ -23,7 +23,7 @@ namespace BloodThinnerTracker.Mobile.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            
+
             // Create ViewModel lazily on first appearance to ensure auth is complete
             if (_viewModel == null)
             {
