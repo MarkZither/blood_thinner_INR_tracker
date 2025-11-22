@@ -4,10 +4,30 @@
              x:Class="BloodThinnerTracker.Mobile.Views.LoginView"
              Title="Sign in">
 
-    <StackLayout Padding="24" VerticalOptions="Center">
-        <Label Text="Sign in to view your INR results" HorizontalOptions="Center" />
-        <Button x:Name="SignInButton" Text="Sign in" Margin="0,20,0,0" />
-        <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" />
+    <StackLayout Padding="24" VerticalOptions="Center" Spacing="16">
+        <Label Text="Sign in to view your INR results" 
+               HorizontalOptions="Center"
+               FontSize="16" />
+        
+        <!-- Sign in button -->
+        <Button x:Name="SignInButton" 
+                Text="Sign in with OAuth" 
+                Margin="0,20,0,0"
+                Command="{Binding SignInAsyncCommand}"
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+        
+        <!-- Loading indicator -->
+        <ActivityIndicator IsVisible="{Binding IsBusy}" 
+                          IsRunning="{Binding IsBusy}"
+                          Color="Blue" />
+        
+        <!-- Error message -->
+        <Label Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               FontSize="14"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+               Margin="0,16,0,0"
+               LineBreakMode="WordWrap" />
     </StackLayout>
 
 </ContentPage>

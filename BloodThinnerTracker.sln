@@ -50,8 +50,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BloodThinnerTracker.Mobile", "src\BloodThinnerTracker.Mobile\BloodThinnerTracker.Mobile.csproj", "{D7FBBC80-54CD-9B4A-1E3B-651CDF24630B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MauiApp1", "MauiApp1\MauiApp1.csproj", "{D3D8A0D2-ACED-4DAB-A726-49836AB3590C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -300,7 +298,6 @@ Global
 		{98A3DCB0-B739-4487-88E8-BECDE5F1C0DB} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{47F1BFC4-1C23-4AE2-A688-81B0CA9909DB} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D7FBBC80-54CD-9B4A-1E3B-651CDF24630B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{D3D8A0D2-ACED-4DAB-A726-49836AB3590C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EA800EFC-F5F0-40C4-855E-DA3ED9F8F5C2}

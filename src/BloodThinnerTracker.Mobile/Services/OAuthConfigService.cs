@@ -1,4 +1,5 @@
 using BloodThinnerTracker.Shared.Models.Authentication;
+using System.Net.Http.Json;
 
 namespace BloodThinnerTracker.Mobile.Services
 {
@@ -36,7 +37,7 @@ namespace BloodThinnerTracker.Mobile.Services
                     return null;
                 }
 
-                var config = await response.Content.ReadAsAsync<OAuthConfig>(cancellationToken: cancellationToken);
+                var config = await response.Content.ReadFromJsonAsync<OAuthConfig>();
                 if (config == null)
                 {
                     return null;
