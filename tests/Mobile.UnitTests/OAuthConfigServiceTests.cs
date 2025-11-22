@@ -14,9 +14,10 @@ namespace Mobile.UnitTests
         {
             // Arrange
             var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost") };
+            var mockLogger = new MockLogger<OAuthConfigService>();
 
             // Act
-            var service = new OAuthConfigService(httpClient);
+            var service = new OAuthConfigService(httpClient, mockLogger);
 
             // Assert
             Assert.NotNull(service);
@@ -27,36 +28,47 @@ namespace Mobile.UnitTests
         {
             // Arrange
             var httpClient = new HttpClient();
-
-            // Mock HttpClient by creating one that will fail
-            // In real scenarios, we would use a test server or mock handler
-            var service = new OAuthConfigService(httpClient);
+            var mockLogger = new MockLogger<OAuthConfigService>();
+            var service = new OAuthConfigService(httpClient, mockLogger);
 
             // Act
             var result = await service.GetConfigAsync();
 
             // Assert
-            // Result may be null or exception handled gracefully
-            // depending on network state and base address
-            Assert.True(result == null, "Service should handle HTTP errors gracefully");
+            // Service should return null when API is unavailable
+            Assert.Null(result);
         }
 
         [Fact]
-        public async Task GetConfigAsync_CanBeCalled()
+        public async Task MockOAuthConfigService_ReturnsValidConfig()
         {
             // Arrange
-            var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
-            var service = new OAuthConfigService(httpClient);
+            var service = new MockOAuthConfigService();
 
             // Act
-            // This will likely fail due to no actual server running,
-            // but we're testing that the method can be invoked
             var result = await service.GetConfigAsync();
 
             // Assert
-            // Either null or an exception is caught and handled
-            Assert.True(result == null);
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Providers ?? new List<OAuthProviderConfig>());
+            Assert.True(result.Providers!.Any(p => p.Provider == "azure"));
+            Assert.True(result.Providers!.Any(p => p.Provider == "google"));
         }
+    }
+
+    /// <summary>
+    /// Minimal mock logger for testing.
+    /// </summary>
+    internal class MockLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) { }
     }
 }
 

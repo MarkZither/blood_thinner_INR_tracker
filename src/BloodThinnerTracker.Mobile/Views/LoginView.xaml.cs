@@ -23,30 +23,22 @@ namespace BloodThinnerTracker.Mobile.Views
 
         /// <summary>
         /// Navigate to INR list view on successful login.
-        /// Uses shell routing for cross-app navigation.
+        /// Uses Shell routing for navigation, switches to flyout navigation.
         /// </summary>
         private async void OnLoginSucceeded(object? sender, EventArgs e)
         {
             try
             {
-                // Use Shell routing to navigate to main content
-                // Once InrListView is created, add it to AppShell routes
-                // For now, navigate using a generic route that will be defined in AppShell
+                // Navigate to home flyout item which shows InrListView
                 if (Shell.Current != null)
                 {
-                    await Shell.Current.GoToAsync("//inrlist");
-                }
-                else if (Navigation != null)
-                {
-                    // Fallback: Close this login view
-                    await Navigation.PopAsync();
+                    await Shell.Current.GoToAsync("///flyouthome/inrlist");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
-                // Silently fail - shell routing not configured yet
-                // Once AppShell is implemented with inrlist route, this will work
+                // Log error but don't crash - user stays on login screen
             }
         }
     }

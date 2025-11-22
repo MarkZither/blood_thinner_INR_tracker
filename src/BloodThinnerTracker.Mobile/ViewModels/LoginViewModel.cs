@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using BloodThinnerTracker.Mobile.Services;
@@ -31,12 +32,25 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         public LoginViewModel(IAuthService authService)
         {
             _authService = authService;
+
+            // Initialize commands
+            SignInWithAzureAsyncCommand = new AsyncRelayCommand(SignInWithAzureAsync);
+            SignInWithGoogleAsyncCommand = new AsyncRelayCommand(SignInWithGoogleAsync);
         }
+
+        /// <summary>
+        /// Command for Azure AD sign-in (exposed for XAML binding).
+        /// </summary>
+        public ICommand SignInWithAzureAsyncCommand { get; }
+
+        /// <summary>
+        /// Command for Google sign-in (exposed for XAML binding).
+        /// </summary>
+        public ICommand SignInWithGoogleAsyncCommand { get; }
 
         /// <summary>
         /// Sign in with Azure AD provider.
         /// </summary>
-        [RelayCommand]
         public async Task SignInWithAzureAsync()
         {
             await PerformSignInAsync("azure");
@@ -45,7 +59,6 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         /// <summary>
         /// Sign in with Google provider.
         /// </summary>
-        [RelayCommand]
         public async Task SignInWithGoogleAsync()
         {
             await PerformSignInAsync("google");

@@ -75,4 +75,9 @@
 		<ProjectReference Include="..\..\src\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Embed appsettings.json as a manifest resource for configuration loading -->
+		<EmbeddedResource Include="appsettings.json" />
+	</ItemGroup>
+
 </Project>

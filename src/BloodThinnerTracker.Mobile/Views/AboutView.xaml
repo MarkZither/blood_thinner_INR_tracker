@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BloodThinnerTracker.Mobile.Views.AboutView"
+             Title="About"
+             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            <!-- Title -->
+            <Label 
+                Text="Blood Thinner Tracker"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalOptions="Center"
+                TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+
+            <!-- Version -->
+            <Label 
+                Text="Version 1.0.0"
+                FontSize="14"
+                HorizontalOptions="Center"
+                TextColor="{AppThemeBinding Light=#666666, Dark=#CCCCCC}" />
+
+            <!-- Description -->
+            <Frame BorderColor="#E0E0E0" CornerRadius="10" Padding="15" Margin="0,10">
+                <VerticalStackLayout Spacing="10">
+                    <Label 
+                        Text="About This App"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                    
+                    <Label 
+                        Text="Blood Thinner Tracker is a medical companion app designed to help patients monitor their blood thinner medication and INR (International Normalized Ratio) levels."
+                        FontSize="12"
+                        LineBreakMode="WordWrap"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Features -->
+            <Frame BorderColor="#E0E0E0" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label 
+                        Text="Features"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                    
+                    <Label 
+                        Text="• OAuth2 Authentication (Azure AD, Google)"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                    
+                    <Label 
+                        Text="• Track Medication Dosages"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                    
+                    <Label 
+                        Text="• Monitor INR Levels"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                    
+                    <Label 
+                        Text="• Secure Local Storage"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Legal -->
+            <Frame BorderColor="#E0E0E0" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label 
+                        Text="Medical Disclaimer"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                    
+                    <Label 
+                        Text="This app is for informational purposes only and should not be used as a substitute for professional medical advice. Always consult with your healthcare provider regarding medication management and INR monitoring."
+                        FontSize="12"
+                        LineBreakMode="WordWrap"
+                        TextColor="{AppThemeBinding Light=#333333, Dark=#DDDDDD}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Footer -->
+            <Label 
+                Text="© 2025 Blood Thinner Tracker"
+                FontSize="11"
+                HorizontalOptions="Center"
+                Margin="0,20"
+                TextColor="{AppThemeBinding Light=#999999, Dark=#666666}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

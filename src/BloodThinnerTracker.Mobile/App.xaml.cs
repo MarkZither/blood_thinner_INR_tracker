@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using BloodThinnerTracker.Mobile.Views;
 
 namespace BloodThinnerTracker.Mobile
 {
@@ -10,23 +11,40 @@ namespace BloodThinnerTracker.Mobile
         public App(IServiceProvider services)
         {
             _services = services;
+            // Make service provider accessible to views for lazy service resolution
+            ServiceHelper.Current = services;
             InitializeComponent();
         }
+
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Resolve SplashView from DI
-            var splash = _services.GetService(typeof(Views.SplashView)) as Page
-                         ?? ActivatorUtilities.CreateInstance(_services, typeof(Views.SplashView)) as Page;
+            // Create AppShell with default login route
+            var appShell = new AppShell();
+            
+            // Check authentication and navigate appropriately
+            var authService = _services.GetRequiredService<Services.IAuthService>();
+            var token = authService.GetAccessTokenAsync().GetAwaiter().GetResult();
+            bool isAuthenticated = !string.IsNullOrEmpty(token);
 
-            if (splash == null)
-                throw new InvalidOperationException("Unable to create SplashView from DI");
+            // Schedule navigation after shell is ready
+            if (isAuthenticated)
+            {
+                // Navigate to home after shell displays
+                appShell.Loaded += async (s, e) =>
+                {
+                    await appShell.GoToAsync("///flyouthome");
+                };
+            }
+            else
+            {
+                // Navigate to login after shell displays
+                appShell.Loaded += async (s, e) =>
+                {
+                    await appShell.GoToAsync("///login");
+                };
+            }
 
-            // Wrap in NavigationPage
-            var nav = new NavigationPage(splash);
-
-            // Return the initial window
-            return new Window(nav);
+            return new Window(appShell);
         }
-
     }
 }

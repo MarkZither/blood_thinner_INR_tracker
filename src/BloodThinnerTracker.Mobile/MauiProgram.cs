@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace BloodThinnerTracker.Mobile;
 
@@ -15,53 +16,76 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
+        // Load configuration from appsettings.json embedded resource
+        using var stream = typeof(App).Assembly.GetManifestResourceStream("BloodThinnerTracker.Mobile.appsettings.json");
+        if (stream != null)
+        {
+            var config = new ConfigurationBuilder()
+                .AddJsonStream(stream)
+                .Build();
+            builder.Configuration.AddInMemoryCollection(config.AsEnumerable());
+        }
+
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
         // Register services (DI) - minimal bootstrap
         builder.Services.AddSingleton<App>();
+        builder.Services.AddSingleton<AppShell>();
         // Register MainPage for DI resolution in App
         builder.Services.AddSingleton<MainPage>();
 
         // Register views and viewmodels for navigation
-        builder.Services.AddTransient<Views.SplashView>();
-        builder.Services.AddTransient<ViewModels.SplashViewModel>();
         builder.Services.AddTransient<Views.LoginView>();
         builder.Services.AddTransient<ViewModels.LoginViewModel>();
+        builder.Services.AddTransient<Views.InrListView>();
+        // InrListViewModel created lazily in InrListView.xaml.cs to avoid premature service initialization
+        builder.Services.AddTransient<Views.AboutView>();
 
-        // Register Feature services (Phase 2 implementations)
-        // Use MockInrService in DEBUG, ApiInrService in Release (config-driven later)
-    #if DEBUG
-        builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
-    #else
-        builder.Services.AddSingleton<Services.IInrService, Services.ApiInrService>();
-    #endif
+        // Register Feature services - use configuration flag instead of #if DEBUG
+        // Features.UseMockServices: true = mock, false = real API
+        var useMockServices = builder.Configuration["Features:UseMockServices"] == "true";
+
+        builder.Services.AddSingleton<Services.IInrService>(sp =>
+        {
+            return useMockServices
+                ? (Services.IInrService)new Services.MockInrService()
+                : new Services.ApiInrService(sp.GetRequiredService<System.Net.Http.HttpClient>());
+        });
+
         builder.Services.AddSingleton<Services.EncryptionService>();
         builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
 
-        // HttpClient for API-backed services (ApiInrService and AuthService will use this)
+        // HttpClient for API-backed services
+        var oauthConfigUrl = builder.Configuration["OAuth:OAuthConfigUrl"] ?? "https://api.example.invalid/";
         builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp => new System.Net.Http.HttpClient
         {
-            BaseAddress = new System.Uri("https://api.example.invalid/")
+            BaseAddress = new System.Uri(oauthConfigUrl)
         });
         builder.Services.AddSingleton<Services.ApiInrService>();
 
-        // OAuth configuration service (fetches config from API)
+        // OAuth configuration service - use configuration flag for mock/real
         builder.Services.AddSingleton<Services.IOAuthConfigService>(sp =>
         {
-            var client = sp.GetRequiredService<System.Net.Http.HttpClient>();
-            return new Services.OAuthConfigService(client);
+            return useMockServices
+                ? (Services.IOAuthConfigService)new Services.MockOAuthConfigService()
+                : new Services.OAuthConfigService(
+                    sp.GetRequiredService<System.Net.Http.HttpClient>(),
+                    sp.GetRequiredService<ILogger<Services.OAuthConfigService>>());
         });
 
-        // Register AuthService as IAuthService so viewmodels can depend on the abstraction
+        // Register AuthService - use configuration flag for mock/real
         builder.Services.AddSingleton<Services.IAuthService>(sp =>
         {
-            var secure = sp.GetRequiredService<Services.ISecureStorageService>();
-            var oauthConfig = sp.GetRequiredService<Services.IOAuthConfigService>();
-            var client = sp.GetRequiredService<System.Net.Http.HttpClient>();
-            var logger = sp.GetRequiredService<ILogger<Services.AuthService>>();
-            return new Services.AuthService(secure, oauthConfig, client, logger);
+            return useMockServices
+                ? (Services.IAuthService)new Services.MockAuthService(
+                    sp.GetRequiredService<ILogger<Services.MockAuthService>>())
+                : new Services.AuthService(
+                    sp.GetRequiredService<Services.ISecureStorageService>(),
+                    sp.GetRequiredService<Services.IOAuthConfigService>(),
+                    sp.GetRequiredService<System.Net.Http.HttpClient>(),
+                    sp.GetRequiredService<ILogger<Services.AuthService>>());
         });
 
         return builder.Build();

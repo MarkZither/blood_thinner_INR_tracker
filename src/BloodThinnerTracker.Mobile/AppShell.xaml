@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="BloodThinnerTracker.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:BloodThinnerTracker.Mobile"
+    xmlns:views="clr-namespace:BloodThinnerTracker.Mobile.Views"
+    FlyoutBehavior="Flyout"
+    FlyoutHeaderBehavior="CollapseOnScroll">
+
+    <!-- Flyout Header -->
+    <Shell.FlyoutHeader>
+        <Grid RowDefinitions="Auto" Padding="0,40,0,10" BackgroundColor="#F3F3F3">
+            <Label 
+                Text="Blood Thinner Tracker" 
+                FontSize="20" 
+                FontAttributes="Bold"
+                Margin="20,0" />
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- Flyout Items - Always accessible -->
+    <FlyoutItem Title="Home" Icon="home" Route="flyouthome">
+        <ShellContent 
+            Title="INR Logs"
+            ContentTemplate="{DataTemplate views:InrListView}"
+            Route="inrlist" />
+    </FlyoutItem>
+
+    <!-- About in Flyout - accessible from anywhere -->
+    <FlyoutItem Title="About" Icon="info" Route="flyoutabout">
+        <ShellContent 
+            Title="About"
+            ContentTemplate="{DataTemplate views:AboutView}"
+            Route="about" />
+    </FlyoutItem>
+
+    <!-- Login route as ShellContent (not in flyout) -->
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate views:LoginView}"
+        Route="login" />
+
+</Shell>
