@@ -64,6 +64,11 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.10" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<!-- OAuth/MSAL for PKCE flow -->
+		<PackageReference Include="Microsoft.Identity.Client" Version="4.76.0" />
+		<PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.76.0" />
+		<!-- Platform-specific brokers for OAuth -->
+		<PackageReference Include="Microsoft.Identity.Client.Broker" Version="4.76.0" Condition="'$(TargetFramework)' == 'net10.0-android' Or $(TargetFramework.StartsWith('net10.0-windows'))" />
 	</ItemGroup>
 
 	<ItemGroup>

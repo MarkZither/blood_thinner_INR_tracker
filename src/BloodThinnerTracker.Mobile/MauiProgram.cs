@@ -39,18 +39,29 @@ public static class MauiProgram
     #endif
         builder.Services.AddSingleton<Services.EncryptionService>();
         builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
+
         // HttpClient for API-backed services (ApiInrService and AuthService will use this)
         builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp => new System.Net.Http.HttpClient
         {
             BaseAddress = new System.Uri("https://api.example.invalid/")
         });
         builder.Services.AddSingleton<Services.ApiInrService>();
+
+        // OAuth configuration service (fetches config from API)
+        builder.Services.AddSingleton<Services.IOAuthConfigService>(sp =>
+        {
+            var client = sp.GetRequiredService<System.Net.Http.HttpClient>();
+            return new Services.OAuthConfigService(client);
+        });
+
         // Register AuthService as IAuthService so viewmodels can depend on the abstraction
         builder.Services.AddSingleton<Services.IAuthService>(sp =>
         {
             var secure = sp.GetRequiredService<Services.ISecureStorageService>();
+            var oauthConfig = sp.GetRequiredService<Services.IOAuthConfigService>();
             var client = sp.GetRequiredService<System.Net.Http.HttpClient>();
-            return new Services.AuthService(secure, client);
+            var logger = sp.GetRequiredService<ILogger<Services.AuthService>>();
+            return new Services.AuthService(secure, oauthConfig, client, logger);
         });
 
         return builder.Build();

@@ -1,23 +1,69 @@
+using System;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using BloodThinnerTracker.Mobile.Services;
 
 namespace BloodThinnerTracker.Mobile.ViewModels
 {
-    public class LoginViewModel
+    /// <summary>
+    /// ViewModel for the login screen.
+    /// Handles OAuth sign-in flow and token exchange.
+    /// </summary>
+    public partial class LoginViewModel : ObservableObject
     {
-        private readonly Services.IAuthService _authService;
+        private readonly IAuthService _authService;
 
-        public LoginViewModel(Services.IAuthService authService)
+        [ObservableProperty]
+        private string? errorMessage;
+
+        [ObservableProperty]
+        private bool isBusy;
+
+        public LoginViewModel(IAuthService authService)
         {
             _authService = authService;
         }
 
-        public async Task<bool> SignInAsync()
+        /// <summary>
+        /// Initiates the OAuth sign-in flow.
+        /// Returns true if successful; false otherwise.
+        /// </summary>
+        [RelayCommand]
+        public async Task SignInAsync()
         {
-            // Start platform sign-in (stub) and exchange id_token for internal token
-            var id = await _authService.SignInAsync();
-            if (string.IsNullOrEmpty(id)) return false;
-            return await _authService.ExchangeIdTokenAsync(id);
+            try
+            {
+                IsBusy = true;
+                ErrorMessage = null;
+
+                // Step 1: Initiate OAuth flow to get id_token
+                var idToken = await _authService.SignInAsync();
+                if (string.IsNullOrEmpty(idToken))
+                {
+                    ErrorMessage = "Sign-in failed. Please check your credentials and try again.";
+                    return;
+                }
+
+                // Step 2: Exchange id_token for internal bearer token
+                var exchanged = await _authService.ExchangeIdTokenAsync(idToken);
+                if (!exchanged)
+                {
+                    ErrorMessage = "Unable to complete sign-in. Please try again.";
+                    return;
+                }
+
+                // Success - navigate away handled by caller
+            }
+            catch
+            {
+                ErrorMessage = "An unexpected error occurred. Please try again.";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }
+

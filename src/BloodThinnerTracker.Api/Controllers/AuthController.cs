@@ -787,6 +787,57 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Get OAuth configuration for mobile clients.
+    /// Returns client IDs, redirect URIs, and scopes for all configured providers.
+    /// This is a public endpoint (no authentication required).
+    /// </summary>
+    /// <returns>OAuth configuration for all providers</returns>
+    /// <response code="200">OAuth configuration</response>
+    [HttpGet("config")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig), StatusCodes.Status200OK)]
+    public ActionResult<BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig> GetOAuthConfig()
+    {
+        var config = new BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig
+        {
+            FetchedAt = DateTimeOffset.UtcNow,
+            Providers = new List<BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig>()
+        };
+
+        // Add Google OAuth configuration if enabled
+        if (!string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]))
+        {
+            config.Providers.Add(new BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig
+            {
+                Provider = "google",
+                ClientId = _configuration["Authentication:Google:ClientId"] ?? string.Empty,
+                RedirectUri = _configuration["Authentication:Google:RedirectUri"] ?? "http://localhost/callback",
+                Authority = "https://accounts.google.com",
+                Scopes = string.Join(" ", _configuration.GetSection("Authentication:Google:Scopes").Get<string[]>() ?? new[] { "openid", "profile", "email" })
+            });
+        }
+
+        // Add Azure AD OAuth configuration if enabled
+        if (!string.IsNullOrEmpty(_configuration["Authentication:AzureAd:ClientId"]))
+        {
+            var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
+            var instance = _configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+
+            config.Providers.Add(new BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig
+            {
+                Provider = "azure",
+                ClientId = _configuration["Authentication:AzureAd:ClientId"] ?? string.Empty,
+                RedirectUri = _configuration["Authentication:AzureAd:RedirectUri"] ?? "http://localhost/callback",
+                Authority = $"{instance}{tenantId}",
+                Scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() ?? new[] { "openid", "profile", "email" })
+            });
+        }
+
+        _logger.LogInformation("OAuth configuration requested, returning {ProviderCount} configured providers", config.Providers.Count);
+        return Ok(config);
+    }
+
+    /// <summary>
     /// Health check endpoint for authentication service
     /// </summary>
     /// <returns>Service health status</returns>
