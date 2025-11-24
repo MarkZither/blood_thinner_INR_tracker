@@ -91,6 +91,19 @@ Phase 4 — Polish & Cross-cutting concerns
 - [ ] T033 Add CI/QA check `/.github/workflows/check-auth-exchange.yml` to run `tests/Integration/AuthExchangeTests.cs` against a staging auth endpoint (requires secrets / staging config)
 
 - [ ] T034 Implement encryption key-management tasks: KDF/HKDF or PBKDF2 derivation, per-device key derivation, and key-rotation/migration support; add unit tests for rotation and tamper detection.
+
+**Cross-Project Auth Consistency**
+
+- [ ] **T046** Ensure single Azure AD authority/config source (API-driven)
+  - Implement a single authoritative configuration source in the API that exposes the Azure AD authority/tenant URL and any OAuth client metadata needed by clients.
+  - Update MAUI and Blazor clients to read the authority/config from the API at startup (cache locally for offline/startup performance).
+  - Acceptance: MAUI and Blazor both obtain and use the exact same authority/config and produce consistent ExternalUserId values for the same user (no duplicate user records created across platforms).
+  - Steps: implement API endpoint (read-only) -> implement client fetch + caching -> run E2E verification (clear test DB, sign in MAUI, sign in Blazor, assert single user record).
+
+- [ ] **T047** Consolidate id_token claim precedence into single server-side implementation
+  - Move claim-extraction and precedence (prefer `oid`, fallback to `sub`) into a single shared service/class in the API (`IdTokenValidationService`), ensure all callers use that service.
+  - Add unit tests around the service to cover organizational `oid`, MSA `sub`-only cases, and mixed/edge cases.
+  - Acceptance: One code path determines ExternalUserId consistently and tests assert expected precedence.
 - [ ] T035 Add CI coverage gating: collect XPlat code coverage for `tests/Mobile.UnitTests` and fail CI if coverage < 80% for feature projects; add workflow snippet to `.github/workflows/coverage-check.yml`.
 - [ ] T036 Add performance telemetry tasks: implement cold-start and render timing telemetry, create a CI benchmark job to validate SC-001/SC-002 under a defined network profile.
 - [ ] T037 Correct tasks metadata and summary: update the summary counts and ensure the README/summary accurately reflects the task list.
@@ -116,6 +129,7 @@ Phase 4 — Polish & Cross-cutting concerns
   - Implement refresh token storage and rotation
   - Add automatic token refresh before expiration
   - Tests: Add token refresh tests to `AuthServiceTests.cs`
+    - Tests to verify refresh behavior must pass: `GetAuthenticationStateAsync_ExpiredToken_TriggersRefresh` and `GetAuthenticationStateAsync_TokenExpiresInFiveMinutes_ProactiveRefresh` (these tests must not be skipped).
 
 - [ ] **T041** [NEW] Refactor `InrListView` to use lazy factory pattern for ViewModel
   - Create `LazyViewModelFactory<T>` for deferred service initialization
