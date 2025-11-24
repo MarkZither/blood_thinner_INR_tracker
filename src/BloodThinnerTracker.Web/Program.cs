@@ -136,7 +136,7 @@ builder.Services.Configure<BloodThinnerTracker.Shared.Models.Authentication.Goog
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = MicrosoftAccountDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "AzureAD"; // Use our custom OIDC scheme
 })
     .AddCookie(options =>
     {
@@ -147,28 +147,51 @@ builder.Services.AddAuthentication(options =>
         options.Cookie.IsEssential = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        
+
         // Redirect to login on unauthorized access
         options.LoginPath = "/login";
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/access-denied";
     })
-    .AddMicrosoftAccount(options =>
+    .AddOpenIdConnect("AzureAD", options =>
     {
         var adOptions = builder.Configuration.GetSection("Authentication:AzureAd").Get<BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig>() ?? new BloodThinnerTracker.Shared.Models.Authentication.AzureAdConfig();
+
+        // Azure AD v2.0 endpoints - Use organizational tenant for consistent oid claim
+        // Using TenantId instead of 'common' ensures we get real oid (not fake MSA oid)
+        var tenantId = adOptions.TenantId ?? "common";
+        options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
         options.ClientId = adOptions.ClientId;
         options.ClientSecret = adOptions.ClientSecret;
-        options.SaveTokens = true;
+        options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
+        options.ResponseType = "code";  // Authorization code flow - id_token comes from token endpoint
+        options.ResponseMode = "query";  // Standard query string response
 
-        // Add OpenID Connect scopes (keep defaults and add what we need)
-        // Don't clear - Microsoft Account provider needs its default scopes
+        options.SaveTokens = true;  // Save tokens to authentication properties
+        options.GetClaimsFromUserInfoEndpoint = true;  // Get additional claims from userinfo endpoint
+
+        // Token validation for organizational tenant
+        // ValidateIssuer = true when using specific tenant (not 'common')
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = tenantId != "common",  // Validate issuer for specific tenant
+            ValidateAudience = true,
+            ValidAudience = adOptions.ClientId,
+            ValidateLifetime = true
+        };
+
+        // Request OIDC scopes
+        options.Scope.Clear();  // Clear defaults
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
 
-        options.CallbackPath = string.IsNullOrEmpty(adOptions.CallbackPath) ? "/signin-oidc" : adOptions.CallbackPath;
+        // Map Azure AD claims to principal - DON'T clear defaults, just add oid mapping
+        // The middleware will extract claims from id_token and put them in the principal
+        options.ClaimActions.MapJsonKey("oid", "oid");  // Map oid claim directly
+        options.ClaimActions.MapJsonKey("tid", "tid");  // Tenant ID
 
-        // Handle OAuth failures (network errors, API timeouts, etc.)
+        // Handle OAuth failures
         options.Events.OnRemoteFailure = context =>
         {
             context.Response.Redirect("/login?error=oauth_failed&message=" + Uri.EscapeDataString(context.Failure?.Message ?? "Authentication failed"));
@@ -176,18 +199,21 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         };
 
-        // After successful authentication, redirect to our Blazor callback page
+        // Redirect to our Blazor callback after OIDC completes
         options.Events.OnTicketReceived = context =>
         {
-            // Get the returnUrl from authentication properties
             var returnUrl = context.Properties?.RedirectUri ?? "/dashboard";
-
-            // Redirect to our Blazor callback page which will exchange tokens
-            // The authentication cookies have been set by this point
             var redirectUrl = $"/oauth-complete?provider=microsoft&returnUrl={Uri.EscapeDataString(returnUrl)}";
 
             context.ReturnUri = redirectUrl;
             context.Properties!.RedirectUri = redirectUrl;
+
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var tokens = context.Properties.GetTokens();
+            foreach (var token in tokens)
+            {
+                logger.LogInformation("OIDC token available: {Name}, length: {Length}", token.Name, token.Value?.Length ?? 0);
+            }
 
             return Task.CompletedTask;
         };

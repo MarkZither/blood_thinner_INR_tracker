@@ -158,6 +158,8 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             _logger.LogDebug("Azure AD Config - TenantId: {TenantId}, ClientId: {ClientId}", tenantId, clientId);
 
+            // Use organizational tenant for consistent oid claim (not 'common' which returns MSA tokens)
+            // tenantId already extracted from configuration above
             var authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
             var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -202,31 +204,28 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             var nameClaim = principal.FindFirst("name");
 
-            // Object ID (oid) is the unique user identifier in Azure AD
-            var oidClaim = principal.FindFirst("oid")
-                ?? principal.FindFirst("sub")
-                ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
+            // Extract oid (unique user identifier in Azure AD)
+            var oidValue = principal.FindFirst("oid")?.Value
+                ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
+                ?? principal.FindFirst("sub")?.Value;  // Fallback to sub if oid not available
 
-            _logger.LogDebug("Azure AD Claims - oid: {Oid}, sub: {Sub}, email: {Email}, preferred_username: {PreferredUsername}, name: {Name}, upn: {Upn}",
+            _logger.LogDebug("Azure AD Claims - oid: {Oid}, sub: {Sub}, email: {Email}",
                 principal.FindFirst("oid")?.Value ?? "null",
                 principal.FindFirst("sub")?.Value ?? "null",
-                principal.FindFirst("email")?.Value ?? "null",
-                principal.FindFirst("preferred_username")?.Value ?? "null",
-                principal.FindFirst("name")?.Value ?? "null",
-                principal.FindFirst("upn")?.Value ?? "null");
+                principal.FindFirst("email")?.Value ?? "null");
 
-            if (oidClaim == null || string.IsNullOrEmpty(oidClaim.Value))
+            if (string.IsNullOrEmpty(oidValue))
             {
                 _logger.LogError("Azure AD token missing oid/sub claim - cannot identify user");
             }
 
             _logger.LogInformation("Azure AD ID token validated successfully for user {Email} with ExternalUserId: {ExternalUserId}",
-                emailClaim?.Value, oidClaim?.Value ?? "MISSING");
+                emailClaim?.Value, oidValue ?? "MISSING");
 
             return new IdTokenValidationResult
             {
                 IsValid = true,
-                ExternalUserId = oidClaim?.Value ?? "",
+                ExternalUserId = oidValue ?? "",
                 Email = emailClaim?.Value ?? "",
                 Name = nameClaim?.Value ?? "",
                 Provider = "AzureAD"
