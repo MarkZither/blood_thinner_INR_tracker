@@ -13,6 +13,7 @@ namespace BloodThinnerTracker.Mobile.ViewModels
     public partial class InrListViewModel : ObservableObject
     {
         private readonly IInrService _inrService;
+        private readonly ICacheService _cacheService;
         private DateTime _lastUpdateTime = DateTime.MinValue;
 
         [ObservableProperty]
@@ -36,13 +37,37 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         [ObservableProperty]
         private string lastUpdatedText = "Never updated";
 
-        public InrListViewModel(IInrService inrService)
+        /// <summary>
+        /// Warning banner for stale cache (age > 1 hour).
+        /// </summary>
+        [ObservableProperty]
+        private bool showStaleWarning = false;
+
+        [ObservableProperty]
+        private string staleWarningText = "Data may be outdated";
+
+        /// <summary>
+        /// Indicates data is from cache (offline or stale).
+        /// </summary>
+        [ObservableProperty]
+        private bool isOfflineMode = false;
+
+        [ObservableProperty]
+        private string offlineModeText = "Offline - showing cached data";
+
+        // Cache key for INR logs
+        private const string InrLogsCache = "inr_logs";
+
+        public InrListViewModel(IInrService inrService, ICacheService cacheService)
         {
             _inrService = inrService ?? throw new ArgumentNullException(nameof(inrService));
+            _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
         }
 
         /// <summary>
-        /// Load INR logs from service and update UI states.
+        /// Load INR logs from service with cache integration.
+        /// Falls back to cached data if network unavailable.
+        /// Shows stale warning if cache age > 1 hour.
         /// Called when view appears or refresh button clicked.
         /// </summary>
         [RelayCommand]
@@ -58,35 +83,103 @@ namespace BloodThinnerTracker.Mobile.ViewModels
                 ShowError = false;
                 ShowList = false;
                 ShowEmpty = false;
+                ShowStaleWarning = false;
+                IsOfflineMode = false;
 
                 var logs = await _inrService.GetRecentAsync(10);
                 var logsList = logs?.ToList() ?? new List<InrListItemVm>();
 
-                if (logsList.Count == 0)
+                if (logsList.Count > 0)
                 {
-                    ShowEmpty = true;
-                    InrLogs.Clear();
-                }
-                else
-                {
-                    // Convert to ViewModel items with calculated status
+                    // Store in cache for offline access
+                    var logsJson = System.Text.Json.JsonSerializer.Serialize(logsList);
+                    await _cacheService.SetAsync(InrLogsCache, logsJson);
+
+                    // Display the logs
                     var items = logsList.Select(log => new InrListItemViewModel(log)).ToList();
                     InrLogs = new ObservableCollection<InrListItemViewModel>(items);
                     ShowList = true;
+                    _lastUpdateTime = DateTime.Now;
+                    UpdateLastUpdatedText();
+                }
+                else
+                {
+                    // No new data - check if we have cached data to fallback to
+                    await TryLoadFromCacheAsync();
+
+                    if (!ShowList)
+                    {
+                        ShowEmpty = true;
+                        InrLogs.Clear();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Network error or fetch failed - try to show cached data
+                ErrorMessage = $"Failed to fetch latest data: {ex.Message}";
+                await TryLoadFromCacheAsync();
+
+                if (!ShowList)
+                {
+                    // No cache available either
+                    ShowError = true;
+                    System.Diagnostics.Debug.WriteLine($"LoadInrLogs error: {ex}");
+                }
+                else
+                {
+                    // Showed cached data but with error message
+                    ShowStaleWarning = true;
+                    StaleWarningText = $"Error fetching latest data. Showing cached data.";
+                }
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Try to load INR logs from cache and display them.
+        /// Also check staleness and show warnings if needed.
+        /// </summary>
+        private async Task TryLoadFromCacheAsync()
+        {
+            try
+            {
+                var cachedJson = await _cacheService.GetAsync(InrLogsCache);
+                if (string.IsNullOrEmpty(cachedJson))
+                    return;
+
+                // Deserialize cached logs
+                var cachedLogs = System.Text.Json.JsonSerializer.Deserialize<List<InrListItemVm>>(cachedJson);
+                if (cachedLogs == null || cachedLogs.Count == 0)
+                    return;
+
+                // Check cache age for staleness warning
+                var cacheAgeMs = await _cacheService.GetCacheAgeMillisecondsAsync(InrLogsCache);
+                if (cacheAgeMs.HasValue)
+                {
+                    var cacheAgeHours = cacheAgeMs.Value / 1000.0 / 60.0 / 60.0;
+                    if (cacheAgeHours > 1)
+                    {
+                        ShowStaleWarning = true;
+                        StaleWarningText = $"Showing cached data from {cacheAgeHours:F1} hours ago";
+                    }
                 }
 
+                // Display cached logs
+                var items = cachedLogs.Select(log => new InrListItemViewModel(log)).ToList();
+                InrLogs = new ObservableCollection<InrListItemViewModel>(items);
+                ShowList = true;
+                IsOfflineMode = true;
+                OfflineModeText = "⚠ Offline - showing cached data";
                 _lastUpdateTime = DateTime.Now;
                 UpdateLastUpdatedText();
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Failed to load INR data: {ex.Message}";
-                ShowError = true;
-                System.Diagnostics.Debug.WriteLine($"LoadInrLogs error: {ex}");
-            }
-            finally
-            {
-                IsBusy = false;
+                System.Diagnostics.Debug.WriteLine($"TryLoadFromCacheAsync error: {ex.Message}");
             }
         }
 

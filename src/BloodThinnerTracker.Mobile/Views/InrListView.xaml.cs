@@ -28,10 +28,11 @@ namespace BloodThinnerTracker.Mobile.Views
             if (_viewModel == null)
             {
                 var inrService = ServiceHelper.Current?.GetRequiredService<IInrService>();
-                if (inrService == null)
+                var cacheService = ServiceHelper.Current?.GetRequiredService<ICacheService>();
+                if (inrService == null || cacheService == null)
                     return;
 
-                _viewModel = new InrListViewModel(inrService);
+                _viewModel = new InrListViewModel(inrService, cacheService);
                 BindingContext = _viewModel;
             }
 

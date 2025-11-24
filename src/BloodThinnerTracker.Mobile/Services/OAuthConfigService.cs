@@ -1,22 +1,27 @@
 using BloodThinnerTracker.Shared.Models.Authentication;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace BloodThinnerTracker.Mobile.Services
 {
     /// <summary>
     /// Service for fetching and caching OAuth provider configuration from the API.
+    /// Uses Flurl for clean URL composition.
     /// </summary>
     public class OAuthConfigService : IOAuthConfigService
     {
+        private readonly IOptions<FeaturesOptions> _featuresOptions;
         private readonly HttpClient _httpClient;
         private readonly ILogger<OAuthConfigService> _logger;
         private OAuthConfig? _cachedConfig;
         private DateTimeOffset _cacheExpiry = DateTimeOffset.MinValue;
         private const int CacheDurationMinutes = 60;
 
-        public OAuthConfigService(HttpClient httpClient, ILogger<OAuthConfigService> logger)
+        public OAuthConfigService(IOptions<FeaturesOptions> featuresOptions, HttpClient httpClient, ILogger<OAuthConfigService> logger)
         {
+            _featuresOptions = featuresOptions;
             _httpClient = httpClient;
             _logger = logger;
         }
@@ -37,16 +42,26 @@ namespace BloodThinnerTracker.Mobile.Services
             try
             {
                 _logger.LogInformation("Fetching OAuth config from API");
-                var response = await _httpClient.GetAsync("api/auth/config", cancellationToken);
 
-                if (!response.IsSuccessStatusCode)
+                // Get API root URL from strongly-typed options (no magic strings!)
+                var apiRootUrl = _featuresOptions.Value.ApiRootUrl;
+                if (string.IsNullOrEmpty(apiRootUrl) || apiRootUrl == "https://api.example.invalid")
                 {
-                    _logger.LogError("API returned status {StatusCode}: {ReasonPhrase}",
-                        response.StatusCode, response.ReasonPhrase);
+                    _logger.LogError("Features:ApiRootUrl is not configured or is using default placeholder");
                     return null;
                 }
 
-                var config = await response.Content.ReadFromJsonAsync<OAuthConfig>(cancellationToken: cancellationToken);
+                // Build URL: https://localhost:7234/api/oauth/config
+                var url = $"{apiRootUrl.TrimEnd('/')}/{ApiConstants.OAuthConfigPath}";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Failed to fetch OAuth config with status {response.StatusCode}");
+                    return null;
+                }
+
+                var config = await response.Content.ReadFromJsonAsync<OAuthConfig>();
                 if (config == null)
                 {
                     _logger.LogWarning("API returned empty OAuth config");

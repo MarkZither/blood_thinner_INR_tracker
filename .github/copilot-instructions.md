@@ -310,3 +310,151 @@ When generating code, ALWAYS:
 - Include unit tests for business logic
 - Validate medical data constraints (12-hour window, INR ranges 0.5-8.0)
 - Add medical disclaimer where appropriate
+
+### Configuration File Management
+
+**CRITICAL: Protect Secrets in Source Control**
+
+#### Template & Local File Pattern
+
+The project uses a **template + local override** pattern for configuration files with secrets:
+
+**Committed to Git (Safe)**:
+- `*.template` files with placeholder values: `${REPLACE_WITH_SECRET}`
+- Setup automation scripts (e.g., `setup-dev.ps1`)
+- Configuration documentation
+
+**Local Only (in .gitignore)**:
+- `launch.json` - VSCode debug configs (contains OAuth Client IDs)
+- `tasks.json` - Build tasks (if modified with secrets)
+- `appsettings.*.local.json` - Local overrides
+- `.env` files - Environment variables with secrets
+
+#### When to Update Template Files
+
+**DO** update `*.template` files when:
+1. Adding new debug configurations (non-secret portions)
+2. Modifying build tasks (shared settings only)
+3. Adding new launch compounds or test configurations
+4. Documentation updates to help team understand usage
+
+Example:
+```bash
+# Good: Update template and commit
+git add .vscode/launch.json.template
+git commit -m "feat: Add Android device debug config"
+```
+
+**DO NOT** update template if:
+- Adding secret values (Client IDs, API keys, passwords)
+- Making personal debugging changes
+- Adding local-only settings
+
+#### When to Update Local Files
+
+**Local changes only** (in `.gitignore`, never committed):
+1. Add OAuth Client IDs, Google API keys, Azure credentials
+2. Change local ports or service URLs
+3. Personal debugging preferences or breakpoints
+4. Environment-specific settings
+
+```bash
+# Edit local file (not committed)
+nano .vscode/launch.json
+# Add: "Features__AzureClientId": "actual-id-here"
+
+# ❌ Will not commit - file is .gitignore'd
+git add .vscode/launch.json  # Fails silently (safe)
+```
+
+#### Syncing Between Template and Local
+
+When you update the template with new non-secret configurations:
+
+```bash
+# 1. Update template file
+# Edit .vscode/launch.json.template with new public settings
+
+# 2. Regenerate local file from template
+.\tools\scripts\setup-dev.ps1 -Force
+
+# 3. Re-add your secrets to the regenerated local file
+```
+
+#### Secret Storage Options (Priority Order)
+
+1. **VSCode launch.json** (Development Debugging)
+   - Template: `.vscode/launch.json.template` (committed)
+   - Local: `.vscode/launch.json` (.gitignore'd)
+   - Use: Environment variables in debug configs
+   - Scope: Local development only
+
+2. **.NET User Secrets** (API Development - RECOMMENDED)
+   - Location: `%APPDATA%\Microsoft\UserSecrets\<ProjectId>`
+   - Encrypted: Yes (OS-level encryption)
+   - Scope: Local development only
+   - Usage: `dotnet user-secrets set "Key" "value"`
+
+3. **appsettings.*.local.json** (Fallback)
+   - Template: `appsettings.Development.json` (committed)
+   - Local: `appsettings.Development.local.json` (.gitignore'd)
+   - Encrypted: No (configuration only, not for secrets)
+   - Scope: Configuration overrides only
+
+4. **GitHub Actions Secrets** (CI/CD)
+   - Location: Repository settings → Secrets and variables
+   - Encrypted: Yes (GitHub encryption)
+   - Scope: Automated deployments only
+   - Access: `${{ secrets.SECRET_NAME }}`
+
+5. **Azure KeyVault** (Production)
+   - Location: Azure Portal → Key Vaults
+   - Encrypted: Yes (HSM encryption)
+   - Scope: All environments
+   - Access: ServiceDefaults integration (already configured)
+
+#### Development Setup for New Developers
+
+New team members should follow one command:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/MarkZither/blood_thinner_INR_tracker.git
+cd blood_thinner_INR_tracker
+
+# 2. Run setup script (generates local files from templates + prompts for secrets)
+.\tools\scripts\setup-dev.ps1
+
+# 3. When prompted, provide OAuth credentials:
+# Azure Client ID: [from Azure Portal]
+# Google Client ID: [from Google Console]
+
+# 4. Start development
+dotnet run --project src/BloodThinnerTracker.AppHost
+```
+
+See `docs/DEVELOPMENT_SETUP.md` for complete setup guide with troubleshooting.
+
+#### Copilot Assistant Guidance for Configuration Work
+
+When working with launch.json, tasks.json, or appsettings files:
+
+1. **Always check if file has .template version**
+   - If modifying shared settings: Update `*.template` + commit
+   - If adding secrets: Update local copy only (never commit)
+
+2. **Never include actual secret values in suggestions**
+   - Use `${REPLACE_WITH_*}` placeholders
+   - Reference where to obtain values in comments
+   - Always mark template files for `.gitignore`
+
+3. **When updating shared templates**
+   - Include comprehensive comments explaining each setting
+   - List placeholder values that need customization
+   - Update `docs/DEVELOPMENT_SETUP.md` with new setup steps
+
+4. **For new configuration features**
+   - Create `.template` version first
+   - Update `tools/scripts/setup-dev.ps1` to handle new file
+   - Document in `DEVELOPMENT_SETUP.md`
+   - Commit template + script + docs (never the actual secrets file)

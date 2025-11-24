@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace BloodThinnerTracker.Mobile;
 
@@ -26,6 +27,20 @@ public static class MauiProgram
             builder.Configuration.AddInMemoryCollection(config.AsEnumerable());
         }
 
+        // Add environment variables (higher priority - overrides appsettings.json)
+        // Supports Features__UseMockServices, Features__ApiRootUrl, etc.
+        // Read all environment variables and add them to configuration
+        var envVars = new Dictionary<string, string?>();
+        foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
+        {
+            var key = entry.Key?.ToString() ?? string.Empty;
+            var value = entry.Value?.ToString();
+            // Normalize to colon separator for configuration key paths (Features:UseMockServices)
+            var normalizedKey = key.Replace("__", ":");
+            envVars[normalizedKey] = value;
+        }
+        builder.Configuration.AddInMemoryCollection(envVars);
+
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
@@ -48,6 +63,14 @@ public static class MauiProgram
         // Note: JSON boolean true becomes string "True" (capitalized) - use case-insensitive comparison
         var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
 
+        // Bind configuration to strongly-typed FeaturesOptions (no more magic strings!)
+        builder.Services.Configure<Services.FeaturesOptions>(builder.Configuration.GetSection(Services.FeaturesOptions.SectionName));
+
+        builder.Services.AddSingleton<Services.EncryptionService>();
+        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
+        builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
+
+        // Register Feature services with mock/real selection
         builder.Services.AddSingleton<Services.IInrService>(sp =>
         {
             return useMockServices
@@ -55,14 +78,14 @@ public static class MauiProgram
                 : new Services.ApiInrService(sp.GetRequiredService<System.Net.Http.HttpClient>());
         });
 
-        builder.Services.AddSingleton<Services.EncryptionService>();
-        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
-
-        // HttpClient for API-backed services
-        var oauthConfigUrl = builder.Configuration["OAuth:OAuthConfigUrl"] ?? "https://api.example.invalid/";
-        builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp => new System.Net.Http.HttpClient
+        // HttpClient for API-backed services (uses IOptions to get API root URL)
+        builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp =>
         {
-            BaseAddress = new System.Uri(oauthConfigUrl)
+            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
+            return new System.Net.Http.HttpClient
+            {
+                BaseAddress = new System.Uri(options.Value.ApiRootUrl)
+            };
         });
         builder.Services.AddSingleton<Services.ApiInrService>();
 
@@ -72,6 +95,7 @@ public static class MauiProgram
             return useMockServices
                 ? (Services.IOAuthConfigService)new Services.MockOAuthConfigService()
                 : new Services.OAuthConfigService(
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
                     sp.GetRequiredService<System.Net.Http.HttpClient>(),
                     sp.GetRequiredService<ILogger<Services.OAuthConfigService>>());
         });
@@ -85,7 +109,7 @@ public static class MauiProgram
                 : new Services.AuthService(
                     sp.GetRequiredService<Services.ISecureStorageService>(),
                     sp.GetRequiredService<Services.IOAuthConfigService>(),
-                    sp.GetRequiredService<System.Net.Http.HttpClient>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
                     sp.GetRequiredService<ILogger<Services.AuthService>>());
         });
 

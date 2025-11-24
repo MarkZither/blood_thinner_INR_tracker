@@ -163,14 +163,14 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             // Decode token to see what's in it (for debugging)
             var jwtToken = tokenHandler.ReadJwtToken(idToken);
-            _logger.LogDebug("Token Issuer: {Issuer}, Audience: {Audience}", 
+            _logger.LogDebug("Token Issuer: {Issuer}, Audience: {Audience}",
                 jwtToken.Issuer, string.Join(", ", jwtToken.Audiences));
 
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuers = new[] 
-                { 
+                ValidIssuers = new[]
+                {
                     $"https://login.microsoftonline.com/{tenantId}/v2.0",
                     $"https://sts.windows.net/{tenantId}/",
                     $"https://login.microsoftonline.com/{tenantId}/"
@@ -186,7 +186,7 @@ public class IdTokenValidationService : IIdTokenValidationService
                     var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                         metadataAddress,
                         new OpenIdConnectConfigurationRetriever());
-                    
+
                     var config = configManager.GetConfigurationAsync().GetAwaiter().GetResult();
                     return config.SigningKeys;
                 }
@@ -196,14 +196,14 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             // Azure AD v2.0 uses short claim names by default
             // Look for claims with various possible names
-            var emailClaim = principal.FindFirst("preferred_username") 
+            var emailClaim = principal.FindFirst("preferred_username")
                 ?? principal.FindFirst("email")
                 ?? principal.FindFirst("upn");
-            
+
             var nameClaim = principal.FindFirst("name");
-            
+
             // Object ID (oid) is the unique user identifier in Azure AD
-            var oidClaim = principal.FindFirst("oid") 
+            var oidClaim = principal.FindFirst("oid")
                 ?? principal.FindFirst("sub")
                 ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
 
@@ -220,7 +220,8 @@ public class IdTokenValidationService : IIdTokenValidationService
                 _logger.LogError("Azure AD token missing oid/sub claim - cannot identify user");
             }
 
-            _logger.LogInformation("Azure AD ID token validated successfully for user {Email}", emailClaim?.Value);
+            _logger.LogInformation("Azure AD ID token validated successfully for user {Email} with ExternalUserId: {ExternalUserId}",
+                emailClaim?.Value, oidClaim?.Value ?? "MISSING");
 
             return new IdTokenValidationResult
             {

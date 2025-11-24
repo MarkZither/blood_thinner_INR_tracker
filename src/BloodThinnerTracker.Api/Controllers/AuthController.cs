@@ -356,6 +356,9 @@ public class AuthController : ControllerBase
                 });
             }
 
+            _logger.LogInformation("ID token validation successful - Provider: {Provider}, ExternalUserId: {ExternalUserId}, Email: {Email}",
+                validationResult.Provider, validationResult.ExternalUserId, validationResult.Email);
+
             // Authenticate using validated claims
             var response = await _authenticationService.AuthenticateExternalAsync(
                 validationResult.Provider!,
@@ -822,6 +825,11 @@ public class AuthController : ControllerBase
         {
             var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
             var instance = _configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+            var appIdUri = _configuration["Authentication:AzureAd:AppIdUri"] ?? _configuration["Authentication:AzureAd:ClientId"];
+
+            // For PKCE public client flow, request the API scope instead of 'openid'
+            // Azure AD automatically includes openid profile email in id_token response
+            var defaultScopes = new[] { $"{appIdUri}/.default" };
 
             config.Providers.Add(new BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig
             {
@@ -829,7 +837,7 @@ public class AuthController : ControllerBase
                 ClientId = _configuration["Authentication:AzureAd:ClientId"] ?? string.Empty,
                 RedirectUri = _configuration["Authentication:AzureAd:RedirectUri"] ?? "http://localhost/callback",
                 Authority = $"{instance}{tenantId}",
-                Scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() ?? new[] { "openid", "profile", "email" })
+                Scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() ?? defaultScopes)
             });
         }
 

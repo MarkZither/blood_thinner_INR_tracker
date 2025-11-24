@@ -19,6 +19,8 @@ _ReSharper*/
 # Visual Studio / Rider
 .vs/
 .vscode/
+!.vscode/README.md
+!.vscode/*.template
 .idea/
 *.sln.docstates
 *.userprefs
