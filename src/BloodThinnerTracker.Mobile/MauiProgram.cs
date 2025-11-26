@@ -1,14 +1,17 @@
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
 
 public static class MauiProgram
 {
-    public static MauiApp CreateMauiApp()
+        public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
         builder
@@ -19,13 +22,89 @@ public static class MauiProgram
 
         // Load configuration from appsettings.json embedded resource
         using var stream = typeof(App).Assembly.GetManifestResourceStream("BloodThinnerTracker.Mobile.appsettings.json");
+        IConfiguration? preConfig = null;
         if (stream != null)
         {
-            var config = new ConfigurationBuilder()
+            preConfig = new ConfigurationBuilder()
                 .AddJsonStream(stream)
                 .Build();
-            builder.Configuration.AddInMemoryCollection(config.AsEnumerable());
+            builder.Configuration.AddInMemoryCollection(preConfig.AsEnumerable());
         }
+
+        // Serilog initialization is configuration-driven below; keep configuration-driven setup
+            // Configure Serilog using configuration (preferred) while ensuring the file path
+            // is set to a platform-safe AppDataDirectory. We add a small in-memory override
+            // for the Serilog file sink path and ensure a console sink is available as a
+            // fallback so something is always logged even if file creation fails.
+            try
+            {
+                // Determine diagnostics options from pre-config (if available)
+                var useAppData = preConfig?.GetValue<bool?>("Diagnostics:Serilog:UseAppDataDirectory") ?? true;
+                var fileName = preConfig?["Diagnostics:Serilog:FileName"] ?? "mobile-.log";
+                var enableConsole = preConfig?.GetValue<bool?>("Diagnostics:Serilog:EnableConsole") ?? true;
+
+                // Enable Serilog SelfLog to Console.Error to capture internal Serilog errors if sinks fail
+                Serilog.Debugging.SelfLog.Enable(Console.Error);
+
+                // Build base logger configuration from the merged configuration (embedded appsettings)
+                var loggerConfig = new LoggerConfiguration()
+                    .ReadFrom.Configuration(builder.Configuration)
+                    .Enrich.FromLogContext();
+
+                // If requested, ensure there's a File sink pointing at the platform AppData path.
+                if (useAppData)
+                {
+                    var logsDir = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "Logs");
+                    try
+                    {
+                        System.IO.Directory.CreateDirectory(logsDir);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to create logs directory '{logsDir}': {ex}");
+                    }
+
+                    // Use a date-stamped file name to avoid depending on sink-specific enums
+                    var dateStamped = fileName.Replace(".log", "");
+                    var filePath = System.IO.Path.Combine(logsDir, $"{dateStamped}-{DateTime.UtcNow:yyyy-MM-dd}.log");
+
+                    // Detect if the embedded config already defines a File sink
+                    var writeToSection = preConfig?.GetSection("Serilog:WriteTo");
+                    var hasFileSink = false;
+                    var hasConsoleSink = false;
+                    if (writeToSection != null)
+                    {
+                        foreach (var child in writeToSection.GetChildren())
+                        {
+                            var name = child["Name"];
+                            if (string.Equals(name, "File", StringComparison.OrdinalIgnoreCase)) hasFileSink = true;
+                            if (string.Equals(name, "Console", StringComparison.OrdinalIgnoreCase)) hasConsoleSink = true;
+                        }
+                    }
+
+                    // If there's no File sink configured, add one programmatically pointing to AppData
+                    if (!hasFileSink)
+                    {
+                        loggerConfig = loggerConfig.WriteTo.File(filePath, shared: true);
+                    }
+
+                    // If Console isn't configured and enableConsole is true, add it programmatically
+                    if (enableConsole && !hasConsoleSink)
+                    {
+                        loggerConfig = loggerConfig.WriteTo.Console();
+                    }
+                }
+
+                // Create the logger and register it
+                Log.Logger = loggerConfig.CreateLogger();
+                builder.Logging.ClearProviders();
+                builder.Logging.AddSerilog(Log.Logger, dispose: true);
+            }
+            catch (Exception ex)
+            {
+                // Ensure at least debug logging remains available
+                System.Diagnostics.Debug.WriteLine($"Serilog initialization failed: {ex}");
+            }
 
         // Add environment variables (higher priority - overrides appsettings.json)
         // Supports Features__UseMockServices, Features__ApiRootUrl, etc.

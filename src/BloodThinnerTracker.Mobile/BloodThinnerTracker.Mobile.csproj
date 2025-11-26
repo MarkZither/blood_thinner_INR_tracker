@@ -64,6 +64,12 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.10" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<!-- Serilog for mobile logging (configuration-driven) -->
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="7.0.0" />
 		<!-- OAuth/MSAL for PKCE flow -->
 		<PackageReference Include="Microsoft.Identity.Client" Version="4.76.0" />
 		<PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.76.0" />
