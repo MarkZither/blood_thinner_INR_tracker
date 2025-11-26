@@ -101,6 +101,7 @@
                         <Button
                             Text="Retry"
                             Command="{Binding LoadInrLogsCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                             Style="{StaticResource SecondaryButton}" />
                     </VerticalStackLayout>
                 </Border>

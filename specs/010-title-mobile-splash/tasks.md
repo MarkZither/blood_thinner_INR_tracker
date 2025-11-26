@@ -60,7 +60,7 @@ User Story 2 (US2) — View recent INR values (Priority: P1)
   - Support dark mode with AppThemeBinding
   - Tests: Add `ThemeTests.cs` to verify color definitions are accessible
 
-- [ ] **T044** [NEW] Add loading indicator and error states to InrListView
+ [x] **T044** [NEW] Add loading indicator and error states to InrListView
   - Show spinner/activity indicator while loading
   - Show error message with retry button on failure
   - Show "No INR records" message when list is empty
