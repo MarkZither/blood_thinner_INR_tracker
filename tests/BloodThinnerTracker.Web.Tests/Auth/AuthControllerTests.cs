@@ -24,8 +24,8 @@ namespace BloodThinnerTracker.Web.Tests.Auth
             var mockHttpClientFactory = new Mock<IHttpClientFactory>();
             var mockConfiguration = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
             var authStateProvider = new Mock<CustomAuthenticationStateProvider>(
-                mockCache.Object, 
-                mockHttp.Object, 
+                mockCache.Object,
+                mockHttp.Object,
                 mockLoggerProvider.Object,
                 mockHttpClientFactory.Object,
                 mockConfiguration.Object).Object;
@@ -57,7 +57,7 @@ namespace BloodThinnerTracker.Web.Tests.Auth
             Assert.Contains("/oauth-complete?returnUrl=", challenge.Properties.RedirectUri);
             Assert.True(challenge.Properties.Items.ContainsKey("returnUrl"));
             Assert.Equal("/medications/123", challenge.Properties.Items["returnUrl"]);
-            Assert.Equal(MicrosoftAccountDefaults.AuthenticationScheme, challenge.AuthenticationSchemes?[0]);
+            Assert.Equal("AzureAD", challenge.AuthenticationSchemes?[0]);
         }
 
         [Fact]

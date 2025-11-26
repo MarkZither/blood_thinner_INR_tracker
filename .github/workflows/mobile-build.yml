@@ -1,3 +1,26 @@
+name: Mobile Build
+
+on:
+  push:
+    paths:
+      - 'src/BloodThinnerTracker.Mobile/**'
+  pull_request:
+    paths:
+      - 'src/BloodThinnerTracker.Mobile/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore
+        run: dotnet restore BloodThinnerTracker.sln
+      - name: Build mobile project
+        run: dotnet build src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj -c Release --no-restore
 name: 📱 Mobile App Build & Release
 
 on:
@@ -476,7 +499,7 @@ jobs:
                 "value": "${{ needs.android-build.result == 'success' && '✅' || '❌' }}",
                 "short": true
               }, {
-                "title": "iOS", 
+                "title": "iOS",
                 "value": "${{ needs.ios-build.result == 'success' && '✅' || '❌' }}",
                 "short": true
               }, {

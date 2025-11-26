@@ -97,7 +97,6 @@ namespace BloodThinnerTracker.Web.Tests.Services
             return $"{header}.{payloadBase64}.{signature}";
         }
 
-        [Fact(Skip = "Flaky test: expects token refresh call that implementation may handle differently")]
         public async Task GetAuthenticationStateAsync_ExpiredToken_TriggersRefresh()
         {
             // Arrange
@@ -177,7 +176,6 @@ namespace BloodThinnerTracker.Web.Tests.Services
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        [Fact(Skip = "Flaky test: expects proactive token refresh that implementation may handle differently")]
         public async Task GetAuthenticationStateAsync_TokenExpiresInFiveMinutes_ProactiveRefresh()
         {
             // Arrange

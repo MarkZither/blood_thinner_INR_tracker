@@ -19,13 +19,43 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 
 // Configure Serilog for file logging before builder creation
-var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "web-app.log");
-Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-Log.Logger = new LoggerConfiguration()
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7)
-    .CreateLogger();
+// Load minimal configuration early so logging templates and paths can be configured
+var preConfig = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .Build();
+
+    // Enable Serilog SelfLog conditionally to help diagnose sink/configuration errors
+    var enableSelfLog = preConfig.GetValue<bool?>("Diagnostics:Serilog:EnableSelfLog") ?? false;
+    if (enableSelfLog)
+    {
+        var selfLogPath = preConfig["Diagnostics:Serilog:SelfLogPath"];
+        if (!string.IsNullOrEmpty(selfLogPath))
+        {
+            try
+            {
+                var resolved = Path.IsPathRooted(selfLogPath) ? selfLogPath : Path.Combine(AppContext.BaseDirectory, selfLogPath);
+                var sw = File.CreateText(resolved);
+                sw.AutoFlush = true;
+                Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(sw));
+            }
+            catch (Exception ex)
+            {
+                Serilog.Debugging.SelfLog.WriteLine($"Failed to enable SelfLog file '{selfLogPath}': {ex}");
+                Serilog.Debugging.SelfLog.Enable(Console.Error);
+            }
+        }
+        else
+        {
+            Serilog.Debugging.SelfLog.Enable(Console.Error);
+        }
+    }
+
+    Log.Logger = new LoggerConfiguration()
+        .ReadFrom.Configuration(preConfig)
+        .Enrich.FromLogContext()
+        .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 

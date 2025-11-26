@@ -1,3 +1,15 @@
+# Acceptance tests for Mobile feature
+
+This document contains acceptance test steps for the mobile feature. It supplements the tasks list in `tasks.md`.
+
+## Auth exchange acceptance
+
+1. Clear test database (or use a fresh environment).
+2. Start API (or point clients to staging endpoint).
+3. On MAUI client, perform OAuth login and obtain `id_token`.
+4. Call `POST /api/auth/exchange` with the `id_token` and remember `accessToken` returned.
+5. On Blazor web, perform OAuth login (same user) and ensure `POST /api/auth/exchange` returns the same internal user (no duplicate record).
+6. Verify logs show the same ExternalUserId used for both sign-ins.
 # Acceptance Tests: Mobile Splash / Login / INR Read-only
 
 This document maps each Success Criterion from the spec to concrete, testable acceptance tests.

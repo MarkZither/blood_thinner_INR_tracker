@@ -1,3 +1,35 @@
+# Auth Exchange Contract
+
+POST /api/auth/exchange
+
+Description: Exchange a provider-issued ID token (e.g. Azure AD id_token) for an internal bearer token used by the BloodThinnerTracker API. The API validates the incoming id_token and returns an internal access token + refresh token pair for the client to use.
+
+Request
+- Content-Type: application/json
+- Body:
+
+```json
+{
+  "provider": "azuread",
+  "id_token": "<id_token_jwt>",
+  "deviceId": "optional-device-id"
+}
+```
+
+Responses
+- 200 OK: { accessToken, refreshToken, expiresIn, user }
+- 400 Bad Request: invalid payload
+- 401 Unauthorized: token validation failed
+- 500 Internal Server Error: validation or server error
+
+Validation rules
+- The server will validate the id_token signature and issuer using the configured authority keys.
+- External user id will be derived using the server-side claim precedence implementation (`IdTokenValidationService`): prefer `oid` claim, fallback to `sub` if `oid` is missing or empty.
+- Email claim is optional but used to match existing users when available.
+
+Notes
+- Clients should cache the authority configuration (T046) provided by the API and not hard-code differing authority values.
+- This contract is intentionally minimal — see `specs/010-title-mobile-splash/tasks.md` for test and integration requirements.
 # Auth Token Exchange Contract
 
 ## Purpose

@@ -1,0 +1,11 @@
+name: Mobile Publish (placeholder)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "This workflow is a placeholder for mobile publishing steps. Configure store-specific steps before use."
