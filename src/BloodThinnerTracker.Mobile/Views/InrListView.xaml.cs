@@ -12,43 +12,33 @@ namespace BloodThinnerTracker.Mobile.Views
     /// </summary>
     public partial class InrListView : ContentPage
     {
-        private InrListViewModel? _viewModel;
+        private readonly InrListViewModel _viewModel;
 
-        public InrListView()
+        // View is created via DI; view model is constructor-injected for testability.
+        public InrListView(InrListViewModel viewModel)
         {
             InitializeComponent();
-            // ViewModel created lazily in OnAppearing to avoid premature service initialization
+            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            BindingContext = _viewModel;
+        }
+
+        // Parameterless constructor used by XAML/DataTemplate instantiation.
+        // Falls back to the application service provider to resolve the ViewModel.
+        public InrListView()
+            : this(App.ServiceProvider?.GetRequiredService<InrListViewModel>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or InrListViewModel not registered."))
+        {
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            // Create ViewModel lazily on first appearance to ensure auth is complete
-            if (_viewModel == null)
-            {
-                var inrService = ServiceHelper.Current?.GetRequiredService<IInrService>();
-                var cacheService = ServiceHelper.Current?.GetRequiredService<ICacheService>();
-                if (inrService == null || cacheService == null)
-                    return;
-
-                _viewModel = new InrListViewModel(inrService, cacheService);
-                BindingContext = _viewModel;
-            }
-
             // Load INR logs when view appears
-            if (_viewModel?.LoadInrLogsCommand.CanExecute(null) == true)
+            if (_viewModel.LoadInrLogsCommand.CanExecute(null))
             {
                 await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
             }
         }
     }
 
-    /// <summary>
-    /// Helper to access IServiceProvider from anywhere in the app.
-    /// </summary>
-    public static class ServiceHelper
-    {
-        public static IServiceProvider? Current { get; set; }
-    }
 }

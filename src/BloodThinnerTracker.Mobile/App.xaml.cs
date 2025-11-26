@@ -7,12 +7,12 @@ namespace BloodThinnerTracker.Mobile
     public partial class App : Application
     {
         private readonly IServiceProvider _services;
+        public static IServiceProvider? ServiceProvider { get; private set; }
 
         public App(IServiceProvider services)
         {
             _services = services;
-            // Make service provider accessible to views for lazy service resolution
-            ServiceHelper.Current = services;
+            ServiceProvider = services;
             InitializeComponent();
         }
 

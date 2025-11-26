@@ -55,7 +55,7 @@ public static class MauiProgram
         builder.Services.AddTransient<Views.LoginView>();
         builder.Services.AddTransient<ViewModels.LoginViewModel>();
         builder.Services.AddTransient<Views.InrListView>();
-        // InrListViewModel created lazily in InrListView.xaml.cs to avoid premature service initialization
+        builder.Services.AddTransient<ViewModels.InrListViewModel>();
         builder.Services.AddTransient<Views.AboutView>();
 
         // Register Feature services - use configuration flag instead of #if DEBUG
