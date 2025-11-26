@@ -111,7 +111,7 @@ Phase 4 — Polish & Cross-cutting concerns
 - [ ] T037 Correct tasks metadata and summary: update the summary counts and ensure the README/summary accurately reflects the task list.
 
 **Phase 5 — Enhancement & Configuration (NEW)**
-- [ ] **T038** [NEW] Implement runtime configuration for mock/real service selection (replacing `#if DEBUG` conditionals) via `appsettings.json` feature flags
+ [x] **T038** [NEW] Implement runtime configuration for mock/real service selection (replacing `#if DEBUG` conditionals) via `appsettings.json` feature flags
   - Create `src/BloodThinnerTracker.Mobile/appsettings.json` with `Features.UseMockServices` flag
   - Update `MauiProgram.cs` to read flag and conditionally register `MockAuthService`/`OAuthConfigService` vs real implementations
   - Update `MauiProgram.cs` to read `Features.OAuthConfigUrl` and `Features.AuthExchangeUrl` from config
