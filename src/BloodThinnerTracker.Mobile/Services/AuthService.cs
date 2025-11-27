@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,6 +36,8 @@ namespace BloodThinnerTracker.Mobile.Services
 
         private const string AccessTokenKey = "inr_access_token";
         private const string IdTokenKey = "inr_id_token";
+        private const string RefreshTokenKey = "inr_refresh_token";
+        private const string AccessTokenExpiresAtKey = "inr_access_token_expires_at"; // ISO-8601 UTC
 
         // Configuration: set to true to use WAM broker, false for native browser (default)
         // Change this to true to enable WAM broker instead of native browser
@@ -226,18 +229,58 @@ namespace BloodThinnerTracker.Mobile.Services
                     return false;
                 }
 
-                var body = await httpResp.Content.ReadFromJsonAsync<AuthenticationResponse>();
-                if (body?.AccessToken == null)
+                // Read raw JSON to capture accessToken + optional refreshToken and expiresIn
+                var content = await httpResp.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("accessToken", out var accessTokenProp) && !root.TryGetProperty("access_token", out accessTokenProp))
                 {
-                    _logger.LogError("Token exchange response was null or missing AccessToken");
+                    _logger.LogError("Token exchange response was missing accessToken");
                     return false;
                 }
 
-                // Store internal bearer token securely
-                await _secureStorage.SetAsync(AccessTokenKey, body.AccessToken);
-                await _secureStorage.SetAsync(IdTokenKey, idToken);
+                var accessToken = accessTokenProp.GetString();
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    _logger.LogError("Token exchange response contained empty accessToken");
+                    return false;
+                }
 
-                _logger.LogInformation("Successfully exchanged id_token and stored bearer token");
+                // Optional fields
+                string? refreshToken = null;
+                if (root.TryGetProperty("refreshToken", out var refreshProp) || root.TryGetProperty("refresh_token", out refreshProp))
+                {
+                    refreshToken = refreshProp.GetString();
+                }
+
+                // expiresIn can be seconds (int) or string
+                DateTimeOffset? expiresAt = null;
+                if (root.TryGetProperty("expiresIn", out var expiresProp) || root.TryGetProperty("expires_in", out expiresProp))
+                {
+                    if (expiresProp.ValueKind == JsonValueKind.Number && expiresProp.TryGetInt64(out var secs))
+                    {
+                        expiresAt = DateTimeOffset.UtcNow.AddSeconds(secs);
+                    }
+                    else if (expiresProp.ValueKind == JsonValueKind.String && long.TryParse(expiresProp.GetString(), out var secs2))
+                    {
+                        expiresAt = DateTimeOffset.UtcNow.AddSeconds(secs2);
+                    }
+                }
+
+                // Store internal bearer token and related metadata securely
+                await _secureStorage.SetAsync(AccessTokenKey, accessToken);
+                await _secureStorage.SetAsync(IdTokenKey, idToken);
+                if (!string.IsNullOrEmpty(refreshToken))
+                {
+                    await _secureStorage.SetAsync(RefreshTokenKey, refreshToken);
+                }
+                if (expiresAt.HasValue)
+                {
+                    await _secureStorage.SetAsync(AccessTokenExpiresAtKey, expiresAt.Value.ToString("o"));
+                }
+
+                _logger.LogInformation("Successfully exchanged id_token and stored bearer token (refresh available={HasRefresh})", !string.IsNullOrEmpty(refreshToken));
                 return true;
             }
             catch (Exception ex)
@@ -249,7 +292,121 @@ namespace BloodThinnerTracker.Mobile.Services
 
         public async Task<string?> GetAccessTokenAsync()
         {
-            return await _secureStorage.GetAsync(AccessTokenKey);
+            // Check expiry and proactively refresh if close to expiration.
+            var accessToken = await _secureStorage.GetAsync(AccessTokenKey);
+            if (string.IsNullOrEmpty(accessToken)) return null;
+
+            try
+            {
+                var expiresAtStr = await _secureStorage.GetAsync(AccessTokenExpiresAtKey);
+                if (!string.IsNullOrEmpty(expiresAtStr) && DateTimeOffset.TryParse(expiresAtStr, out var expiresAt))
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    // If token expires within 5 minutes, attempt refresh
+                    if (expiresAt - now < TimeSpan.FromMinutes(5))
+                    {
+                        _logger.LogInformation("Access token expiring soon (at {ExpiresAt}). Attempting refresh.", expiresAt);
+                        var ok = await RefreshAccessTokenAsync();
+                        if (ok)
+                        {
+                            accessToken = await _secureStorage.GetAsync(AccessTokenKey);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to check/refresh access token");
+            }
+
+            return accessToken;
+        }
+
+        /// <summary>
+        /// Uses the stored refresh token to obtain a new access token from the backend.
+        /// Stores rotated refresh token and new expiry if provided.
+        /// </summary>
+        public async Task<bool> RefreshAccessTokenAsync()
+        {
+            try
+            {
+                var refreshToken = await _secureStorage.GetAsync(RefreshTokenKey);
+                if (string.IsNullOrEmpty(refreshToken))
+                {
+                    _logger.LogDebug("No refresh token available to refresh access token");
+                    return false;
+                }
+
+                var apiRootUrl = _featuresOptions.Value.ApiRootUrl;
+                if (string.IsNullOrEmpty(apiRootUrl) || apiRootUrl == "https://api.example.invalid")
+                {
+                    _logger.LogError("ApiRootUrl not configured or using placeholder value");
+                    return false;
+                }
+
+                var url = $"{apiRootUrl.TrimEnd('/')}/api/auth/refresh";
+
+                var request = new
+                {
+                    refreshToken = refreshToken,
+                    deviceId = GetDeviceId(),
+                    devicePlatform = GetDevicePlatform()
+                };
+
+                var httpClient = new HttpClient();
+                var httpResp = await httpClient.PostAsJsonAsync(url, request);
+
+                if (!httpResp.IsSuccessStatusCode)
+                {
+                    var err = await httpResp.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Refresh token endpoint returned {Status}: {Body}", httpResp.StatusCode, err);
+                    return false;
+                }
+
+                var content = await httpResp.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("accessToken", out var accessTokenProp) && !root.TryGetProperty("access_token", out accessTokenProp))
+                {
+                    _logger.LogError("Refresh response missing accessToken");
+                    return false;
+                }
+
+                var accessToken = accessTokenProp.GetString();
+                if (string.IsNullOrEmpty(accessToken)) return false;
+
+                string? newRefresh = null;
+                if (root.TryGetProperty("refreshToken", out var refreshProp) || root.TryGetProperty("refresh_token", out refreshProp))
+                {
+                    newRefresh = refreshProp.GetString();
+                }
+
+                DateTimeOffset? expiresAt = null;
+                if (root.TryGetProperty("expiresIn", out var expiresProp) || root.TryGetProperty("expires_in", out expiresProp))
+                {
+                    if (expiresProp.ValueKind == JsonValueKind.Number && expiresProp.TryGetInt64(out var secs))
+                    {
+                        expiresAt = DateTimeOffset.UtcNow.AddSeconds(secs);
+                    }
+                    else if (expiresProp.ValueKind == JsonValueKind.String && long.TryParse(expiresProp.GetString(), out var secs2))
+                    {
+                        expiresAt = DateTimeOffset.UtcNow.AddSeconds(secs2);
+                    }
+                }
+
+                await _secureStorage.SetAsync(AccessTokenKey, accessToken);
+                if (!string.IsNullOrEmpty(newRefresh)) await _secureStorage.SetAsync(RefreshTokenKey, newRefresh);
+                if (expiresAt.HasValue) await _secureStorage.SetAsync(AccessTokenExpiresAtKey, expiresAt.Value.ToString("o"));
+
+                _logger.LogInformation("Refreshed access token successfully (rotated refresh={HasRotated})", !string.IsNullOrEmpty(newRefresh));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh access token");
+                return false;
+            }
         }
 
         public async Task SignOutAsync()

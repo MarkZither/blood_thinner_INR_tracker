@@ -130,7 +130,7 @@ Phase 4 — Polish & Cross-cutting concerns
   - ✅ Project file updated to declare platform-specific `MauiSplashScreen` entries.
   - Benefit: Proper cold-start UX on all platforms (replaces removed SplashView)
 
-- [ ] **T040** [NEW] Implement token refresh mechanism in `AuthService`
+- [x] **T040** [NEW] Implement token refresh mechanism in `AuthService`
   - Add `RefreshAccessTokenAsync()` method to `IAuthService`
   - Implement refresh token storage and rotation
   - Add automatic token refresh before expiration

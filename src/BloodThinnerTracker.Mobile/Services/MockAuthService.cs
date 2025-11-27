@@ -63,6 +63,14 @@ namespace BloodThinnerTracker.Mobile.Services
             return Task.FromResult(_bearerToken);
         }
 
+        public Task<bool> RefreshAccessTokenAsync()
+        {
+            _logger.LogInformation("Mock RefreshAccessTokenAsync: Rotating mock bearer token");
+            // Simulate rotation by generating a new mock token
+            _bearerToken = $"mock-bearer-token-{Guid.NewGuid():N}";
+            return Task.FromResult(true);
+        }
+
         public Task SignOutAsync()
         {
             _logger.LogInformation("Mock SignOutAsync: Clearing mock tokens");

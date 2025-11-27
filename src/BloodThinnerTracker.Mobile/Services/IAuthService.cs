@@ -6,6 +6,7 @@ namespace BloodThinnerTracker.Mobile.Services
     {
         Task<string> SignInAsync();
         Task<bool> ExchangeIdTokenAsync(string idToken, string provider = "azure");
+        Task<bool> RefreshAccessTokenAsync();
         Task<string?> GetAccessTokenAsync();
         Task SignOutAsync();
     }
