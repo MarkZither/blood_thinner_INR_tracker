@@ -120,10 +120,14 @@ Phase 4 — Polish & Cross-cutting concerns
   - Environment-based config (dev/prod appsettings files)
   - Tests: Add `MauiProgramConfigTests.cs` to verify mock/real service registration based on flags
 
-- [ ] **T039** [NEW] Configure native splash screen for Android/iOS/Windows in `MauiProgram.cs`
-  - Define native splash images for each platform in `Resources/Images`
-  - Configure splash screen duration and behavior
-  - Auto-dismiss behavior during app initialization
+ - [x] **T039** [NEW] Configure native splash screen for Android/iOS/Windows in `MauiProgram.cs`
+  - ✅ Added `Splash` configuration flags (`ShowUntilInitialized`, `TimeoutMs`) and wiring in `App.CreateWindow()` to coordinate early initialization before navigation.
+  - ✅ Added platform-specific placeholder splash assets:
+    - `Resources/Images/Splash/splash-android.svg`
+    - `Resources/Images/Splash/splash-ios.svg`
+    - `Resources/Images/Splash/splash-windows.svg`
+  - ✅ Added minimal platform support files: `Platforms/Android/Resources/values/styles.xml`, `Platforms/iOS/Resources/LaunchScreen.storyboard`.
+  - ✅ Project file updated to declare platform-specific `MauiSplashScreen` entries.
   - Benefit: Proper cold-start UX on all platforms (replaces removed SplashView)
 
 - [ ] **T040** [NEW] Implement token refresh mechanism in `AuthService`

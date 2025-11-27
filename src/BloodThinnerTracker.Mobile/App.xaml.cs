@@ -1,5 +1,7 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using BloodThinnerTracker.Mobile.Views;
 
 namespace BloodThinnerTracker.Mobile
@@ -29,17 +31,70 @@ namespace BloodThinnerTracker.Mobile
             // Schedule navigation after shell is ready
             if (isAuthenticated)
             {
-                // Navigate to home after shell displays
+                // Navigate to home after shell displays (respect splash initialization settings)
                 appShell.Loaded += async (s, e) =>
                 {
+                    var splashOptions = _services.GetService<Microsoft.Extensions.Options.IOptions<Services.SplashOptions>>()?.Value;
+                    var showUntilInitialized = splashOptions?.ShowUntilInitialized ?? true;
+                    var timeoutMs = splashOptions?.TimeoutMs ?? 3000;
+
+                    if (showUntilInitialized)
+                    {
+                        try
+                        {
+                            var initializer = _services.GetService<Services.IAppInitializer>();
+                            if (initializer != null)
+                            {
+                                await initializer.InitializeAsync(TimeSpan.FromMilliseconds(timeoutMs));
+                            }
+                            else
+                            {
+                                // fallback: warm auth token directly
+                                var authTask = authService.GetAccessTokenAsync();
+                                var completed = await Task.WhenAny(authTask, Task.Delay(timeoutMs));
+                                if (completed == authTask)
+                                {
+                                    var token = await authTask;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
                     await appShell.GoToAsync("///flyouthome");
                 };
             }
             else
             {
-                // Navigate to login after shell displays
+                // Navigate to login after shell displays (respect splash initialization settings)
                 appShell.Loaded += async (s, e) =>
                 {
+                    var splashOptions = _services.GetService<Microsoft.Extensions.Options.IOptions<Services.SplashOptions>>()?.Value;
+                    var showUntilInitialized = splashOptions?.ShowUntilInitialized ?? true;
+                    var timeoutMs = splashOptions?.TimeoutMs ?? 3000;
+
+                    if (showUntilInitialized)
+                    {
+                        try
+                        {
+                            var initializer = _services.GetService<Services.IAppInitializer>();
+                            if (initializer != null)
+                            {
+                                await initializer.InitializeAsync(TimeSpan.FromMilliseconds(timeoutMs));
+                            }
+                            else
+                            {
+                                var authTask = authService.GetAccessTokenAsync();
+                                var completed = await Task.WhenAny(authTask, Task.Delay(timeoutMs));
+                                if (completed == authTask)
+                                {
+                                    var token = await authTask;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
                     await appShell.GoToAsync("///login");
                 };
             }

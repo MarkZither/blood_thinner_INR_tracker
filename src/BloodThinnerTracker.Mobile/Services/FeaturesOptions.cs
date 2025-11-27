@@ -22,4 +22,14 @@ public class FeaturesOptions
     /// Default: https://api.example.invalid (fails fast if not configured)
     /// </summary>
     public string ApiRootUrl { get; set; } = "https://api.example.invalid";
+
+    /// <summary>
+    /// Enable fetching runtime remote configuration on startup.
+    /// </summary>
+    public bool RemoteConfigEnabled { get; set; } = false;
+
+    /// <summary>
+    /// URL to retrieve remote configuration JSON from (optional).
+    /// </summary>
+    public string? RemoteConfigUrl { get; set; }
 }

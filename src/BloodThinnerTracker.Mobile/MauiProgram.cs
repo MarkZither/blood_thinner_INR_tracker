@@ -5,6 +5,7 @@ using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using BloodThinnerTracker.Mobile.Extensions;
 using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
@@ -119,6 +120,13 @@ public static class MauiProgram
             envVars[normalizedKey] = value;
         }
         builder.Configuration.AddInMemoryCollection(envVars);
+
+        // Register SplashOptions and its validation via extension to keep startup concise
+        builder.Services.AddSplashOptions(builder.Configuration);
+        // ensure the extension namespace is available
+
+        // Register optional app initializer (warms tokens, remote config fetch, etc.)
+        builder.Services.AddSingleton<Services.IAppInitializer, Services.AppInitializer>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
