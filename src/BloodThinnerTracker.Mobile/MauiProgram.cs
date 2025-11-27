@@ -143,6 +143,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ViewModels.LoginViewModel>();
         builder.Services.AddTransient<Views.InrListView>();
         builder.Services.AddTransient<ViewModels.InrListViewModel>();
+        // Lazy factory registration for deferred ViewModel creation
+        builder.Services.AddTransient(typeof(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<>));
         builder.Services.AddTransient<Views.AboutView>();
 
         // Register Feature services - use configuration flag instead of #if DEBUG

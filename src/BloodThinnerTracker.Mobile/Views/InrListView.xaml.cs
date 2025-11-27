@@ -13,23 +13,24 @@ namespace BloodThinnerTracker.Mobile.Views
     /// </summary>
     public partial class InrListView : ContentPage
     {
-        private readonly InrListViewModel _viewModel;
+        private readonly Lazy<InrListViewModel> _lazyViewModel;
         private readonly Microsoft.Extensions.Logging.ILogger<InrListView> _logger;
+        private bool _viewModelBound = false;
 
-        // View is created via DI; view model and logger are constructor-injected for testability.
-        public InrListView(InrListViewModel viewModel, Microsoft.Extensions.Logging.ILogger<InrListView> logger)
+        // Constructor receives a factory so the ViewModel creation can be deferred.
+        public InrListView(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<InrListViewModel> factory, Microsoft.Extensions.Logging.ILogger<InrListView> logger)
         {
             InitializeComponent();
-            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+            _lazyViewModel = factory.CreateLazy();
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            BindingContext = _viewModel;
         }
 
         // Parameterless constructor used by XAML/DataTemplate instantiation.
-        // Falls back to the application service provider to resolve the ViewModel and logger.
+        // Falls back to the application service provider to resolve the factory and logger.
         public InrListView()
             : this(
-                  App.ServiceProvider?.GetRequiredService<InrListViewModel>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or InrListViewModel not registered."),
+                  App.ServiceProvider?.GetRequiredService<BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<InrListViewModel>>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or LazyViewModelFactory<InrListViewModel> not registered."),
                   App.ServiceProvider?.GetRequiredService<Microsoft.Extensions.Logging.ILogger<InrListView>>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or ILogger<InrListView> not registered."))
         {
         }
@@ -37,19 +38,27 @@ namespace BloodThinnerTracker.Mobile.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            _logger.LogWarning("Testing logging a warning.");
-            _logger.LogDebug("InrListView appearing; loading INR logs.");
 
-            // Load INR logs when view appears
-            if (_viewModel.LoadInrLogsCommand.CanExecute(null))
+            _logger.LogDebug("InrListView appearing; ensuring ViewModel is initialized lazily.");
+
+            // Bind the ViewModel lazily the first time the view appears
+            if (!_viewModelBound)
             {
                 try
                 {
-                    await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
+                    var vm = _lazyViewModel.Value;
+                    BindingContext = vm;
+                    _viewModelBound = true;
+
+                    // Load INR logs when view appears
+                    if (vm.LoadInrLogsCommand.CanExecute(null))
+                    {
+                        await vm.LoadInrLogsCommand.ExecuteAsync(null);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to load INR logs on appearing.");
+                    _logger.LogError(ex, "Failed to initialize or load ViewModel on appearing.");
                 }
             }
         }

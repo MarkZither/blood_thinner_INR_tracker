@@ -141,6 +141,10 @@ Phase 4 — Polish & Cross-cutting concerns
   - Create `LazyViewModelFactory<T>` for deferred service initialization
   - Benefit: Better separation of concerns, avoids premature service init
   - Alternative to current code-behind creation approach
+ - [x] **T041** [NEW] Refactor `InrListView` to use lazy factory pattern for ViewModel
+   - Create `LazyViewModelFactory<T>` for deferred service initialization
+   - Benefit: Better separation of concerns, avoids premature service init
+   - Alternative to current code-behind creation approach
 
 - [x] **T042** [COMPLETED] Improve INR list display with better UX
   - ✅ Show status indicator (Normal/Elevated/Low: 2.0-3.0 = Normal, >3.0 = Elevated, <2.0 = Low)
