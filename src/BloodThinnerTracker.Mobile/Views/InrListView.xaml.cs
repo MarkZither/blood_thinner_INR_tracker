@@ -20,7 +20,15 @@ namespace BloodThinnerTracker.Mobile.Views
         // Constructor receives a factory so the ViewModel creation can be deferred.
         public InrListView(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<InrListViewModel> factory, Microsoft.Extensions.Logging.ILogger<InrListView> logger)
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to load XAML for InrListView: {ex.Message}", ex);
+            }
+
             if (factory == null) throw new ArgumentNullException(nameof(factory));
             _lazyViewModel = factory.CreateLazy();
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

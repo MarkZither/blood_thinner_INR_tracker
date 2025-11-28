@@ -19,6 +19,11 @@ namespace Mobile.UnitTests
             {
                 Metrics[name] = value;
             }
+            public void TrackHistogram(string name, double value)
+            {
+                // Map histogram to metrics dictionary for simple assertions
+                Metrics[name] = value;
+            }
         }
 
         private class FastInrService : IInrService
@@ -50,11 +55,26 @@ namespace Mobile.UnitTests
                 _store[key] = (value, DateTime.UtcNow);
                 return Task.CompletedTask;
             }
-            public Task<double?> GetCacheAgeMillisecondsAsync(string key)
+            public Task<long?> GetCacheAgeMillisecondsAsync(string key)
             {
                 if (_store.TryGetValue(key, out var v))
-                    return Task.FromResult<double?>((DateTime.UtcNow - v.ts).TotalMilliseconds);
-                return Task.FromResult<double?>(null);
+                    return Task.FromResult<long?>((long)(DateTime.UtcNow - v.ts).TotalMilliseconds);
+                return Task.FromResult<long?>(null);
+            }
+            public Task<bool> HasValidCacheAsync(string key)
+            {
+                return Task.FromResult(_store.ContainsKey(key));
+            }
+            public Task ClearAsync(string key)
+            {
+                _store.Remove(key);
+                return Task.CompletedTask;
+            }
+            public Task<DateTime?> GetExpirationTimeAsync(string key)
+            {
+                if (_store.TryGetValue(key, out var v))
+                    return Task.FromResult<DateTime?>(v.ts.AddDays(7));
+                return Task.FromResult<DateTime?>(null);
             }
         }
 
