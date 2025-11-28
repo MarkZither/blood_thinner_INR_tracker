@@ -15,9 +15,10 @@ namespace Mobile.UnitTests
             // Arrange
             var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost") };
             var mockLogger = new MockLogger<OAuthConfigService>();
+            var features = Microsoft.Extensions.Options.Options.Create(new FeaturesOptions { ApiRootUrl = "http://localhost" });
 
             // Act
-            var service = new OAuthConfigService(httpClient, mockLogger);
+            var service = new OAuthConfigService(features, httpClient, mockLogger);
 
             // Assert
             Assert.NotNull(service);
@@ -29,7 +30,8 @@ namespace Mobile.UnitTests
             // Arrange
             var httpClient = new HttpClient();
             var mockLogger = new MockLogger<OAuthConfigService>();
-            var service = new OAuthConfigService(httpClient, mockLogger);
+            var features = Microsoft.Extensions.Options.Options.Create(new FeaturesOptions { ApiRootUrl = "http://localhost" });
+            var service = new OAuthConfigService(features, httpClient, mockLogger);
 
             // Act
             var result = await service.GetConfigAsync();

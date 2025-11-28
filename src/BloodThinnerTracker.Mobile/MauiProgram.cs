@@ -199,7 +199,8 @@ public static class MauiProgram
                     sp.GetRequiredService<Services.ISecureStorageService>(),
                     sp.GetRequiredService<Services.IOAuthConfigService>(),
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
-                    sp.GetRequiredService<ILogger<Services.AuthService>>());
+                    sp.GetRequiredService<ILogger<Services.AuthService>>(),
+                    sp.GetRequiredService<System.Net.Http.HttpClient>());
         });
 
         return builder.Build();

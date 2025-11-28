@@ -13,7 +13,7 @@ namespace BloodThinnerTracker.Mobile.UnitTests;
 /// </summary>
 public class XamlRuntimeLoadTests_DemonstrationOfFailure
 {
-    [Fact(Skip = "DEMONSTRATION: This is what SHOULD fail if TextDark key was missing from AppColors.xaml")]
+    [Fact]
     public void DEMO_IF_TextDark_WAS_REMOVED_This_Test_Would_Fail()
     {
         // If you remove the line:
@@ -43,7 +43,7 @@ public class XamlRuntimeLoadTests_DemonstrationOfFailure
             "the runtime error we're trying to prevent.");
     }
 
-    [Fact(Skip = "DEMONSTRATION: This test validates the exact runtime error scenario")]
+    [Fact]
     public void DEMO_The_Exact_Runtime_Error_Our_Tests_Prevent()
     {
         // This test documents the exact error that occurs when TextDark is missing.

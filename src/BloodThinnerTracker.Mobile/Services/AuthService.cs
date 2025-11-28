@@ -46,17 +46,20 @@ namespace BloodThinnerTracker.Mobile.Services
         private IPublicClientApplication? _msal;
         private OAuthConfig? _currentConfig;
         private string _currentProvider = "azure";
+        private readonly HttpClient _httpClient;
 
         public AuthService(
             ISecureStorageService secureStorage,
             IOAuthConfigService oauthConfigService,
             IOptions<FeaturesOptions> featuresOptions,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            HttpClient? httpClient = null)
         {
             _secureStorage = secureStorage;
             _oauthConfigService = oauthConfigService;
             _featuresOptions = featuresOptions;
             _logger = logger;
+            _httpClient = httpClient ?? new HttpClient();
         }
 
         /// <summary>
@@ -219,8 +222,7 @@ namespace BloodThinnerTracker.Mobile.Services
                     devicePlatform = GetDevicePlatform()
                 };
 
-                var httpClient = new HttpClient();
-                var httpResp = await httpClient.PostAsJsonAsync(url, request);
+                var httpResp = await _httpClient.PostAsJsonAsync(url, request);
 
                 if (!httpResp.IsSuccessStatusCode)
                 {
@@ -353,8 +355,7 @@ namespace BloodThinnerTracker.Mobile.Services
                     devicePlatform = GetDevicePlatform()
                 };
 
-                var httpClient = new HttpClient();
-                var httpResp = await httpClient.PostAsJsonAsync(url, request);
+                var httpResp = await _httpClient.PostAsJsonAsync(url, request);
 
                 if (!httpResp.IsSuccessStatusCode)
                 {

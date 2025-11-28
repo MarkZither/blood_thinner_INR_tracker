@@ -11,7 +11,11 @@ namespace Mobile.UnitTests
         {
             public Task<string> SignInAsync() => Task.FromResult("id-token");
             public Task<bool> ExchangeIdTokenAsync(string idToken, string provider = "azure") => Task.FromResult(true);
-            public Task<string?> GetAccessTokenAsync() => Task.FromResult<string?>(null);
+            public Task<string?> GetAccessTokenAsync() => Task.FromResult<string?>("access-token-xyz");
+            public Task<bool> RefreshAccessTokenAsync()
+            {
+                return Task.FromResult(true);
+            }
             public Task SignOutAsync() => Task.CompletedTask;
         }
 
@@ -20,6 +24,7 @@ namespace Mobile.UnitTests
             public Task<string> SignInAsync() => Task.FromResult(string.Empty);
             public Task<bool> ExchangeIdTokenAsync(string idToken, string provider = "azure") => Task.FromResult(false);
             public Task<string?> GetAccessTokenAsync() => Task.FromResult<string?>(null);
+            public Task<bool> RefreshAccessTokenAsync() => Task.FromResult(false);
             public Task SignOutAsync() => Task.CompletedTask;
         }
 
@@ -28,6 +33,7 @@ namespace Mobile.UnitTests
             public Task<string> SignInAsync() => Task.FromResult("id-token");
             public Task<bool> ExchangeIdTokenAsync(string idToken, string provider = "azure") => Task.FromResult(false);
             public Task<string?> GetAccessTokenAsync() => Task.FromResult<string?>(null);
+            public Task<bool> RefreshAccessTokenAsync() => Task.FromResult(false);
             public Task SignOutAsync() => Task.CompletedTask;
         }
 

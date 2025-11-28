@@ -178,11 +178,15 @@ Phase 4 — Polish & Cross-cutting concerns
   - Tests: Verify UI state transitions in `InrListViewStateTests.cs`
 
 - [ ] **T045** [NEW] Implement full caching and offline-first for INR data
-  - Create `src/BloodThinnerTracker.Mobile/Services/CacheService.cs` for encrypted persistent cache
-  - Implement encrypted storage using `EncryptionService` + `SecureStorageService` (CachedAt, ExpiresAt metadata)
+  - Use Data.Sqlite to create a local database
+  - Create a background job to sync data from API to local database
+  - Use Shiny.net for cross platform foreground/background jobs with notifications
+  - 
+  - Create `src/BloodThinnerTracker.Mobile/Services/CacheService.cs` for encrypted persistent cache in sqlite/sqlcipher DB
+  - Implement encrypted storage using sqlite/sqlcipher DB
   - Update `InrListViewModel` to add `LastUpdatedAt` property and track cache age
   - Implement stale-warning logic: show orange banner if cache age > 1 hour; red banner if expired
-  - Add refresh button to force fetch latest (clears cache, fetches from API/mock)
+  - Add refresh button to force fetch latest (clears cache, fetches from API/mock) and updates local database
   - Add offline-first fallback: show cached data if network unavailable, with "offline" badge
   - Tests: Add `CacheServiceTests.cs` and `InrListViewModelCacheTests.cs` for cache/stale/offline scenarios
 

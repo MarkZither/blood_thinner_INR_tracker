@@ -222,5 +222,16 @@ public class CacheServiceTests
             _storage.Remove(key);
             return Task.CompletedTask;
         }
+        public Task<(bool success, string? value)> TryGetAsync(string key)
+        {
+            var ok = _storage.TryGetValue(key, out var v);
+            return Task.FromResult((ok, ok ? v : null));
+        }
+
+        public Task<bool> TryRemoveAsync(string key)
+        {
+            var removed = _storage.Remove(key);
+            return Task.FromResult(removed);
+        }
     }
 }
