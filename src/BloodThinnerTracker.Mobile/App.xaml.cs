@@ -23,6 +23,19 @@ namespace BloodThinnerTracker.Mobile
             // Create AppShell with default login route
             var appShell = new AppShell();
 
+            try
+            {
+                // Track cold-start metric (best-effort)
+                var telemetry = _services.GetService<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService>();
+                if (telemetry != null)
+                {
+                    var procStart = System.Diagnostics.Process.GetCurrentProcess().StartTime;
+                    var coldMs = (DateTime.Now - procStart).TotalMilliseconds;
+                    telemetry.TrackHistogram("ColdStartMs", coldMs);
+                }
+            }
+            catch { }
+
             // Check authentication and navigate appropriately
             var authService = _services.GetRequiredService<Services.IAuthService>();
             var token = authService.GetAccessTokenAsync().GetAwaiter().GetResult();

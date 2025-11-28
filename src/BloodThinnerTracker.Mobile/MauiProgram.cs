@@ -5,6 +5,10 @@ using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Exporter;
 using BloodThinnerTracker.Mobile.Extensions;
 using System.Linq;
 
@@ -158,6 +162,55 @@ public static class MauiProgram
         builder.Services.AddSingleton<Services.EncryptionService>();
         builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
         builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
+
+        // OpenTelemetry: configure tracing and metrics exporters and register wrapper service
+        try
+        {
+            var otlpEndpoint = builder.Configuration["Telemetry:OtlpEndpoint"]; // e.g. "http://otel-collector:4317"
+
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(tracerProviderBuilder =>
+                {
+                    tracerProviderBuilder
+                        .AddSource("BloodThinnerTracker.Mobile");
+
+                    if (!string.IsNullOrEmpty(otlpEndpoint))
+                    {
+                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
+                        tracerProviderBuilder.AddOtlpExporter(opts =>
+                        {
+                            opts.Endpoint = new Uri(otlpEndpoint);
+                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
+                        });
+                    }
+                    else
+                    {
+                        tracerProviderBuilder.AddConsoleExporter();
+                    }
+                })
+                .WithMetrics(meterProviderBuilder =>
+                {
+                    meterProviderBuilder
+                        .AddMeter("BloodThinnerTracker.Mobile.Metrics");
+
+                    if (!string.IsNullOrEmpty(otlpEndpoint))
+                    {
+                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
+                        meterProviderBuilder.AddOtlpExporter(opts =>
+                        {
+                            opts.Endpoint = new Uri(otlpEndpoint);
+                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
+                        });
+                    }
+                    else
+                    {
+                        meterProviderBuilder.AddConsoleExporter();
+                    }
+                });
+        }
+        catch { }
+
+        builder.Services.AddSingleton<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService, BloodThinnerTracker.Mobile.Services.Telemetry.OpenTelemetryTelemetryService>();
 
         // Register Feature services with mock/real selection
         builder.Services.AddSingleton<Services.IInrService>(sp =>

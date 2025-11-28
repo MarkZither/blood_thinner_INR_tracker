@@ -14,6 +14,7 @@ namespace BloodThinnerTracker.Mobile.ViewModels
     {
         private readonly IInrService _inrService;
         private readonly ICacheService _cacheService;
+        private readonly BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? _telemetry;
         private DateTime _lastUpdateTime = DateTime.MinValue;
 
         [ObservableProperty]
@@ -58,10 +59,11 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         // Cache key for INR logs
         private const string InrLogsCache = "inr_logs";
 
-        public InrListViewModel(IInrService inrService, ICacheService cacheService)
+        public InrListViewModel(IInrService inrService, ICacheService cacheService, BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? telemetry = null)
         {
             _inrService = inrService ?? throw new ArgumentNullException(nameof(inrService));
             _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
+            _telemetry = telemetry;
         }
 
         /// <summary>
@@ -75,6 +77,8 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         {
             if (IsBusy)
                 return;
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
@@ -136,6 +140,12 @@ namespace BloodThinnerTracker.Mobile.ViewModels
             finally
             {
                 IsBusy = false;
+                try
+                {
+                    sw.Stop();
+                    _telemetry?.TrackHistogram("InrListLoadMs", sw.Elapsed.TotalMilliseconds);
+                }
+                catch { }
             }
         }
 

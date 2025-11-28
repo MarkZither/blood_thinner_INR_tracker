@@ -50,11 +50,18 @@ namespace BloodThinnerTracker.Mobile.Views
                     BindingContext = vm;
                     _viewModelBound = true;
 
+                    // Instrument view render timing
+                    var telemetry = App.ServiceProvider?.GetService<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService>();
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+
                     // Load INR logs when view appears
                     if (vm.LoadInrLogsCommand.CanExecute(null))
                     {
                         await vm.LoadInrLogsCommand.ExecuteAsync(null);
                     }
+
+                    sw.Stop();
+                    telemetry?.TrackHistogram("View.InrList.RenderMs", sw.Elapsed.TotalMilliseconds);
                 }
                 catch (Exception ex)
                 {

@@ -106,9 +106,9 @@ Phase 4 — Polish & Cross-cutting concerns
   - Move claim-extraction and precedence (prefer `oid`, fallback to `sub`) into a single shared service/class in the API (`IdTokenValidationService`), ensure all callers use that service.
   - Add unit tests around the service to cover organizational `oid`, MSA `sub`-only cases, and mixed/edge cases.
   - Acceptance: One code path determines ExternalUserId consistently and tests assert expected precedence.
-- [ ] T035 Add CI coverage gating: collect XPlat code coverage for `tests/Mobile.UnitTests` and fail CI if coverage < 80% for feature projects; add workflow snippet to `.github/workflows/coverage-check.yml`.
-- [ ] T036 Add performance telemetry tasks: implement cold-start and render timing telemetry, create a CI benchmark job to validate SC-001/SC-002 under a defined network profile.
-- [ ] T037 Correct tasks metadata and summary: update the summary counts and ensure the README/summary accurately reflects the task list.
+- [x] T035 Add CI coverage gating: collect XPlat code coverage for `tests/Mobile.UnitTests` and fail CI if coverage < 80% for feature projects; add workflow snippet to `.github/workflows/coverage-check.yml`.
+- [x] T036 Add performance telemetry tasks: implement cold-start and render timing telemetry, create a CI benchmark job to validate SC-001/SC-002 under a defined network profile.
+- [x] T037 Correct tasks metadata and summary: update the summary counts and ensure the README/summary accurately reflects the task list.
 
 **Phase 5 — Enhancement & Configuration (NEW)**
  [x] **T038** [NEW] Implement runtime configuration for mock/real service selection (replacing `#if DEBUG` conditionals) via `appsettings.json` feature flags
@@ -137,14 +137,10 @@ Phase 4 — Polish & Cross-cutting concerns
   - Tests: Add token refresh tests to `AuthServiceTests.cs`
     - Tests to verify refresh behavior must pass: `GetAuthenticationStateAsync_ExpiredToken_TriggersRefresh` and `GetAuthenticationStateAsync_TokenExpiresInFiveMinutes_ProactiveRefresh` (these tests must not be skipped).
 
-- [ ] **T041** [NEW] Refactor `InrListView` to use lazy factory pattern for ViewModel
-  - Create `LazyViewModelFactory<T>` for deferred service initialization
-  - Benefit: Better separation of concerns, avoids premature service init
-  - Alternative to current code-behind creation approach
- - [x] **T041** [NEW] Refactor `InrListView` to use lazy factory pattern for ViewModel
-   - Create `LazyViewModelFactory<T>` for deferred service initialization
-   - Benefit: Better separation of concerns, avoids premature service init
-   - Alternative to current code-behind creation approach
+- [x] **T041** [NEW] Refactor `InrListView` to use lazy factory pattern for ViewModel
+ - Create `LazyViewModelFactory<T>` for deferred service initialization
+ - Benefit: Better separation of concerns, avoids premature service init
+ - Alternative to current code-behind creation approach
 
 - [x] **T042** [COMPLETED] Improve INR list display with better UX
   - ✅ Show status indicator (Normal/Elevated/Low: 2.0-3.0 = Normal, >3.0 = Elevated, <2.0 = Low)
@@ -181,7 +177,6 @@ Phase 4 — Polish & Cross-cutting concerns
   - Use Data.Sqlite to create a local database
   - Create a background job to sync data from API to local database
   - Use Shiny.net for cross platform foreground/background jobs with notifications
-  - 
   - Create `src/BloodThinnerTracker.Mobile/Services/CacheService.cs` for encrypted persistent cache in sqlite/sqlcipher DB
   - Implement encrypted storage using sqlite/sqlcipher DB
   - Update `InrListViewModel` to add `LastUpdatedAt` property and track cache age

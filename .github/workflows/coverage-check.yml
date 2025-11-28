@@ -1,0 +1,49 @@
+name: Coverage Check
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  coverage:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore BloodThinnerTracker.sln
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test tests/Mobile.UnitTests/Mobile.UnitTests.csproj --configuration Release --collect:"XPlat Code Coverage" /p:CoverletOutputFormat=cobertura
+
+      - name: Install reportgenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.1.23
+
+      - name: Generate coverage report
+        run: |
+          reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:coverage-report -reporttypes:TextSummary;Html
+
+      - name: Fail if coverage < 80%
+        shell: pwsh
+        run: |
+          $summary = Get-Content coverage-report/Summary.txt -Raw
+          Write-Output "Coverage summary:`n$summary"
+          if ($summary -notmatch 'Coverage.*:.*(?<p>\d+\.?\d*)%') {
+            Write-Error "Could not determine coverage percentage"
+            exit 1
+          }
+          $m = [regex]::Match($summary, 'Coverage.*:.*(?<p>\d+\.?\d*)%')
+          $pct = [double]$m.Groups['p'].Value
+          Write-Output "Coverage percentage: $pct%"
+          if ($pct -lt 80) {
+            Write-Error "Code coverage ($pct%) is below required threshold 80%"
+            exit 1
+          }

@@ -33,6 +33,7 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly IOAuthConfigService _oauthConfigService;
         private readonly IOptions<FeaturesOptions> _featuresOptions;
         private readonly ILogger<AuthService> _logger;
+        private readonly BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? _telemetry;
 
         private const string AccessTokenKey = "inr_access_token";
         private const string IdTokenKey = "inr_id_token";
@@ -53,12 +54,14 @@ namespace BloodThinnerTracker.Mobile.Services
             IOAuthConfigService oauthConfigService,
             IOptions<FeaturesOptions> featuresOptions,
             ILogger<AuthService> logger,
-            HttpClient? httpClient = null)
+            HttpClient? httpClient = null,
+            BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? telemetry = null)
         {
             _secureStorage = secureStorage;
             _oauthConfigService = oauthConfigService;
             _featuresOptions = featuresOptions;
             _logger = logger;
+            _telemetry = telemetry;
             _httpClient = httpClient ?? new HttpClient();
         }
 
@@ -222,12 +225,14 @@ namespace BloodThinnerTracker.Mobile.Services
                     devicePlatform = GetDevicePlatform()
                 };
 
+                var swExchange = System.Diagnostics.Stopwatch.StartNew();
                 var httpResp = await _httpClient.PostAsJsonAsync(url, request);
 
                 if (!httpResp.IsSuccessStatusCode)
                 {
                     var errorContent = await httpResp.Content.ReadAsStringAsync();
                     _logger.LogError($"Token exchange failed with status {httpResp.StatusCode}: {errorContent}");
+                    _telemetry?.TrackEvent("Auth.ExchangeFailed", new Dictionary<string, string> { { "Status", httpResp.StatusCode.ToString() } });
                     return false;
                 }
 
@@ -282,6 +287,9 @@ namespace BloodThinnerTracker.Mobile.Services
                     await _secureStorage.SetAsync(AccessTokenExpiresAtKey, expiresAt.Value.ToString("o"));
                 }
 
+                swExchange.Stop();
+                _telemetry?.TrackHistogram("Auth.ExchangeMs", swExchange.Elapsed.TotalMilliseconds);
+                _telemetry?.TrackEvent("Auth.ExchangeSucceeded", new Dictionary<string, string> { { "HasRefresh", (!string.IsNullOrEmpty(refreshToken)).ToString() } });
                 _logger.LogInformation("Successfully exchanged id_token and stored bearer token (refresh available={HasRefresh})", !string.IsNullOrEmpty(refreshToken));
                 return true;
             }
@@ -308,7 +316,11 @@ namespace BloodThinnerTracker.Mobile.Services
                     if (expiresAt - now < TimeSpan.FromMinutes(5))
                     {
                         _logger.LogInformation("Access token expiring soon (at {ExpiresAt}). Attempting refresh.", expiresAt);
+                        _telemetry?.TrackEvent("Auth.ProactiveRefreshAttempt");
+                        var sw = System.Diagnostics.Stopwatch.StartNew();
                         var ok = await RefreshAccessTokenAsync();
+                        sw.Stop();
+                        _telemetry?.TrackHistogram("Auth.ProactiveRefreshMs", sw.Elapsed.TotalMilliseconds);
                         if (ok)
                         {
                             accessToken = await _secureStorage.GetAsync(AccessTokenKey);
@@ -355,12 +367,14 @@ namespace BloodThinnerTracker.Mobile.Services
                     devicePlatform = GetDevicePlatform()
                 };
 
+                var sw = System.Diagnostics.Stopwatch.StartNew();
                 var httpResp = await _httpClient.PostAsJsonAsync(url, request);
 
                 if (!httpResp.IsSuccessStatusCode)
                 {
                     var err = await httpResp.Content.ReadAsStringAsync();
                     _logger.LogWarning("Refresh token endpoint returned {Status}: {Body}", httpResp.StatusCode, err);
+                    _telemetry?.TrackEvent("Auth.RefreshFailed", new Dictionary<string, string?> { { "Status", httpResp.StatusCode.ToString() }, { "Error", err } } as IDictionary<string, string>);
                     return false;
                 }
 
@@ -399,6 +413,10 @@ namespace BloodThinnerTracker.Mobile.Services
                 await _secureStorage.SetAsync(AccessTokenKey, accessToken);
                 if (!string.IsNullOrEmpty(newRefresh)) await _secureStorage.SetAsync(RefreshTokenKey, newRefresh);
                 if (expiresAt.HasValue) await _secureStorage.SetAsync(AccessTokenExpiresAtKey, expiresAt.Value.ToString("o"));
+
+                sw.Stop();
+                _telemetry?.TrackHistogram("Auth.RefreshMs", sw.Elapsed.TotalMilliseconds);
+                _telemetry?.TrackEvent("Auth.RefreshSucceeded", new Dictionary<string, string> { { "Rotated", (!string.IsNullOrEmpty(newRefresh)).ToString() } });
 
                 _logger.LogInformation("Refreshed access token successfully (rotated refresh={HasRotated})", !string.IsNullOrEmpty(newRefresh));
                 return true;
