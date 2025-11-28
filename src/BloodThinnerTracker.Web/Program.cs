@@ -316,6 +316,11 @@ builder.Services.AddScoped(sp =>
     return httpClient;
 });
 
+// Register auth config provider and warmup hosted service so the Web UI reads
+// authoritative OAuth configuration from the API at startup and caches it.
+builder.Services.AddSingleton<BloodThinnerTracker.Web.Services.IAuthConfigProvider, BloodThinnerTracker.Web.Services.AuthConfigProvider>();
+builder.Services.AddHostedService<BloodThinnerTracker.Web.Services.AuthConfigWarmupHostedService>();
+
 
 // Configure cookie policy to work correctly when behind a TLS-terminating
 // reverse proxy (Traefik, nginx, etc.). Note: Cookie authentication options above

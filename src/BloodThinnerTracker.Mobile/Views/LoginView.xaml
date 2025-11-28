@@ -6,10 +6,10 @@
              BackgroundColor="{StaticResource PageBackground}">
 
     <StackLayout Padding="24" VerticalOptions="Center" Spacing="16">
-        <Label Text="Sign in to view your INR results"
-               HorizontalOptions="Center"
-               FontSize="16"
-               TextColor="{StaticResource ForegroundBrush}" />
+         <Label Text="Sign in to view your INR results"
+                 HorizontalOptions="Center"
+                 FontSize="16"
+                 TextColor="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
 
         <!-- Azure AD button -->
         <Button x:Name="AzureButton"

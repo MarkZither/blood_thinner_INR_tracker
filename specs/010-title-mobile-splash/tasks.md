@@ -96,7 +96,7 @@ Phase 4 — Polish & Cross-cutting concerns
 
 **Cross-Project Auth Consistency**
 
-- [ ] **T046** Ensure single Azure AD authority/config source (API-driven)
+ - [x] **T046** Ensure single Azure AD authority/config source (API-driven)
   - Implement a single authoritative configuration source in the API that exposes the Azure AD authority/tenant URL and any OAuth client metadata needed by clients.
   - Update MAUI and Blazor clients to read the authority/config from the API at startup (cache locally for offline/startup performance).
   - Acceptance: MAUI and Blazor both obtain and use the exact same authority/config and produce consistent ExternalUserId values for the same user (no duplicate user records created across platforms).

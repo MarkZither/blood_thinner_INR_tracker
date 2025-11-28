@@ -242,7 +242,8 @@ public static class MauiProgram
                 : new Services.OAuthConfigService(
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
                     sp.GetRequiredService<System.Net.Http.HttpClient>(),
-                    sp.GetRequiredService<ILogger<Services.OAuthConfigService>>());
+                    sp.GetRequiredService<ILogger<Services.OAuthConfigService>>(),
+                    sp.GetRequiredService<Services.ICacheService>());
         });
 
         // Register AuthService - use configuration flag for mock/real

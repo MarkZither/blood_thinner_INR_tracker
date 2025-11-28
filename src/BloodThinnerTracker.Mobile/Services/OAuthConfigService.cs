@@ -15,15 +15,18 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly IOptions<FeaturesOptions> _featuresOptions;
         private readonly HttpClient _httpClient;
         private readonly ILogger<OAuthConfigService> _logger;
+        private readonly ICacheService _cacheService;
         private OAuthConfig? _cachedConfig;
         private DateTimeOffset _cacheExpiry = DateTimeOffset.MinValue;
         private const int CacheDurationMinutes = 60;
+        private const string PersistentCacheKey = "oauth_config";
 
-        public OAuthConfigService(IOptions<FeaturesOptions> featuresOptions, HttpClient httpClient, ILogger<OAuthConfigService> logger)
+        public OAuthConfigService(IOptions<FeaturesOptions> featuresOptions, HttpClient httpClient, ILogger<OAuthConfigService> logger, ICacheService cacheService)
         {
             _featuresOptions = featuresOptions;
             _httpClient = httpClient;
             _logger = logger;
+            _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
         }
 
         /// <summary>
@@ -74,21 +77,96 @@ namespace BloodThinnerTracker.Mobile.Services
                 _cachedConfig = config;
                 _cacheExpiry = DateTimeOffset.UtcNow.AddMinutes(CacheDurationMinutes);
 
+                // Persist to encrypted cache for offline/startup usage
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(config);
+                    await _cacheService.SetAsync(PersistentCacheKey, json, TimeSpan.FromDays(7));
+                    _logger.LogDebug("Persisted OAuth config to secure cache");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to persist OAuth config to secure cache");
+                }
+
                 return config;
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error fetching OAuth config: {Message}", ex.Message);
+                // If HTTP fails, try persistent cache as fallback
+                try
+                {
+                    var cachedJson = await _cacheService.GetAsync(PersistentCacheKey);
+                    if (!string.IsNullOrEmpty(cachedJson))
+                    {
+                        var cached = System.Text.Json.JsonSerializer.Deserialize<OAuthConfig>(cachedJson);
+                        if (cached != null)
+                        {
+                            _logger.LogInformation("Using persistent cached OAuth config due to HTTP error");
+                            _cachedConfig = cached;
+                            _cacheExpiry = DateTimeOffset.UtcNow.AddMinutes(CacheDurationMinutes);
+                            return cached;
+                        }
+                    }
+                }
+                catch (Exception cacheEx)
+                {
+                    _logger.LogDebug(cacheEx, "Error reading persistent OAuth config cache");
+                }
+
                 return null;
             }
             catch (OperationCanceledException ex)
             {
                 _logger.LogWarning(ex, "OAuth config fetch was cancelled");
+                // Try persistent cache
+                try
+                {
+                    var cachedJson = await _cacheService.GetAsync(PersistentCacheKey);
+                    if (!string.IsNullOrEmpty(cachedJson))
+                    {
+                        var cached = System.Text.Json.JsonSerializer.Deserialize<OAuthConfig>(cachedJson);
+                        if (cached != null)
+                        {
+                            _logger.LogInformation("Using persistent cached OAuth config due to cancellation");
+                            _cachedConfig = cached;
+                            _cacheExpiry = DateTimeOffset.UtcNow.AddMinutes(CacheDurationMinutes);
+                            return cached;
+                        }
+                    }
+                }
+                catch (Exception cacheEx)
+                {
+                    _logger.LogDebug(cacheEx, "Error reading persistent OAuth config cache");
+                }
+
                 return null;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error fetching OAuth config: {Message}", ex.Message);
+                // Try persistent cache
+                try
+                {
+                    var cachedJson = await _cacheService.GetAsync(PersistentCacheKey);
+                    if (!string.IsNullOrEmpty(cachedJson))
+                    {
+                        var cached = System.Text.Json.JsonSerializer.Deserialize<OAuthConfig>(cachedJson);
+                        if (cached != null)
+                        {
+                            _logger.LogInformation("Using persistent cached OAuth config due to unexpected error");
+                            _cachedConfig = cached;
+                            _cacheExpiry = DateTimeOffset.UtcNow.AddMinutes(CacheDurationMinutes);
+                            return cached;
+                        }
+                    }
+                }
+                catch (Exception cacheEx)
+                {
+                    _logger.LogDebug(cacheEx, "Error reading persistent OAuth config cache");
+                }
+
                 return null;
             }
         }

@@ -8,7 +8,7 @@
     </ResourceDictionary.MergedDictionaries>
     <!-- Basic utility styles -->
     <Style TargetType="Label" x:Key="DefaultLabel">
-        <Setter Property="TextColor" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
         <Setter Property="FontSize" Value="14" />
     </Style>
 

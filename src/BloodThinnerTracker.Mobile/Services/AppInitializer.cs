@@ -10,15 +10,18 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly ILogger<AppInitializer> _logger;
         private readonly System.Net.Http.HttpClient _httpClient;
         private readonly Microsoft.Extensions.Options.IOptions<FeaturesOptions> _features;
+        private readonly IOAuthConfigService _oauthConfigService;
 
         public AppInitializer(IAuthService authService, ILogger<AppInitializer> logger,
             System.Net.Http.HttpClient httpClient,
-            Microsoft.Extensions.Options.IOptions<FeaturesOptions> features)
+            Microsoft.Extensions.Options.IOptions<FeaturesOptions> features,
+            IOAuthConfigService oauthConfigService)
         {
             _authService = authService;
             _logger = logger;
             _httpClient = httpClient;
             _features = features;
+            _oauthConfigService = oauthConfigService;
         }
 
         public async Task InitializeAsync(TimeSpan timeout)
@@ -61,13 +64,31 @@ namespace BloodThinnerTracker.Mobile.Services
                     _logger.LogWarning("AppInitializer: initialization timed out after {Timeout}ms", timeout.TotalMilliseconds);
                 }
 
+                // Also attempt to warm OAuth provider config (non-blocking, within timeout)
+                Task? oauthTask = null;
+                try
+                {
+                    oauthTask = _oauthConfigService.GetConfigAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "AppInitializer: failed to start OAuth config fetch");
+                }
+
                 // If remote config running, wait up to remaining time
-                if (remoteTask != null)
+                if (remoteTask != null || oauthTask != null)
                 {
                     try
                     {
                         var remaining = timeout;
-                        await Task.WhenAny(remoteTask, Task.Delay(remaining));
+                        var tasks = new List<Task>();
+                        if (remoteTask != null) tasks.Add(remoteTask);
+                        if (oauthTask != null) tasks.Add(oauthTask);
+
+                        if (tasks.Count > 0)
+                        {
+                            await Task.WhenAny(Task.WhenAll(tasks), Task.Delay(remaining));
+                        }
                     }
                     catch (Exception ex)
                     {

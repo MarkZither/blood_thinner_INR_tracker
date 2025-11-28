@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BloodThinnerTracker.Mobile.Views
 {
@@ -13,12 +14,29 @@ namespace BloodThinnerTracker.Mobile.Views
 
         public LoginView(ViewModels.LoginViewModel vm)
         {
-            InitializeComponent();
-            _viewModel = vm;
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to load XAML for LoginView: {ex.Message}", ex);
+            }
+
+            _viewModel = vm ?? throw new ArgumentNullException(nameof(vm));
             BindingContext = vm;
 
             // Subscribe to login success to handle navigation
             vm.LoginSucceeded += OnLoginSucceeded;
+        }
+
+        // Parameterless constructor used by XAML/DataTemplate instantiation.
+        // Falls back to the application service provider to resolve the ViewModel.
+        public LoginView()
+            : this(
+                  App.ServiceProvider?.GetRequiredService<ViewModels.LoginViewModel>()
+                      ?? throw new InvalidOperationException("ServiceProvider is not initialized or LoginViewModel not registered."))
+        {
         }
 
         /// <summary>
