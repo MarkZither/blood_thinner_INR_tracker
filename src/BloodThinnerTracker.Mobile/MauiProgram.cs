@@ -212,6 +212,9 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService, BloodThinnerTracker.Mobile.Services.Telemetry.OpenTelemetryTelemetryService>();
 
+        // Theme service - manages user theme preference
+        builder.Services.AddSingleton<Services.IThemeService, Services.ThemeService>();
+
         // Register Feature services with mock/real selection
         builder.Services.AddSingleton<Services.IInrService>(sp =>
         {

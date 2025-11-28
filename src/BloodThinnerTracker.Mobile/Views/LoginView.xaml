@@ -2,35 +2,39 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="BloodThinnerTracker.Mobile.Views.LoginView"
-             Title="Sign in">
+             Title="Sign in"
+             BackgroundColor="{StaticResource PageBackground}">
 
     <StackLayout Padding="24" VerticalOptions="Center" Spacing="16">
         <Label Text="Sign in to view your INR results"
                HorizontalOptions="Center"
-               FontSize="16" />
+               FontSize="16"
+               TextColor="{StaticResource ForegroundBrush}" />
 
         <!-- Azure AD button -->
         <Button x:Name="AzureButton"
                 Text="Sign in with Azure AD"
                 Margin="0,20,0,0"
                 Command="{Binding SignInWithAzureAsyncCommand}"
-                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                Style="{StaticResource PrimaryButton}" />
 
         <!-- Google button -->
         <Button x:Name="GoogleButton"
                 Text="Sign in with Google"
                 Margin="0,8,0,0"
                 Command="{Binding SignInWithGoogleAsyncCommand}"
-                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                Style="{StaticResource SecondaryButton}" />
 
         <!-- Loading indicator -->
         <ActivityIndicator IsVisible="{Binding IsBusy}"
                           IsRunning="{Binding IsBusy}"
-                          Color="Blue" />
+                          Color="{StaticResource PrimaryBlue}" />
 
         <!-- Error message -->
         <Label Text="{Binding ErrorMessage}"
-               TextColor="Red"
+               TextColor="{StaticResource AccentRed}"
                FontSize="14"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"
                Margin="0,16,0,0"

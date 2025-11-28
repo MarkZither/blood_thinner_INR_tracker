@@ -6,16 +6,58 @@
     xmlns:local="clr-namespace:BloodThinnerTracker.Mobile"
     xmlns:views="clr-namespace:BloodThinnerTracker.Mobile.Views"
     FlyoutBehavior="Flyout"
-    FlyoutHeaderBehavior="CollapseOnScroll">
+    FlyoutHeaderBehavior="CollapseOnScroll"
+    FlyoutBackgroundColor="{DynamicResource PageBackground}">
+
+    <Shell.Resources>
+        <ResourceDictionary>
+            <!-- Provide flyout brushes via resources to avoid direct markup-extension parsing on root element -->
+            <SolidColorBrush x:Key="FlyoutBackgroundBrush" Color="{AppThemeBinding Light={StaticResource PageBackground}, Dark={StaticResource DarkModeBackground}}" />
+            <SolidColorBrush x:Key="FlyoutForegroundBrush" Color="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <!-- Replace default platform flyout with a simple, themeable flyout content for robust cross-platform styling -->
+    <Shell.FlyoutContent>
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="8">
+                <!-- Reuse the header inside flyout content for consistent layout -->
+                <Grid RowDefinitions="Auto" Padding="0,20,0,10"
+                      BackgroundColor="{AppThemeBinding Light={StaticResource PageBackground}, Dark={StaticResource DarkModeBackground}}">
+                    <Label Text="Blood Thinner Tracker" FontSize="20" FontAttributes="Bold" Margin="4,0"
+                           TextColor="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
+                </Grid>
+
+                <!-- Navigation buttons mirror FlyoutItems; styled with theme resources -->
+                <Button Text="INR Logs"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextDark}"
+                        Clicked="OnFlyoutHomeClicked" />
+
+                <Button Text="About"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextDark}"
+                    Clicked="OnFlyoutAboutClicked" />
+
+                <!-- Login is a route-only ShellContent; expose it here in the custom flyout -->
+                <Button Text="Login"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextDark}"
+                    Clicked="OnFlyoutLoginClicked" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Shell.FlyoutContent>
 
     <!-- Flyout Header -->
     <Shell.FlyoutHeader>
-        <Grid RowDefinitions="Auto" Padding="0,40,0,10" BackgroundColor="#F3F3F3">
+        <Grid RowDefinitions="Auto" Padding="0,40,0,10"
+              BackgroundColor="{AppThemeBinding Light={StaticResource PageBackground}, Dark={StaticResource DarkModeBackground}}">
             <Label
                 Text="Blood Thinner Tracker"
                 FontSize="20"
                 FontAttributes="Bold"
-                Margin="20,0" />
+                Margin="20,0"
+                TextColor="{AppThemeBinding Light={StaticResource TextDark}, Dark={StaticResource DarkModeText}}" />
         </Grid>
     </Shell.FlyoutHeader>
 
@@ -40,5 +82,10 @@
         Title="Login"
         ContentTemplate="{DataTemplate views:LoginView}"
         Route="login" />
+
+    <!-- Toolbar: theme toggle (placed after content to conform to XAML ordering requirements) -->
+    <Shell.ToolbarItems>
+        <ToolbarItem Text="Theme" Priority="0" Order="Primary" Clicked="OnThemeToggleClicked" />
+    </Shell.ToolbarItems>
 
 </Shell>

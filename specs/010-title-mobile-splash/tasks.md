@@ -154,12 +154,13 @@ Phase 4 — Polish & Cross-cutting concerns
   - **ACTUAL STATE**: InrListView displays INR data in card layout with status badges, refresh button, last-updated text, stale/offline warnings, empty/error states
   - **TEST COVERAGE**: 68 Mobile unit tests passing (13 new tests for status indicators)
 
-- [ ] **T043** [NEW] Implement app theme with sensible color scheme
+ - [x] **T043** [NEW] Implement app theme with sensible color scheme
   - Create `src/BloodThinnerTracker.Mobile/Themes/AppColors.xaml` with color definitions
     - Primary: Medical blue (#0066CC)
     - Accent: Medical red (#DC3545) for elevated INR values
     - Neutral: Gray scale (#333333, #666666, #CCCCCC, #F5F5F5)
     - Status colors: Green (#28A745) for normal, Orange (#FFC107) for warning, Red (#DC3545) for critical
+    - create dark and light theme and add switcher button.
   - Create `src/BloodThinnerTracker.Mobile/Themes/AppStyles.xaml` with default styles for Label, Button, Frame
   - Apply theme globally in `App.xaml`
   - Update all views (LoginView, InrListView, AboutView) to use theme colors

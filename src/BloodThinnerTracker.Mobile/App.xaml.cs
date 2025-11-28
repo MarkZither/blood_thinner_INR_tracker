@@ -1,7 +1,9 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using BloodThinnerTracker.Mobile.Views;
 
 namespace BloodThinnerTracker.Mobile
@@ -20,8 +22,8 @@ namespace BloodThinnerTracker.Mobile
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Create AppShell with default login route
-            var appShell = new AppShell();
+            // Create AppShell via DI so constructor dependencies (IThemeService) are injected
+            var appShell = _services.GetRequiredService<AppShell>();
 
             try
             {
@@ -36,81 +38,84 @@ namespace BloodThinnerTracker.Mobile
             }
             catch { }
 
-            // Check authentication and navigate appropriately
+            // Schedule navigation after shell is ready. Perform initialization and auth check asynchronously
             var authService = _services.GetRequiredService<Services.IAuthService>();
-            var token = authService.GetAccessTokenAsync().GetAwaiter().GetResult();
-            bool isAuthenticated = !string.IsNullOrEmpty(token);
-
-            // Schedule navigation after shell is ready
-            if (isAuthenticated)
+            appShell.Loaded += async (s, e) =>
             {
-                // Navigate to home after shell displays (respect splash initialization settings)
-                appShell.Loaded += async (s, e) =>
-                {
-                    var splashOptions = _services.GetService<Microsoft.Extensions.Options.IOptions<Services.SplashOptions>>()?.Value;
-                    var showUntilInitialized = splashOptions?.ShowUntilInitialized ?? true;
-                    var timeoutMs = splashOptions?.TimeoutMs ?? 3000;
+                var logger = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
+                var telemetry = _services.GetService<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService>();
 
-                    if (showUntilInitialized)
+                var splashOptions = _services.GetService<Microsoft.Extensions.Options.IOptions<Services.SplashOptions>>()?.Value;
+                var showUntilInitialized = splashOptions?.ShowUntilInitialized ?? true;
+                var timeoutMs = splashOptions?.TimeoutMs ?? 3000;
+
+                if (showUntilInitialized)
+                {
+                    try
                     {
-                        try
+                        var initializer = _services.GetService<Services.IAppInitializer>();
+                        if (initializer != null)
                         {
-                            var initializer = _services.GetService<Services.IAppInitializer>();
-                            if (initializer != null)
-                            {
-                                await initializer.InitializeAsync(TimeSpan.FromMilliseconds(timeoutMs));
-                            }
-                            else
-                            {
-                                // fallback: warm auth token directly
-                                var authTask = authService.GetAccessTokenAsync();
-                                var completed = await Task.WhenAny(authTask, Task.Delay(timeoutMs));
-                                if (completed == authTask)
-                                {
-                                    var token = await authTask;
-                                }
-                            }
+                            await initializer.InitializeAsync(TimeSpan.FromMilliseconds(timeoutMs));
                         }
-                        catch { }
-                    }
-
-                    await appShell.GoToAsync("///flyouthome");
-                };
-            }
-            else
-            {
-                // Navigate to login after shell displays (respect splash initialization settings)
-                appShell.Loaded += async (s, e) =>
-                {
-                    var splashOptions = _services.GetService<Microsoft.Extensions.Options.IOptions<Services.SplashOptions>>()?.Value;
-                    var showUntilInitialized = splashOptions?.ShowUntilInitialized ?? true;
-                    var timeoutMs = splashOptions?.TimeoutMs ?? 3000;
-
-                    if (showUntilInitialized)
-                    {
-                        try
+                        else
                         {
-                            var initializer = _services.GetService<Services.IAppInitializer>();
-                            if (initializer != null)
-                            {
-                                await initializer.InitializeAsync(TimeSpan.FromMilliseconds(timeoutMs));
-                            }
-                            else
+                            // warm auth token with a timeout; do not block the UI thread
+                            try
                             {
                                 var authTask = authService.GetAccessTokenAsync();
                                 var completed = await Task.WhenAny(authTask, Task.Delay(timeoutMs));
                                 if (completed == authTask)
                                 {
-                                    var token = await authTask;
+                                    _ = await authTask;
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                logger?.LogWarning(ex, "Auth warm-up failed");
+                                telemetry?.TrackEvent("AuthWarmupFailed");
+                            }
                         }
-                        catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogWarning(ex, "Initialization failed in App.CreateWindow Loaded handler");
+                        telemetry?.TrackEvent("AppInitializationFailed");
+                    }
+                }
+
+                // Finally decide where to navigate based on async auth check (non-blocking)
+                try
+                {
+                    var token = string.Empty;
+                    try
+                    {
+                        token = await authService.GetAccessTokenAsync().ConfigureAwait(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogDebug(ex, "GetAccessTokenAsync failed during navigation decision");
+                        telemetry?.TrackEvent("GetAccessTokenFailed");
                     }
 
-                    await appShell.GoToAsync("///login");
-                };
-            }
+                    bool isAuthenticated = !string.IsNullOrEmpty(token);
+                    if (isAuthenticated)
+                    {
+                        await appShell.GoToAsync("///flyouthome");
+                    }
+                    else
+                    {
+                        await appShell.GoToAsync("///login");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Last-resort logging; avoid crashing the app.
+                    var logger2 = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
+                    logger2?.LogError(ex, "Navigation after initialization failed");
+                    telemetry?.TrackEvent("NavigationFailed");
+                }
+            };
 
             return new Window(appShell);
         }

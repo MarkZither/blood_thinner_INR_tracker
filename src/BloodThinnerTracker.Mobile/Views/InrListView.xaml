@@ -44,7 +44,7 @@
             <Border
                 Grid.Row="1"
                 IsVisible="{Binding ShowStaleWarning}"
-                Background="#FFC107"
+                Background="{StaticResource StatusOrange}"
                 Padding="12,10"
                 Margin="0,0,0,10">
                 <Label
@@ -58,7 +58,7 @@
             <Border
                 Grid.Row="2"
                 IsVisible="{Binding IsOfflineMode}"
-                Background="#6C757D"
+                Background="{StaticResource OfflineGray}"
                 Padding="12,10"
                 Margin="0,0,0,10">
                 <Label
