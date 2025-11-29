@@ -204,28 +204,27 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             var nameClaim = principal.FindFirst("name");
 
-            // Extract oid (unique user identifier in Azure AD)
-            var oidValue = principal.FindFirst("oid")?.Value
-                ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
-                ?? principal.FindFirst("sub")?.Value;  // Fallback to sub if oid not available
+            // Resolve the external user id using centralized precedence rules
+            var externalId = IdTokenClaimResolver.ResolveExternalUserId(principal);
 
-            _logger.LogDebug("Azure AD Claims - oid: {Oid}, sub: {Sub}, email: {Email}",
+            _logger.LogDebug("Azure AD Claims - resolvedExternalId: {ExternalId}, oid: {Oid}, sub: {Sub}, email: {Email}",
+                externalId ?? "null",
                 principal.FindFirst("oid")?.Value ?? "null",
                 principal.FindFirst("sub")?.Value ?? "null",
                 principal.FindFirst("email")?.Value ?? "null");
 
-            if (string.IsNullOrEmpty(oidValue))
+            if (string.IsNullOrEmpty(externalId))
             {
                 _logger.LogError("Azure AD token missing oid/sub claim - cannot identify user");
             }
 
             _logger.LogInformation("Azure AD ID token validated successfully for user {Email} with ExternalUserId: {ExternalUserId}",
-                emailClaim?.Value, oidValue ?? "MISSING");
+                emailClaim?.Value, externalId ?? "MISSING");
 
             return new IdTokenValidationResult
             {
                 IsValid = true,
-                ExternalUserId = oidValue ?? "",
+                ExternalUserId = externalId ?? "",
                 Email = emailClaim?.Value ?? "",
                 Name = nameClaim?.Value ?? "",
                 Provider = "AzureAD"
