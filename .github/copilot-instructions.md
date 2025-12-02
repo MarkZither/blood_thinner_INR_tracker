@@ -188,6 +188,40 @@ dotnet test --collect:"XPlat Code Coverage"
 5. **Health Checks**: Implement for all services
 6. **Error Handling**: Global exception middleware
 
+### Exception Handling & Logging
+
+- **Do not swallow exceptions silently.** Never leave empty `catch { }` blocks or catch-all `catch (Exception)` without logging.
+- **Always log exceptions** using `ILogger<T>`. Include the exception object to capture the stack trace and structured properties:
+    - Use `logger.LogError(ex, "Descriptive message about what failed")` or `logger.LogWarning` for expected recoverable issues.
+    - Prefer catching specific exception types where possible (e.g., `HttpRequestException`, `DbUpdateException`).
+- **When handling exceptions:**
+    - Log the exception, decide whether to return a safe, explicit fallback value, or rethrow/propagate the error.
+    - Avoid returning `null` or empty collections silently; return explicit domain-level fallbacks and document the behavior.
+
+Example (API service):
+```csharp
+public async Task<IEnumerable<InrListItemVm>> GetRecentAsync(int count = 5)
+{
+        try
+        {
+                var result = await _httpClient.GetFromJsonAsync<IEnumerable<INRTestResponse>>(uri);
+                if (result == null) return Enumerable.Empty<InrListItemVm>();
+                return result.Select(...);
+        }
+        catch (HttpRequestException ex)
+        {
+                _logger.LogWarning(ex, "Failed to call INR API for recent tests (count={Count})", count);
+                // Return an explicit fallback and allow caller to decide
+                return Enumerable.Empty<InrListItemVm>();
+        }
+        catch (Exception ex)
+        {
+                _logger.LogError(ex, "Unexpected error while fetching recent INR tests");
+                throw; // propagate unexpected errors so they can be handled by global middleware
+        }
+}
+```
+
 ### Security Requirements
 
 - Input validation on all endpoints

@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace BloodThinnerTracker.Mobile.Views
 {
@@ -55,7 +56,8 @@ namespace BloodThinnerTracker.Mobile.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
+                var logger = App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<LoginView>>();
+                logger?.LogWarning(ex, "Navigation error during OnLoginSucceeded");
                 // Log error but don't crash - user stays on login screen
             }
         }

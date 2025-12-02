@@ -1,4 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Microsoft.Maui;
@@ -66,7 +69,7 @@ public static class MauiProgram
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Failed to create logs directory '{logsDir}': {ex}");
+                        Serilog.Debugging.SelfLog.WriteLine($"Failed to create logs directory '{logsDir}': {ex}");
                     }
 
                     // Use a date-stamped file name to avoid depending on sink-specific enums
@@ -108,7 +111,7 @@ public static class MauiProgram
             catch (Exception ex)
             {
                 // Ensure at least debug logging remains available
-                System.Diagnostics.Debug.WriteLine($"Serilog initialization failed: {ex}");
+                Serilog.Debugging.SelfLog.WriteLine($"Serilog initialization failed: {ex}");
             }
 
         // Add environment variables (higher priority - overrides appsettings.json)
@@ -220,10 +223,37 @@ public static class MauiProgram
         {
             return useMockServices
                 ? (Services.IInrService)new Services.MockInrService()
-                : new Services.ApiInrService(sp.GetRequiredService<System.Net.Http.HttpClient>());
+                : sp.GetRequiredService<Services.ApiInrService>();
         });
 
+        // If the Data.SQLite project is available, register a read-only adapter to query
+        // the canonical local DB for offline reads. This keeps the mobile app consistent
+        // with server-side schema while remaining read-only.
+        try
+        {
+            // Register Data Protection services required by ApplicationDbContext for encryption
+            var dataProtectionPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "DataProtection-Keys");
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(new System.IO.DirectoryInfo(dataProtectionPath))
+                .SetApplicationName("BloodThinnerTracker.Mobile");
+
+            // Register mobile-specific ICurrentUserService (single-user device)
+            // Also register a seeder that ensures the device-local user exists
+            builder.Services.AddScoped<Services.MobileUserSeeder>();
+            builder.Services.AddScoped<BloodThinnerTracker.Data.Shared.ICurrentUserService, Services.MobileCurrentUserService>();
+
+            builder.Services.AddScoped<Services.IInrRepository, Services.InrRepository>();
+            // Register the EF DbContext from Data.SQLite using a file-based connection.
+            var dbPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "bloodtracker_mobile.db");
+            builder.Services.AddDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>(opts =>
+            {
+                opts.UseSqlite($"Data Source={dbPath}", b => b.MigrationsAssembly("BloodThinnerTracker.Data.SQLite"));
+            });
+        }
+        catch { }
+
         // HttpClient for API-backed services (uses IOptions to get API root URL)
+        // Keep a general-purpose HttpClient for other services that need it
         builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
@@ -232,7 +262,27 @@ public static class MauiProgram
                 BaseAddress = new System.Uri(options.Value.ApiRootUrl)
             };
         });
-        builder.Services.AddSingleton<Services.ApiInrService>();
+
+        // Token handler and ApiInrService configured with a token-aware HttpClient
+        builder.Services.AddSingleton<Services.ApiInrService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
+            var auth = sp.GetRequiredService<Services.IAuthService>();
+            var handlerLogger = sp.GetRequiredService<ILogger<Services.TokenDelegatingHandler>>();
+            var apiLogger = sp.GetRequiredService<ILogger<Services.ApiInrService>>();
+
+            var tokenHandler = new Services.TokenDelegatingHandler(auth, handlerLogger)
+            {
+                InnerHandler = new System.Net.Http.HttpClientHandler()
+            };
+
+            var client = new System.Net.Http.HttpClient(tokenHandler)
+            {
+                BaseAddress = new Uri(options.Value.ApiRootUrl)
+            };
+
+            return new Services.ApiInrService(client, apiLogger);
+        });
 
         // OAuth configuration service - use configuration flag for mock/real
         builder.Services.AddSingleton<Services.IOAuthConfigService>(sp =>
@@ -259,6 +309,13 @@ public static class MauiProgram
                     sp.GetRequiredService<ILogger<Services.AuthService>>(),
                     sp.GetRequiredService<System.Net.Http.HttpClient>());
         });
+
+        // Background cache sync service: periodically fetch latest INR data and populate encrypted cache
+        try
+        {
+            builder.Services.AddHostedService<Services.CacheSyncService>();
+        }
+        catch { }
 
         return builder.Build();
     }

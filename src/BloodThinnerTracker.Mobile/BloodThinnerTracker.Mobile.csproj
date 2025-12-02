@@ -87,6 +87,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

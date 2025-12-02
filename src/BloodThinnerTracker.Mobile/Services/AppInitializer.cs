@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
 
@@ -11,23 +12,56 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly System.Net.Http.HttpClient _httpClient;
         private readonly Microsoft.Extensions.Options.IOptions<FeaturesOptions> _features;
         private readonly IOAuthConfigService _oauthConfigService;
+        private readonly BloodThinnerTracker.Data.SQLite.ApplicationDbContext? _db;
+        private readonly MobileUserSeeder? _seeder;
 
         public AppInitializer(IAuthService authService, ILogger<AppInitializer> logger,
             System.Net.Http.HttpClient httpClient,
             Microsoft.Extensions.Options.IOptions<FeaturesOptions> features,
-            IOAuthConfigService oauthConfigService)
+            IOAuthConfigService oauthConfigService,
+            BloodThinnerTracker.Data.SQLite.ApplicationDbContext? db = null,
+            MobileUserSeeder? seeder = null)
         {
             _authService = authService;
             _logger = logger;
             _httpClient = httpClient;
             _features = features;
             _oauthConfigService = oauthConfigService;
+            _db = db;
+            _seeder = seeder;
         }
 
         public async Task InitializeAsync(TimeSpan timeout)
         {
             try
             {
+                // Ensure local SQLite database exists and seed a local user for mobile writes.
+                try
+                {
+                    if (_db != null)
+                    {
+                        _logger.LogDebug("AppInitializer: applying EF Core migrations to local SQLite database");
+                        await _db.Database.MigrateAsync();
+                        _logger.LogDebug("AppInitializer: local SQLite database migrations applied");
+                    }
+
+                    if (_seeder != null)
+                    {
+                        try
+                        {
+                            _seeder.EnsureSeeded();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "AppInitializer: MobileUserSeeder failed to seed local user");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "AppInitializer: failed to ensure/create local database");
+                }
+
                 _logger.LogDebug("AppInitializer: starting initialization with timeout {Timeout}ms", timeout.TotalMilliseconds);
 
                 // Warm auth token

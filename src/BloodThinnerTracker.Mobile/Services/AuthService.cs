@@ -484,7 +484,7 @@ namespace BloodThinnerTracker.Mobile.Services
         /// Gets the parent window handle for WAM (Windows Account Manager) integration.
         /// Required for MSAL on Windows when using the broker.
         /// </summary>
-        private static IntPtr GetParentWindowHandle()
+        private IntPtr GetParentWindowHandle()
         {
             try
             {
@@ -494,23 +494,23 @@ namespace BloodThinnerTracker.Mobile.Services
                 {
                     var window = windows[0];
                     // For MAUI on Windows, get the native window via the handler
-                    if (window?.Handler is Microsoft.Maui.Handlers.WindowHandler windowHandler)
-                    {
-                        // WindowHandler.PlatformView gives us access to the native window
-                        if (windowHandler.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+                        if (window?.Handler is Microsoft.Maui.Handlers.WindowHandler windowHandler)
                         {
-                            return WindowNative.GetWindowHandle(nativeWindow);
+                            // WindowHandler.PlatformView gives us access to the native window
+                            if (windowHandler.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+                            {
+                                return WindowNative.GetWindowHandle(nativeWindow);
+                            }
                         }
-                    }
                 }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't crash if we can't get window handle
+                    _logger?.LogWarning(ex, "Failed to get window handle for MSAL WAM integration");
+                }
+                return IntPtr.Zero;
             }
-            catch (Exception ex)
-            {
-                // Log but don't crash if we can't get window handle
-                System.Diagnostics.Debug.WriteLine($"Failed to get window handle: {ex.Message}");
-            }
-            return IntPtr.Zero;
-        }
 #endif
     }
 }

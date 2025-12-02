@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BloodThinnerTracker.Mobile.Services
 {
@@ -76,6 +77,7 @@ namespace BloodThinnerTracker.Mobile.Services
     {
         private readonly ISecureStorageService _secureStorage;
         private readonly EncryptionService _encryptionService;
+        private readonly ILogger<CacheService>? _logger;
         private byte[]? _cacheKey;
 
         // Default cache retention: 7 days
@@ -84,10 +86,11 @@ namespace BloodThinnerTracker.Mobile.Services
         // Key for storing encryption key in secure storage
         private const string CacheKeyStorageKey = "cache_encryption_key";
 
-        public CacheService(ISecureStorageService secureStorage, EncryptionService encryptionService)
+        public CacheService(ISecureStorageService secureStorage, EncryptionService encryptionService, ILogger<CacheService>? logger = null)
         {
             _secureStorage = secureStorage ?? throw new ArgumentNullException(nameof(secureStorage));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
+            _logger = logger;
         }
 
         /// <summary>
@@ -145,7 +148,7 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (Exception ex)
             {
                 // Log error but don't throw - cache failure should not crash app
-                System.Diagnostics.Debug.WriteLine($"CacheService.GetAsync error: {ex.Message}");
+                _logger?.LogError(ex, "CacheService.GetAsync error fetching cache for key {Key}", key);
                 return null;
             }
         }
@@ -179,7 +182,7 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (Exception ex)
             {
                 // Log error but don't throw - cache failure should not crash app
-                System.Diagnostics.Debug.WriteLine($"CacheService.SetAsync error: {ex.Message}");
+                _logger?.LogError(ex, "CacheService.SetAsync error storing cache for key {Key}", key);
             }
         }
 
@@ -206,7 +209,7 @@ namespace BloodThinnerTracker.Mobile.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"CacheService.GetCacheAgeMillisecondsAsync error: {ex.Message}");
+                _logger?.LogError(ex, "CacheService.GetCacheAgeMillisecondsAsync error for key {Key}", key);
                 return null;
             }
         }
@@ -219,7 +222,7 @@ namespace BloodThinnerTracker.Mobile.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"CacheService.ClearAsync error: {ex.Message}");
+                _logger?.LogError(ex, "CacheService.ClearAsync error for key {Key}", key);
             }
         }
 
@@ -236,7 +239,7 @@ namespace BloodThinnerTracker.Mobile.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"CacheService.GetExpirationTimeAsync error: {ex.Message}");
+                _logger?.LogError(ex, "CacheService.GetExpirationTimeAsync error for key {Key}", key);
                 return null;
             }
         }

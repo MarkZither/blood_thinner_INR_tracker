@@ -1,5 +1,4 @@
 using BloodThinnerTracker.Shared.Models;
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace BloodThinnerTracker.Data.Shared;
@@ -18,7 +17,6 @@ public interface IApplicationDbContext
     DbSet<INRTest> INRTests { get; set; }
     DbSet<INRSchedule> INRSchedules { get; set; }
     DbSet<AuditLog> AuditLogs { get; set; }
-    DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
     DbSet<RefreshToken> RefreshTokens { get; set; }
 
     // Database operations

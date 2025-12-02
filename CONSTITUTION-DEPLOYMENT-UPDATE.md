@@ -273,3 +273,29 @@ jobs:
 **Document Version**: 1.0  
 **Last Updated**: October 24, 2025  
 **Status**: ✅ T045 Complete, Constitution Updated, Documentation Finalized
+
+## Exception Handling & Logging (Constitution Addendum)
+
+As part of the project's coding standards and operational safety requirements, the following policy is appended to the constitution and must be followed by all contributors:
+
+1. **No Silent Exception Swallows (MUST)**
+  - Catch blocks MUST not be empty nor swallow exceptions silently. Every `catch` must either log the exception or rethrow.
+2. **Prefer Specific Exceptions (SHOULD)**
+  - Catch specific exception types where possible (`HttpRequestException`, `DbUpdateException`, etc.) and handle them explicitly.
+3. **Always Log With Context (MUST)**
+  - Use `ILogger<T>` and structured logging. Include the exception object when logging to preserve stack traces and inner exceptions.
+  - Example: `_logger.LogError(ex, "Failed while doing X for id={Id}", id);`
+4. **Fallbacks Must Be Explicit (MUST)**
+  - If code returns a fallback value after an exception, the fallback must be documented and logged as part of the catch handling.
+5. **Propagate Unexpected Errors (MUST)**
+  - Unexpected exceptions should generally be rethrown after logging so global middleware can handle them and the runtime can capture telemetry.
+
+### Rationale
+
+Silent exception swallowing hides failures, complicates debugging, and can lead to incorrect application behaviour—particularly dangerous in a medical application handling patient data. Logging preserves context and supports incident investigation and audit requirements.
+
+### Enforcement
+
+- Code reviews will flag empty catch blocks or catch-all handlers without logging.
+- CI linters (where available) should include rules to detect empty catch blocks. Reviewers should request changes when found.
+

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using BloodThinnerTracker.Mobile.Services;
+using Microsoft.Extensions.Logging;
 
 namespace BloodThinnerTracker.Mobile.ViewModels
 {
@@ -13,9 +14,13 @@ namespace BloodThinnerTracker.Mobile.ViewModels
     public partial class InrListViewModel : ObservableObject
     {
         private readonly IInrService _inrService;
-        private readonly ICacheService _cacheService;
+        private readonly IInrRepository? _inrRepository;
         private readonly BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? _telemetry;
+        private readonly ILogger<InrListViewModel>? _logger;
         private DateTime _lastUpdateTime = DateTime.MinValue;
+
+        [ObservableProperty]
+        private DateTime lastUpdatedAt = DateTime.MinValue;
 
         [ObservableProperty]
         private ObservableCollection<InrListItemViewModel> inrLogs = new();
@@ -56,14 +61,12 @@ namespace BloodThinnerTracker.Mobile.ViewModels
         [ObservableProperty]
         private string offlineModeText = "Offline - showing cached data";
 
-        // Cache key for INR logs
-        private const string InrLogsCache = "inr_logs";
-
-        public InrListViewModel(IInrService inrService, ICacheService cacheService, BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? telemetry = null)
+        public InrListViewModel(IInrService inrService, IInrRepository? inrRepository = null, BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService? telemetry = null, ILogger<InrListViewModel>? logger = null)
         {
             _inrService = inrService ?? throw new ArgumentNullException(nameof(inrService));
-            _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
+            _inrRepository = inrRepository;
             _telemetry = telemetry;
+            _logger = logger;
         }
 
         /// <summary>
@@ -90,52 +93,54 @@ namespace BloodThinnerTracker.Mobile.ViewModels
                 ShowStaleWarning = false;
                 IsOfflineMode = false;
 
-                var logs = await _inrService.GetRecentAsync(10);
-                var logsList = logs?.ToList() ?? new List<InrListItemVm>();
+                List<InrListItemVm> logsList = new();
+
+                // Prefer reading from the local canonical DB when available (offline-first)
+                if (_inrRepository != null)
+                {
+                    try
+                    {
+                        var local = await _inrRepository.GetRecentAsync(10);
+                        if (local != null)
+                        {
+                            logsList = local.ToList();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "InrRepository (local DB) failed while fetching recent INR tests");
+                    }
+                }
+
+                // If no local items, fall back to remote service
+                if (logsList.Count == 0)
+                {
+                    var logs = await _inrService.GetRecentAsync(10);
+                    logsList = logs?.ToList() ?? new List<InrListItemVm>();
+                }
 
                 if (logsList.Count > 0)
                 {
-                    // Store in cache for offline access
-                    var logsJson = System.Text.Json.JsonSerializer.Serialize(logsList);
-                    await _cacheService.SetAsync(InrLogsCache, logsJson);
-
-                    // Display the logs
+                    // Display the logs (canonical data is in DB, no JSON cache)
                     var items = logsList.Select(log => new InrListItemViewModel(log)).ToList();
                     InrLogs = new ObservableCollection<InrListItemViewModel>(items);
                     ShowList = true;
                     _lastUpdateTime = DateTime.Now;
+                    LastUpdatedAt = _lastUpdateTime;
                     UpdateLastUpdatedText();
                 }
                 else
                 {
-                    // No new data - check if we have cached data to fallback to
-                    await TryLoadFromCacheAsync();
-
-                    if (!ShowList)
-                    {
-                        ShowEmpty = true;
-                        InrLogs.Clear();
-                    }
+                    ShowEmpty = true;
+                    InrLogs.Clear();
                 }
             }
             catch (Exception ex)
             {
-                // Network error or fetch failed - try to show cached data
+                // Network error or fetch failed
                 ErrorMessage = $"Failed to fetch latest data: {ex.Message}";
-                await TryLoadFromCacheAsync();
-
-                if (!ShowList)
-                {
-                    // No cache available either
-                    ShowError = true;
-                    System.Diagnostics.Debug.WriteLine($"LoadInrLogs error: {ex}");
-                }
-                else
-                {
-                    // Showed cached data but with error message
-                    ShowStaleWarning = true;
-                    StaleWarningText = $"Error fetching latest data. Showing cached data.";
-                }
+                ShowError = true;
+                _logger?.LogError(ex, "LoadInrLogs failed to fetch data");
             }
             finally
             {
@@ -149,49 +154,7 @@ namespace BloodThinnerTracker.Mobile.ViewModels
             }
         }
 
-        /// <summary>
-        /// Try to load INR logs from cache and display them.
-        /// Also check staleness and show warnings if needed.
-        /// </summary>
-        private async Task TryLoadFromCacheAsync()
-        {
-            try
-            {
-                var cachedJson = await _cacheService.GetAsync(InrLogsCache);
-                if (string.IsNullOrEmpty(cachedJson))
-                    return;
 
-                // Deserialize cached logs
-                var cachedLogs = System.Text.Json.JsonSerializer.Deserialize<List<InrListItemVm>>(cachedJson);
-                if (cachedLogs == null || cachedLogs.Count == 0)
-                    return;
-
-                // Check cache age for staleness warning
-                var cacheAgeMs = await _cacheService.GetCacheAgeMillisecondsAsync(InrLogsCache);
-                if (cacheAgeMs.HasValue)
-                {
-                    var cacheAgeHours = cacheAgeMs.Value / 1000.0 / 60.0 / 60.0;
-                    if (cacheAgeHours > 1)
-                    {
-                        ShowStaleWarning = true;
-                        StaleWarningText = $"Showing cached data from {cacheAgeHours:F1} hours ago";
-                    }
-                }
-
-                // Display cached logs
-                var items = cachedLogs.Select(log => new InrListItemViewModel(log)).ToList();
-                InrLogs = new ObservableCollection<InrListItemViewModel>(items);
-                ShowList = true;
-                IsOfflineMode = true;
-                OfflineModeText = "⚠ Offline - showing cached data";
-                _lastUpdateTime = DateTime.Now;
-                UpdateLastUpdatedText();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"TryLoadFromCacheAsync error: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Update the "last updated" display text.

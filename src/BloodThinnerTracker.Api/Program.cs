@@ -18,6 +18,7 @@ using Serilog;
 using BloodThinnerTracker.ServiceDefaults.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.HttpOverrides;
+using BloodThinnerTracker.Api.Middleware;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
 // This application handles medical data and must comply with healthcare regulations.
@@ -346,6 +347,10 @@ app.UseRouting();
 
 // Authentication and authorization for medical data security
 app.UseAuthentication();
+
+// Ensure DbContext instances see the current request user for audit fields
+app.UseMiddleware<DbContextCurrentUserMiddleware>();
+
 app.UseAuthorization();
 
 // Map controllers

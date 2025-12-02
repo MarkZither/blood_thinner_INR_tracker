@@ -32,7 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\BloodThinnerTracker.Api\BloodThinnerTracker.Api.csproj" />
     <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
-	  <!--ProjectReference Include="..\..\src\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" /-->
+	  <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
   </ItemGroup>

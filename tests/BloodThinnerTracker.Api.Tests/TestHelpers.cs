@@ -17,11 +17,9 @@ namespace BloodThinnerTracker.Api.Tests
                 .UseSqlite(connection)
                 .Options;
 
-            var dataProtection = new EphemeralDataProtectionProvider();
-            var currentUser = new TestCurrentUserService();
             var logger = NullLogger<ApplicationDbContext>.Instance;
 
-            return new ApplicationDbContext(options, dataProtection, currentUser, logger);
+            return new ApplicationDbContext(options, logger);
         }
 
         private class EphemeralDataProtectionProvider : IDataProtectionProvider

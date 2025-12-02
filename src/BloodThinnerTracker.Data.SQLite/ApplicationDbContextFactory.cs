@@ -19,8 +19,6 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         optionsBuilder.UseSqlite("Data Source=bloodtracker_migration.db");
 
         // Create minimal design-time dependencies
-        var dataProtectionProvider = new EphemeralDataProtectionProvider();
-        var currentUserService = new DesignTimeCurrentUserService();
         var loggerFactory = LoggerFactory.Create(builder => { });
         var logger = loggerFactory.CreateLogger<ApplicationDbContext>();
 
@@ -29,8 +27,6 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 
         return new ApplicationDbContext(
             optionsBuilder.Options,
-            dataProtectionProvider,
-            currentUserService,
             logger);
     }
 }
