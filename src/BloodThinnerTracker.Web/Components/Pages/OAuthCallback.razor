@@ -404,7 +404,7 @@
             if (jsonDoc.RootElement.TryGetProperty(claimName, out var claimElement))
             {
                 var value = claimElement.GetString();
-                Logger.LogDebug("ExtractClaimFromJwt: Found claim '{ClaimName}' = {Value}", claimName, value);
+                Logger.LogDebug("ExtractClaimFromJwt: Found claim '{ClaimName}', value present: {HasValue}", claimName, !string.IsNullOrEmpty(value));
                 return value;
             }
 
