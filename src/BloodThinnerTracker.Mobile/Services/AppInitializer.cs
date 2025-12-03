@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
@@ -12,23 +13,20 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly System.Net.Http.HttpClient _httpClient;
         private readonly Microsoft.Extensions.Options.IOptions<FeaturesOptions> _features;
         private readonly IOAuthConfigService _oauthConfigService;
-        private readonly BloodThinnerTracker.Data.SQLite.ApplicationDbContext? _db;
-        private readonly MobileUserSeeder? _seeder;
+        private readonly IServiceProvider _serviceProvider;
 
         public AppInitializer(IAuthService authService, ILogger<AppInitializer> logger,
             System.Net.Http.HttpClient httpClient,
             Microsoft.Extensions.Options.IOptions<FeaturesOptions> features,
             IOAuthConfigService oauthConfigService,
-            BloodThinnerTracker.Data.SQLite.ApplicationDbContext? db = null,
-            MobileUserSeeder? seeder = null)
+            IServiceProvider serviceProvider)
         {
             _authService = authService;
             _logger = logger;
             _httpClient = httpClient;
             _features = features;
             _oauthConfigService = oauthConfigService;
-            _db = db;
-            _seeder = seeder;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task InitializeAsync(TimeSpan timeout)
@@ -36,31 +34,9 @@ namespace BloodThinnerTracker.Mobile.Services
             try
             {
                 // Ensure local SQLite database exists and seed a local user for mobile writes.
-                try
-                {
-                    if (_db != null)
-                    {
-                        _logger.LogDebug("AppInitializer: applying EF Core migrations to local SQLite database");
-                        await _db.Database.MigrateAsync();
-                        _logger.LogDebug("AppInitializer: local SQLite database migrations applied");
-                    }
+                // Use a scope to resolve scoped services (DbContext, MobileUserSeeder)
+                await EnsureDatabaseAsync();
 
-                    if (_seeder != null)
-                    {
-                        try
-                        {
-                            _seeder.EnsureSeeded();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "AppInitializer: MobileUserSeeder failed to seed local user");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "AppInitializer: failed to ensure/create local database");
-                }
 
                 _logger.LogDebug("AppInitializer: starting initialization with timeout {Timeout}ms", timeout.TotalMilliseconds);
 
@@ -158,6 +134,42 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "AppInitializer: exception while fetching remote config");
+            }
+        }
+
+        /// <summary>
+        /// Verifies the local SQLite database is accessible.
+        /// Note: Migrations are now applied synchronously in MauiProgram.cs during startup.
+        /// This method only logs verification status.
+        /// </summary>
+        private async Task EnsureDatabaseAsync()
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var db = scope.ServiceProvider.GetService<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>();
+
+                if (db != null)
+                {
+                    // Just verify the database is accessible - migrations already applied in MauiProgram
+                    var canConnect = await db.Database.CanConnectAsync();
+                    if (canConnect)
+                    {
+                        _logger.LogDebug("AppInitializer: Local SQLite database is accessible");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("AppInitializer: Local SQLite database connection check failed");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("AppInitializer: ApplicationDbContext not registered");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AppInitializer: failed to verify local database");
             }
         }
     }

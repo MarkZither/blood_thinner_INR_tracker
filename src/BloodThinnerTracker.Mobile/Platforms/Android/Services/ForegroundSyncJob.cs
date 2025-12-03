@@ -56,7 +56,20 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                         {
                             logger?.LogInformation("ForegroundSyncJob #{JobId} starting worker sync", jobId);
                             var sw = Stopwatch.StartNew();
-                            await worker.SyncOnceAsync(cts.Token).ConfigureAwait(false);
+                            try
+                            {
+                                await worker.SyncOnceAsync(cts.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                logger?.LogInformation("ForegroundSyncJob #{JobId} cancelled during sync", jobId);
+                                return;
+                            }
+                            catch (ApiAuthenticationException aex)
+                            {
+                                logger?.LogInformation(aex, "ForegroundSyncJob #{JobId}: authentication required during sync", jobId);
+                            }
+
                             sw.Stop();
                             logger?.LogInformation("ForegroundSyncJob #{JobId} completed worker sync in {ElapsedMs}ms", jobId, sw.ElapsedMilliseconds);
                         }
@@ -65,24 +78,59 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                             logger?.LogWarning("ForegroundSyncJob #{JobId} no ICacheSyncWorker registered", jobId);
                         }
                     }
-                    catch (OperationCanceledException)
-                    {
-                        logger?.LogInformation("ForegroundSyncJob #{JobId} cancelled during sync", jobId);
-                        return;
-                    }
                     catch (Exception ex)
                     {
                         if (logger != null) logger.LogWarning(ex, "ForegroundSyncJob #{JobId} failed to run sync", jobId);
                         else Log.Warn("ForegroundSyncJob", $"Sync failed: {ex}");
                     }
 
-                    // Compute outstanding actions using repository
+                    // Compute outstanding actions using repository. If the local DB is empty (worker didn't
+                    // persist anything), attempt to fetch from the API and persist so badge counts
+                    // reflect canonical DB state.
                     try
                     {
                         var repo = scope.ServiceProvider.GetService(typeof(BloodThinnerTracker.Mobile.Services.IInrRepository)) as BloodThinnerTracker.Mobile.Services.IInrRepository;
                         if (repo != null)
                         {
                             var items = await repo.GetRecentAsync(50).ConfigureAwait(false);
+                            if (items == null || !items.Any())
+                            {
+                                try
+                                {
+                                    var api = scope.ServiceProvider.GetService(typeof(BloodThinnerTracker.Mobile.Services.IInrService)) as BloodThinnerTracker.Mobile.Services.IInrService;
+                                    if (api != null)
+                                    {
+                                        var fetched = await api.GetRecentAsync(50).ConfigureAwait(false);
+                                        if (fetched != null && fetched.Any())
+                                        {
+                                            try
+                                            {
+                                                await repo.SaveRangeAsync(fetched).ConfigureAwait(false);
+                                            }
+                                            catch (ApiAuthenticationException aex)
+                                            {
+                                                logger?.LogInformation(aex, "ForegroundSyncJob: authentication required when persisting API results");
+                                            }
+                                            catch (Exception perEx)
+                                            {
+                                                logger?.LogWarning(perEx, "ForegroundSyncJob: failed to persist fetched API results");
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (ApiAuthenticationException aex)
+                                {
+                                    logger?.LogInformation(aex, "ForegroundSyncJob: authentication required when fetching API results");
+                                }
+                                catch (Exception ex)
+                                {
+                                    logger?.LogWarning(ex, "ForegroundSyncJob: failed to fetch API results for persistence");
+                                }
+
+                                // Re-read from repo after attempted persistence
+                                items = await repo.GetRecentAsync(50).ConfigureAwait(false);
+                            }
+
                             outstandingCount = items?.Count(i => !i.ReviewedByProvider) ?? 0;
                         }
                         else

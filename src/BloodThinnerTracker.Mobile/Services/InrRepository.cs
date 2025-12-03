@@ -93,16 +93,46 @@ namespace BloodThinnerTracker.Mobile.Services
                 }
             }
 
-            // Ensure ApplicationDbContext.CurrentUserId is set for mobile when available
+            // Ensure ApplicationDbContext.CurrentUserId is set for mobile when available.
+            // If no ICurrentUserService is available or it returns null, attempt to find
+            // or create a local device user so saves do not fail due to missing user FK.
             try
             {
+                int? currentUserId = null;
+
                 if (_currentUserService != null)
                 {
-                    var currentUserId = _currentUserService.GetCurrentUserId();
-                    if (currentUserId.HasValue)
+                    currentUserId = _currentUserService.GetCurrentUserId();
+                }
+
+                if (!currentUserId.HasValue)
+                {
+                    // Best-effort: try to find a local seeded user, otherwise create one.
+                    var localUser = await _db.Users.FirstOrDefaultAsync(u => u.AuthProvider == "Local" && u.Email == "mobile@local");
+                    if (localUser == null)
                     {
-                        _db.CurrentUserId = currentUserId.Value;
+                        localUser = new User
+                        {
+                            PublicId = System.Guid.NewGuid(),
+                            Email = "mobile@local",
+                            Name = "Local Device User",
+                            AuthProvider = "Local",
+                            CreatedAt = System.DateTime.UtcNow,
+                            UpdatedAt = System.DateTime.UtcNow,
+                            IsActive = true
+                        };
+
+                        _db.Users.Add(localUser);
+                        // Persist the local user so we have an Id to attach to related entities
+                        await _db.SaveChangesAsync();
                     }
+
+                    currentUserId = localUser.Id;
+                }
+
+                if (currentUserId.HasValue)
+                {
+                    _db.CurrentUserId = currentUserId.Value;
                 }
 
                 await _db.SaveChangesAsync();

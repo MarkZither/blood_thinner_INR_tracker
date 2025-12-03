@@ -69,6 +69,11 @@ namespace BloodThinnerTracker.Mobile.Services
                     _logger.LogInformation("CacheSyncService: persisted {Count} items into local DB", items is System.Collections.ICollection c ? c.Count : -1);
                 }
             }
+            catch (ApiAuthenticationException aex)
+            {
+                // Authentication failures are expected when tokens expire; log succinctly and stop syncs.
+                _logger.LogInformation(aex, "CacheSyncService: authentication required during sync - will stop until user re-authenticates");
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "CacheSyncService: sync once error");

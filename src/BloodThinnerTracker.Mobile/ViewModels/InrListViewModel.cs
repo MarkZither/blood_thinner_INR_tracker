@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using BloodThinnerTracker.Mobile.Services;
+using System.Net;
 using Microsoft.Extensions.Logging;
 
 namespace BloodThinnerTracker.Mobile.ViewModels
@@ -115,8 +116,61 @@ namespace BloodThinnerTracker.Mobile.ViewModels
                 // If no local items, fall back to remote service
                 if (logsList.Count == 0)
                 {
-                    var logs = await _inrService.GetRecentAsync(10);
-                    logsList = logs?.ToList() ?? new List<InrListItemVm>();
+                    try
+                    {
+                        var logs = (await _inrService.GetRecentAsync(10))?.ToList() ?? new List<InrListItemVm>();
+
+                        // If we have a local repository, persist the API results into the canonical
+                        // local DB and then read back from the DB so the UI always shows the
+                        // canonical, persisted INRTests (avoids inconsistencies between in-memory
+                        // objects and DB state and ensures downstream code relying on DB works).
+                        if (logs.Count > 0 && _inrRepository != null)
+                        {
+                            try
+                            {
+                                await _inrRepository.SaveRangeAsync(logs);
+
+                                // Read back the most recent items from the DB to present canonical data
+                                var persisted = await _inrRepository.GetRecentAsync(10);
+                                logsList = persisted?.ToList() ?? new List<InrListItemVm>();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger?.LogWarning(ex, "Failed to persist API INR results to local DB; falling back to in-memory results");
+                                // Fall back to the API items if persistence fails
+                                logsList = logs;
+                            }
+                        }
+                        else
+                        {
+                            // No local repository available or no items returned; show API results in-memory
+                            logsList = logs;
+                        }
+                    }
+                    catch (ApiAuthenticationException ex)
+                    {
+                        // Surface a friendly UI error and navigate to login. When there are no
+                        // local records and API returns 401, refreshing will always fail until
+                        // the user re-authenticates, so proactively send them to the login page.
+                        _logger?.LogInformation(ex, "Authentication required when fetching INR logs (navigating to login)");
+
+                        ErrorMessage = "Session expired — please sign in again.";
+                        ShowError = true;
+
+                        try
+                        {
+                            if (Shell.Current != null)
+                            {
+                                await Shell.Current.GoToAsync("///login");
+                            }
+                        }
+                        catch (Exception navEx)
+                        {
+                            _logger?.LogWarning(navEx, "Failed to navigate to login after authentication failure");
+                        }
+
+                        return;
+                    }
                 }
 
                 if (logsList.Count > 0)

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BloodThinnerTracker.Mobile.ViewModels;
 using BloodThinnerTracker.Shared.Models;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace BloodThinnerTracker.Mobile.Services
 {
@@ -36,11 +37,22 @@ namespace BloodThinnerTracker.Mobile.Services
                 {
                     var body = await SafeReadResponseBodyAsync(response);
                     _logger.LogWarning("INR API returned {StatusCode} for {Uri}. Body: {Body}", (int)response.StatusCode, uri, Truncate(body, 2000));
+
+                    // If the API indicates the user is unauthorized, surface an authentication-specific
+                    // exception so higher layers (UI) can navigate back to login and show feedback.
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        throw new ApiAuthenticationException(HttpStatusCode.Unauthorized, body);
+                    }
+
                     return Enumerable.Empty<InrListItemVm>();
                 }
 
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<INRTestResponse>>();
-                if (result == null) return Enumerable.Empty<InrListItemVm>();
+                if (result == null)
+                {
+                    return Enumerable.Empty<InrListItemVm>();
+                }
 
                 return result.Select(r => new InrListItemVm
                 {

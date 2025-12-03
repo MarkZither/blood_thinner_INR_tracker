@@ -318,10 +318,86 @@ public static class MauiProgram
             builder.Services.AddSingleton<Services.CacheSyncService>();
             builder.Services.AddSingleton<Services.ICacheSyncWorker>(sp => sp.GetRequiredService<Services.CacheSyncService>());
             builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.CacheSyncService>());
+
+            // Development-only in-process worker: register DevSyncHostedService when debugging locally
+            // or when the feature flag is explicitly enabled. This runs the same sync logic in-process
+            // so you can iterate without packaging the app.
+            var enableInProc = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+            if (System.Diagnostics.Debugger.IsAttached || enableInProc)
+            {
+                // Register the concrete dev worker as a singleton and map IHostedService
+                // to the same instance so the host (if it starts hosted services) will
+                // use the same instance and tests can resolve the concrete type.
+                builder.Services.AddSingleton<Services.DevSyncHostedService>();
+                builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.DevSyncHostedService>());
+            }
         }
         catch { }
 
         var app = builder.Build();
+
+        // Diagnostic: log which hosted services are registered and whether in-proc background
+        // was requested. This helps debug cases where AddHostedService appears to be ignored.
+        try
+        {
+            var startupLogger = app.Services.GetService<ILogger<App>>();
+            var dbgAttached = System.Diagnostics.Debugger.IsAttached;
+            var enableInProcFlag = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var hostedSvcTypes = app.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>()
+                .Select(s => s.GetType().FullName)
+                .ToList();
+
+            startupLogger?.LogInformation("Startup diagnostic: Debugger.IsAttached={Attached} EnableInProcBackground={EnableInProc} RegisteredHostedServices={Services}", dbgAttached, enableInProcFlag, string.Join(",", hostedSvcTypes));
+
+            // If we're in development in-proc mode, ensure the dev hosted service is started.
+            if (dbgAttached || enableInProcFlag)
+            {
+                try
+                {
+                    var dev = app.Services.GetService<Services.DevSyncHostedService>();
+                    if (dev != null)
+                    {
+                        // Start in background to avoid blocking startup; StartAsync should be idempotent
+                        _ = Task.Run(() => dev.StartAsync(System.Threading.CancellationToken.None));
+                        startupLogger?.LogInformation("Startup: Triggered DevSyncHostedService.StartAsync()");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    startupLogger?.LogWarning(ex, "Failed to start DevSyncHostedService proactively");
+                }
+            }
+        }
+        catch { }
+
+        // Ensure SQLite database is created and migrations applied BEFORE any views load.
+        // This must happen synchronously during startup to prevent "no such table" errors.
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetService<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>();
+            if (db != null)
+            {
+                var startupLogger = scope.ServiceProvider.GetService<ILogger<App>>();
+                startupLogger?.LogInformation("Startup: Applying EF Core migrations to local SQLite database");
+
+                // Use synchronous migration to ensure DB is ready before app continues
+                db.Database.Migrate();
+
+                startupLogger?.LogInformation("Startup: Local SQLite database migrations applied successfully");
+
+                // Also seed the mobile user
+                var seeder = scope.ServiceProvider.GetService<Services.MobileUserSeeder>();
+                seeder?.EnsureSeeded();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't crash - app can still function with API fallback
+            var fallbackLogger = app.Services.GetService<ILogger<App>>();
+            fallbackLogger?.LogError(ex, "Startup: Failed to apply database migrations");
+        }
 
 #if ANDROID
         // Initialize the Android service provider bridge so OS-created components
@@ -332,6 +408,26 @@ public static class MauiProgram
         }
         catch { }
 #endif
+
+#if WINDOWS
+        // Initialize the Windows service provider bridge so OS-created background tasks
+        // can obtain scoped services safely, and register the periodic background task.
+        try
+        {
+            BloodThinnerTracker.Mobile.Platforms.Windows.WindowsServiceProvider.Initialize(app.Services);
+
+            // Register background task for periodic INR data sync (idempotent - won't re-register if already done)
+            var logger = app.Services.GetService<ILogger<App>>();
+            BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingHelper.RegisterBackgroundTask(
+                intervalMinutes: 15,
+                force: false,
+                store: new BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingFlagStore(),
+                logger: logger);
+        }
+        catch { }
+#endif
+
+
 
         return app;
     }
