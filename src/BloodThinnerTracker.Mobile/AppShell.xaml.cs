@@ -16,7 +16,10 @@ public partial class AppShell : Shell
         if (Application.Current != null)
         {
             try { Application.Current.UserAppTheme = theme; }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AppShell: Failed to apply theme: {ex.Message}");
+            }
         }
     }
 
@@ -33,7 +36,10 @@ public partial class AppShell : Shell
             FlyoutIsPresented = false;
             await Shell.Current.GoToAsync("///flyouthome/inrlist");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to flyouthome failed: {ex.Message}");
+        }
     }
 
     private async void OnFlyoutAboutClicked(object? sender, EventArgs e)
@@ -43,7 +49,10 @@ public partial class AppShell : Shell
             FlyoutIsPresented = false;
             await Shell.Current.GoToAsync("///flyoutabout/about");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to flyoutabout failed: {ex.Message}");
+        }
     }
 
     private async void OnFlyoutLoginClicked(object? sender, EventArgs e)
@@ -53,6 +62,9 @@ public partial class AppShell : Shell
             FlyoutIsPresented = false;
             await Shell.Current.GoToAsync("///login");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to login failed: {ex.Message}");
+        }
     }
 }
