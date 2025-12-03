@@ -32,12 +32,9 @@ public class DbContextCurrentUserMiddleware
 
             // Resolve any DbContext instances in this scope and set CurrentUserId if they are our ApplicationDbContextBase
             var dbContexts = context.RequestServices.GetServices<DbContext>();
-            foreach (var db in dbContexts)
+            foreach (var baseCtx in dbContexts.OfType<ApplicationDbContextBase>())
             {
-                if (db is ApplicationDbContextBase baseCtx)
-                {
-                    baseCtx.CurrentUserId = userId;
-                }
+                baseCtx.CurrentUserId = userId;
             }
         }
         catch (Exception ex)
