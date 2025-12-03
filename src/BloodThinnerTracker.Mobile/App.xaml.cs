@@ -39,7 +39,7 @@ namespace BloodThinnerTracker.Mobile
             catch (Exception ex)
             {
                 // Best-effort telemetry - log but don't fail startup
-                var logger = _services.GetService<ILogger<App>>();
+                var logger = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
                 logger?.LogDebug(ex, "Cold-start telemetry tracking failed");
             }
 
