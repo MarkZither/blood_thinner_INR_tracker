@@ -29,9 +29,9 @@ namespace BloodThinnerTracker.Mobile.Services
             var uri = $"api/v1/inr/tests?take={count}&skip=0";
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
 
-                var response = await _httpClient.SendAsync(request);
+                using var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
