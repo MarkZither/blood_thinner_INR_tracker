@@ -135,9 +135,10 @@
             // Log claim types present (without values) for debugging - avoid PII exposure
             if (_authenticatedPrincipal != null)
             {
-                var claimTypes = _authenticatedPrincipal.Claims.Select(c => c.Type).Distinct().ToList();
+                var claims = _authenticatedPrincipal.Claims.ToList();
+                var claimTypes = claims.Select(c => c.Type).Distinct().ToList();
                 Logger.LogInformation("OAuth complete: Principal has {ClaimCount} claims, types present: {ClaimTypes}",
-                    _authenticatedPrincipal.Claims.Count(), string.Join(", ", claimTypes));
+                    claims.Count, string.Join(", ", claimTypes));
             }
 
             // Attempt to capture returnUrl that may have been stored in AuthenticationProperties.Items during Challenge
