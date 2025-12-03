@@ -196,8 +196,8 @@
                     userIdentifier = ExtractClaimFromJwt(_idToken, "oid");
                     var subFromToken = ExtractClaimFromJwt(_idToken, "sub");
 
-                    Logger.LogInformation("OAuth complete: id_token claims - oid: {OID}, sub: {SUB}",
-                        userIdentifier ?? "NOT FOUND", subFromToken ?? "NOT FOUND");
+                    Logger.LogInformation("OAuth complete: id_token claims present - oid: {HasOid}, sub: {HasSub}",
+                        !string.IsNullOrEmpty(userIdentifier), !string.IsNullOrEmpty(subFromToken));
 
                     // Fallback to sub if oid is missing
                     if (string.IsNullOrEmpty(userIdentifier))
@@ -217,11 +217,11 @@
                     userIdentifier = _authenticatedPrincipal.FindFirst("oid")?.Value
                         ?? _authenticatedPrincipal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
                         ?? _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                    Logger.LogWarning("OAuth complete: Using fallback from principal: {UserIdentifier}", userIdentifier ?? "N/A");
+                    Logger.LogWarning("OAuth complete: Using fallback from principal - has identifier: {HasUserIdentifier}", !string.IsNullOrEmpty(userIdentifier));
                 }
 
-                Logger.LogInformation("OAuth complete: Extracted claims - Email: {Email}, Name: {Name}, UserIdentifier: {UserIdentifier}",
-                    email ?? "N/A", name ?? "N/A", userIdentifier ?? "N/A");
+                Logger.LogInformation("OAuth complete: Extracted claims - HasEmail: {HasEmail}, HasName: {HasName}, HasUserIdentifier: {HasUserIdentifier}",
+                    !string.IsNullOrEmpty(email), !string.IsNullOrEmpty(name), !string.IsNullOrEmpty(userIdentifier));
 
                 if (string.IsNullOrEmpty(email))
                 {
