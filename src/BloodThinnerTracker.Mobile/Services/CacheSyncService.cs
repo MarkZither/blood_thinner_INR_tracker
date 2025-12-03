@@ -12,7 +12,7 @@ namespace BloodThinnerTracker.Mobile.Services
     ///
     /// Runs on a timer and performs a best-effort sync; failures are logged but do not crash the app.
     /// </summary>
-    public class CacheSyncService : IHostedService, IDisposable
+    public class CacheSyncService : IHostedService, IDisposable, ICacheSyncWorker
     {
         private readonly IInrService _inrService;
         private readonly IInrRepository _inrRepository;
@@ -54,7 +54,7 @@ namespace BloodThinnerTracker.Mobile.Services
         /// <summary>
         /// Perform a single sync: fetch recent INR data and persist to local DB.
         /// </summary>
-        public async Task SyncOnceAsync()
+        public async Task SyncOnceAsync(System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
@@ -63,6 +63,8 @@ namespace BloodThinnerTracker.Mobile.Services
                 if (items != null)
                 {
                     // Persist into the canonical local DB (DB-first approach)
+                    // Honor cancellation cooperatively when saving large batches.
+                    if (cancellationToken.IsCancellationRequested) return;
                     await _inrRepository.SaveRangeAsync(items);
                     _logger.LogInformation("CacheSyncService: persisted {Count} items into local DB", items is System.Collections.ICollection c ? c.Count : -1);
                 }

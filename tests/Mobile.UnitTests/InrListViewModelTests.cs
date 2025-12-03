@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
+using System.Net.Http;
 using System.Threading.Tasks;
 using BloodThinnerTracker.Mobile.Services;
 using BloodThinnerTracker.Mobile.ViewModels;
-using Moq;
 using Xunit;
 
 namespace BloodThinnerTracker.Mobile.UnitTests;
@@ -16,12 +15,12 @@ namespace BloodThinnerTracker.Mobile.UnitTests;
 public class InrListViewModelTests
 {
     private readonly MockInrService _mockInrService = new();
-    private readonly MockCacheService _mockCacheService = new();
+    private readonly MockInrRepository _mockInrRepository = new();
     private readonly InrListViewModel _viewModel;
 
     public InrListViewModelTests()
     {
-        _viewModel = new InrListViewModel(_mockInrService, _mockCacheService);
+        _viewModel = new InrListViewModel(_mockInrService, _mockInrRepository);
     }
 
     [Fact]
@@ -46,23 +45,21 @@ public class InrListViewModelTests
     }
 
     [Fact]
-    public async Task LoadInrLogs_CachesData_AfterFetch()
+    public async Task LoadInrLogs_UsesLocalRepository_WhenAvailable()
     {
-        // Arrange
-        var testData = new List<InrListItemVm>
+        // Arrange - no data in service, but data in local repository
+        _mockInrService.SetTestData(new List<InrListItemVm>());
+        await _mockInrRepository.SaveRangeAsync(new List<InrListItemVm>
         {
             new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now, InrValue = 2.5m }
-        };
-        _mockInrService.SetTestData(testData);
+        });
 
         // Act
         await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
 
-        // Assert
-        Assert.NotNull(_mockCacheService.LastCachedData);
-        var cached = JsonSerializer.Deserialize<List<InrListItemVm>>(_mockCacheService.LastCachedData);
-        Assert.NotNull(cached);
-        Assert.Single(cached);
+        // Assert - should use local repository data
+        Assert.True(_viewModel.ShowList);
+        Assert.Single(_viewModel.InrLogs);
     }
 
     [Fact]
@@ -96,42 +93,43 @@ public class InrListViewModelTests
     }
 
     [Fact]
-    public async Task LoadInrLogs_FallsBackToCache_WhenNetworkFails()
+    public async Task LoadInrLogs_FallsBackToLocalData_WhenNetworkFails()
     {
-        // Arrange
-        var cachedData = new List<InrListItemVm>
+        // Arrange - data in local repository, network fails
+        await _mockInrRepository.SaveRangeAsync(new List<InrListItemVm>
         {
             new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now.AddDays(-5), InrValue = 2.3m }
-        };
-        _mockCacheService.SetCachedData(JsonSerializer.Serialize(cachedData), ageHours: 2);
+        });
         _mockInrService.ThrowException = true;
 
         // Act
         await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
 
-        // Assert
+        // Assert - should use local data
         Assert.True(_viewModel.ShowList);
         Assert.Single(_viewModel.InrLogs);
-        Assert.True(_viewModel.IsOfflineMode);
-        Assert.True(_viewModel.ShowStaleWarning);
     }
 
     [Fact]
-    public async Task LoadInrLogs_ShowsStaleWarning_WhenCacheAgeExceeds1Hour()
+    public async Task LoadInrLogs_PrefersLocalData_OverRemote()
     {
-        // Arrange
-        var cachedData = new List<InrListItemVm>
+        // Arrange - data in both local and remote
+        await _mockInrRepository.SaveRangeAsync(new List<InrListItemVm>
         {
-            new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now, InrValue = 2.5m }
-        };
-        _mockCacheService.SetCachedData(JsonSerializer.Serialize(cachedData), ageHours: 3);
+            new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now, InrValue = 2.5m, Notes = "Local" }
+        });
+        _mockInrService.SetTestData(new List<InrListItemVm>
+        {
+            new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now, InrValue = 3.0m, Notes = "Remote" }
+        });
 
         // Act
         await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
 
-        // Assert
-        Assert.True(_viewModel.ShowStaleWarning);
-        Assert.Contains("3.0", _viewModel.StaleWarningText);
+        // Assert - should use local data (offline-first)
+        Assert.True(_viewModel.ShowList);
+        Assert.Single(_viewModel.InrLogs);
+        Assert.Equal(2.5m, _viewModel.InrLogs[0].InrValue);
     }
 
     [Fact]
@@ -194,24 +192,14 @@ public class InrListViewModelTests
     }
 
     [Fact]
-    public async Task LoadInrLogs_ClearsStaleWarnings_OnFreshLoad()
+    public async Task LoadInrLogs_ShowsData_OnSuccessfulLoad()
     {
-        // Arrange - first load with old cache
-        var cachedData = new List<InrListItemVm>
-        {
-            new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now.AddDays(-5), InrValue = 2.3m }
-        };
-        _mockCacheService.SetCachedData(JsonSerializer.Serialize(cachedData), ageHours: 5);
-        await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
-        Assert.True(_viewModel.ShowStaleWarning);
-
-        // Now have fresh data available
+        // Arrange - fresh data available from service
         var freshData = new List<InrListItemVm>
         {
             new() { PublicId = Guid.NewGuid(), TestDate = DateTime.Now, InrValue = 2.5m }
         };
         _mockInrService.SetTestData(freshData);
-        _mockCacheService.ClearCache();
 
         // Act
         await _viewModel.LoadInrLogsCommand.ExecuteAsync(null);
@@ -247,53 +235,21 @@ public class InrListViewModelTests
     }
 
     /// <summary>
-    /// Mock cache service for testing.
+    /// Mock INR repository for testing.
     /// </summary>
-    private class MockCacheService : ICacheService
+    private class MockInrRepository : IInrRepository
     {
-        private string? _cachedData;
-        private DateTime _cachedAt = DateTime.MinValue;
-        public string? LastCachedData { get; private set; }
+        private readonly List<InrListItemVm> _data = new();
 
-        public void SetCachedData(string data, double ageHours = 0)
+        public Task<IEnumerable<InrListItemVm>> GetRecentAsync(int count = 10)
         {
-            _cachedData = data;
-            _cachedAt = DateTime.UtcNow.AddHours(-ageHours);
+            return Task.FromResult<IEnumerable<InrListItemVm>>(_data.Take(count).ToList());
         }
 
-        public void ClearCache()
+        public Task SaveRangeAsync(IEnumerable<InrListItemVm> items)
         {
-            _cachedData = null;
-            _cachedAt = DateTime.MinValue;
-        }
-
-        public Task<string?> GetAsync(string key) => Task.FromResult(_cachedData);
-
-        public Task SetAsync(string key, string jsonPayload, TimeSpan? expiresIn = null)
-        {
-            LastCachedData = jsonPayload;
-            _cachedData = jsonPayload;
-            _cachedAt = DateTime.UtcNow;
+            _data.AddRange(items);
             return Task.CompletedTask;
         }
-
-        public Task<bool> HasValidCacheAsync(string key) => Task.FromResult(_cachedData != null);
-
-        public Task<long?> GetCacheAgeMillisecondsAsync(string key)
-        {
-            if (_cachedAt == DateTime.MinValue)
-                return Task.FromResult<long?>(null);
-
-            var age = DateTime.UtcNow - _cachedAt;
-            return Task.FromResult<long?>((long)age.TotalMilliseconds);
-        }
-
-        public Task ClearAsync(string key)
-        {
-            _cachedData = null;
-            return Task.CompletedTask;
-        }
-
-        public Task<DateTime?> GetExpirationTimeAsync(string key) => Task.FromResult<DateTime?>(DateTime.UtcNow.AddDays(7));
     }
 }

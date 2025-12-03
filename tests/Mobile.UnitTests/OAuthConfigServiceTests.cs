@@ -9,6 +9,16 @@ namespace Mobile.UnitTests
 {
     public class OAuthConfigServiceTests
     {
+        private class StubCacheService : ICacheService
+        {
+            public Task SetAsync(string key, string jsonPayload, TimeSpan? expiresIn = null) => Task.CompletedTask;
+            public Task<string?> GetAsync(string key) => Task.FromResult<string?>(null);
+            public Task<bool> HasValidCacheAsync(string key) => Task.FromResult(false);
+            public Task<long?> GetCacheAgeMillisecondsAsync(string key) => Task.FromResult<long?>(null);
+            public Task ClearAsync(string key) => Task.CompletedTask;
+            public Task<DateTime?> GetExpirationTimeAsync(string key) => Task.FromResult<DateTime?>(null);
+        }
+
         [Fact]
         public void OAuthConfigService_Constructor_Succeeds()
         {
@@ -16,9 +26,10 @@ namespace Mobile.UnitTests
             var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost") };
             var mockLogger = new MockLogger<OAuthConfigService>();
             var features = Microsoft.Extensions.Options.Options.Create(new FeaturesOptions { ApiRootUrl = "http://localhost" });
+            var cacheService = new StubCacheService();
 
             // Act
-            var service = new OAuthConfigService(features, httpClient, mockLogger);
+            var service = new OAuthConfigService(features, httpClient, mockLogger, cacheService);
 
             // Assert
             Assert.NotNull(service);
@@ -31,7 +42,8 @@ namespace Mobile.UnitTests
             var httpClient = new HttpClient();
             var mockLogger = new MockLogger<OAuthConfigService>();
             var features = Microsoft.Extensions.Options.Options.Create(new FeaturesOptions { ApiRootUrl = "http://localhost" });
-            var service = new OAuthConfigService(features, httpClient, mockLogger);
+            var cacheService = new StubCacheService();
+            var service = new OAuthConfigService(features, httpClient, mockLogger, cacheService);
 
             // Act
             var result = await service.GetConfigAsync();

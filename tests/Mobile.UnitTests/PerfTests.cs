@@ -84,8 +84,8 @@ namespace Mobile.UnitTests
             // Arrange
             var telemetry = new FakeTelemetry();
             var inrService = new FastInrService();
-            var cache = new SimpleCache();
-            var vm = new InrListViewModel(inrService, cache, telemetry);
+            IInrRepository? repo = null; // Not needed for this performance test
+            var vm = new InrListViewModel(inrService, repo, telemetry);
 
             // Act
             await vm.LoadInrLogs();

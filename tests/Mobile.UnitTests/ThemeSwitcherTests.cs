@@ -5,6 +5,11 @@ using BloodThinnerTracker.Mobile.Services;
 
 namespace Mobile.UnitTests
 {
+    /// <summary>
+    /// Theme switcher tests require MAUI platform services (Preferences).
+    /// These tests are skipped in CI but can be run on device/emulator.
+    /// </summary>
+    [Trait("Category", "Integration")]
     public class ThemeSwitcherTests
     {
         public ThemeSwitcherTests()
@@ -16,13 +21,14 @@ namespace Mobile.UnitTests
             }
         }
 
-        [Fact]
+        [Fact(Skip = "Requires MAUI platform services (Preferences) - run on device/emulator")]
         public void ThemeService_PersistsAndAppliesTheme()
         {
             var svc = new ThemeService();
 
             svc.SetTheme(AppTheme.Light);
             Assert.Equal(AppTheme.Light, svc.GetCurrentTheme());
+            Assert.NotNull(Application.Current);
             Assert.Equal(AppTheme.Light, Application.Current.UserAppTheme);
 
             svc.SetTheme(AppTheme.Dark);

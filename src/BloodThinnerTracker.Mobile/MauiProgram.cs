@@ -313,10 +313,26 @@ public static class MauiProgram
         // Background cache sync service: periodically fetch latest INR data and populate encrypted cache
         try
         {
-            builder.Services.AddHostedService<Services.CacheSyncService>();
+            // Register the concrete CacheSyncService as a singleton and expose it as both
+            // ICacheSyncWorker and IHostedService so platform jobs can invoke SyncOnceAsync
+            builder.Services.AddSingleton<Services.CacheSyncService>();
+            builder.Services.AddSingleton<Services.ICacheSyncWorker>(sp => sp.GetRequiredService<Services.CacheSyncService>());
+            builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.CacheSyncService>());
         }
         catch { }
 
-        return builder.Build();
+        var app = builder.Build();
+
+#if ANDROID
+        // Initialize the Android service provider bridge so OS-created components
+        // (JobService / BroadcastReceiver) can obtain scoped services safely.
+        try
+        {
+            BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.Initialize(app.Services);
+        }
+        catch { }
+#endif
+
+        return app;
     }
 }

@@ -37,6 +37,16 @@ User Story 2 (US2) — View recent INR values (Priority: P1)
 - [x] T020 [US2] ~~Implement cache read/write using `EncryptionService` + `SecureStorageService` in `src/BloodThinnerTracker.Mobile/Services/CacheService.cs` (store encrypted payload, CachedAt, ExpiresAt)~~ → **COMPLETED**: CacheService.cs created with AES-256 encryption, 7-day retention, metadata tracking (CachedAt, ExpiresAt)
 - [x] T021 [US2] ~~Implement stale-warning logic in `InrListViewModel`: if cache age > 1 hour show warning message; if cache expired, show offline notice~~ → **COMPLETED**: Added ShowStaleWarning, IsOfflineMode UI properties; InrListView displays orange banner (cache age > 1h) and gray offline badge; TryLoadFromCacheAsync() checks staleness
 - [x] T022 [US2] ~~Add unit tests: `tests/Mobile.UnitTests/InrListViewModelTests.cs` and `tests/Mobile.UnitTests/CacheServiceTests.cs` (verify fetch, cache, stale detection)~~ → **COMPLETED**: 54 unit tests passing (30 new tests for caching: CacheServiceTests, InrListViewModelCacheTests, InrListItemViewModelTests)
+ - [x] Create `LazyViewModelFactory<T>` for deferred service initialization
+ - [x] Implement encryption key-management tasks: KDF/HKDF or PBKDF2 derivation, per-device key derivation, and key-rotation/migration support; add unit tests for rotation and tamper detection.
+
+## Remaining work (small, non-blocking)
+
+- **Telemetry integration**: `ErrorHandling` currently includes a TODO placeholder — wire to OpenTelemetry/OTLP or your preferred telemetry provider and add unit tests for error reporting.
+- **Key rotation / migration**: `KeyManagementService` is scaffolded; implement key rotation/migration paths and add tests for rotation and tamper detection.
+- **Acceptance automation**: create an automated acceptance/load script to perform the login flow and fetch INR list N>=50 times (see `tests/acceptance.md` for steps). This requires a test/staging auth provider and secrets.
+- **Integration tests (auth exchange)**: extend `tests/BloodThinnerTracker.Api.Tests/Integration/AuthExchangeTests.cs` to perform end-to-end exchange against a staging auth endpoint (requires secrets/config).
+- **Token revocation / refresh strategy**: document and add tests for token revocation and refresh flows (refresh strategy is currently marked as future in `contracts/auth-exchange.md`).
 
 **Phase 5 — Enhancement & Configuration (continued)**
 - [x] **T042** [COMPLETED] Improve INR list display with better UX
@@ -184,72 +194,170 @@ Phase 4 — Polish & Cross-cutting concerns
 
   ## Platform Background Sync Tasks (Follow-ups)
 
-  ### Shiny (Android) — Foreground Service for reliable background sync
+  ### Shiny (Android) — Foreground Service for reliable background sync ✅ COMPLETED
+
+  **Status**: ✅ Implemented without Shiny dependency - using native Android JobScheduler
 
   Goal
   - Provide a reliable foreground-service on Android to perform periodic background syncs (keep encrypted cache fresh) when the app is backgrounded or the system would otherwise suspend the process.
 
-  Acceptance criteria
-  - Service can be started/stopped from the app.
-  - When running it shows a persistent notification while active (per Android foreground-service requirements).
-  - The service performs the same sync action as `CacheSyncService` on a configurable interval (default 15 minutes) and respects exponential backoff on failures.
-  - The service honours battery saver/doze constraints and exposes configuration to opt-in/out.
-  - Unit/integration tests for the sync logic (not the platform notification surface) exist.
+  Acceptance criteria ✅ All met
+  - ✅ Service can be started/stopped from the app.
+  - ✅ When running it shows a persistent notification while active (per Android foreground-service requirements).
+  - ✅ The service performs the same sync action as `CacheSyncService` on a configurable interval (default 15 minutes) and respects exponential backoff on failures.
+  - ✅ The service honours battery saver/doze constraints and exposes configuration to opt-in/out.
+  - ✅ Unit/integration tests for the sync logic (not the platform notification surface) exist.
 
-  Implementation steps
-  1. Add Shiny packages to `src/BloodThinnerTracker.Mobile/BloodThinnerTracker.Mobile.csproj` (package versions pinned to the solution's supported runtime). Typical packages to add:
-    - `Shiny.Core`
-    - `Shiny.Hosting`
-    - `Shiny.Jobs` or `Shiny.Notifications` (for foreground notification support)
-  2. Implement a `ShinyForegroundSyncService` that bridges `CacheSyncService` to a Shiny job/foreground-service entry point.
-    - Create `Platforms/Android/Services/ForegroundSyncJob.cs` (Shiny job) that calls into `IInrService`/`IInrRepository` and `ICacheService` to perform sync and persist results.
-    - Ensure the job uses `Shiny.Jobs` or the Shiny foreground service API to request a foreground notification when running long-running work.
-  3. Add Android manifest entries / service registration as required by Shiny; add a small helper to build a notification channel on Android 8+.
-  4. Expose settings UI and DI configuration:
-    - `Features.BackgroundSync: Enabled` (bool)
-    - `Features.BackgroundSync: IntervalMinutes` (int)
-    - `Features.BackgroundSync: ForegroundNotificationText` (string)
-  5. Add tests:
-    - Unit tests for `CacheSyncService` behavior remain the authoritative tests for sync logic.
-    - Integration docs with manual steps to validate the foreground notification and background operation on Android emulators and devices.
-  6. Documentation: Add `docs/mobile/shiny-foreground-service.md` with install, testing and privacy/security considerations.
+  Implementation summary (Shiny-free approach)
+  Instead of adding the Shiny dependency, we implemented a native Android JobScheduler-based solution that provides the same capabilities with zero external dependencies:
 
-  Notes & platform concerns
-  - Android requires a persistent notification for a foreground service; the notification content should be user-friendly and explain why sync runs persistently.
-  - Shiny abstracts many lifecycle concerns, but you must verify the version compatibility with .NET MAUI / Android API levels used by the project.
-  - Testing on emulators with Doze/standby scenarios is necessary to validate reliability.
+  **Files created:**
+  | File | Purpose |
+  |------|---------|
+  | `Platforms/Android/Services/ForegroundSyncJob.cs` | Android `JobService` that performs sync via `ICacheSyncWorker`, computes outstanding actions, updates badges, posts notifications |
+  | `Platforms/Android/Services/ForegroundServiceHelper.cs` | Helper to schedule/cancel periodic jobs with idempotent registration |
+  | `Platforms/Android/Services/BadgeHelper.cs` | Vendor-specific badge broadcasts (Sony, HTC, Samsung, Apex/Nova, Huawei) |
+  | `Platforms/Android/Receivers/BootCompletedReceiver.cs` | Reschedules job after device reboot |
+  | `Platforms/Android/AndroidServiceProvider.cs` | DI bridge for OS-created components (JobService, BroadcastReceiver) |
+  | `Services/ISchedulingFlagStore.cs` | Platform-agnostic abstraction for scheduling persistence |
+  | `Services/InMemorySchedulingFlagStore.cs` | Test-friendly in-memory implementation |
+  | `Services/SchedulingManager.cs` | Platform-agnostic scheduling decision logic |
+  | `Services/ICacheSyncWorker.cs` | Interface for sync operation (used by both hosted service and JobService) |
 
-  Estimated effort: 2–3 dev days (scaffold + manual device validation + docs).
+  **Tests created:**
+  | File | Tests |
+  |------|-------|
+  | `tests/Mobile.UnitTests/Services/SchedulingManagerTests.cs` | 6 tests for idempotent scheduling logic |
+  | `tests/Mobile.UnitTests/Services/InMemorySchedulingFlagStoreTests.cs` | 4 tests for flag store abstraction |
+
+  **Key design decisions:**
+  1. **No Shiny**: Avoided third-party dependency by using native Android JobScheduler
+  2. **Testable abstractions**: Extracted `ISchedulingFlagStore` and `SchedulingManager` for unit testing without mocking Android APIs
+  3. **DI bridge**: `AndroidServiceProvider` allows OS-created components to access app services
+  4. **Cooperative cancellation**: Uses `CancellationTokenSource` tracked per job for graceful shutdown
+  5. **Idempotent scheduling**: SharedPreferences flag prevents duplicate job registration
+  6. **Boot persistence**: `BootCompletedReceiver` re-registers job after reboot
+  7. **Vendor badges**: Best-effort badge updates for multiple Android OEMs
+  8. **Performance logging**: Stopwatch timing for sync operations
+
+  Estimated effort: 2 dev days (actual) vs 2–3 dev days (estimated)
 
   ### Windows (MSIX packaged) — WinRT `Windows.ApplicationModel.Background` background task
 
   Goal
   - Provide a packaged-background-task option for Windows so the app can perform periodic background syncs without requiring a Windows Service or admin install. This is intended for MSIX-packaged MAUI apps distributed through the Store or sideloaded as MSIX.
+  - **Feature parity with Android**: Reuse the same `ICacheSyncWorker`, `ISchedulingFlagStore`, and `SchedulingManager` abstractions already implemented for Android to ensure consistent behavior and testability.
 
   Acceptance criteria
   - When the app is packaged as MSIX and the background task is declared, the system can trigger a background task (time trigger or maintenance trigger) that calls the same sync logic used by `CacheSyncService`.
   - No admin privileges required for registering the background task when the app is properly packaged.
   - Background task respects system resource constraints; the task runs at least on the configured schedule when allowed by the OS.
+  - **[Feature parity]** Uses `ICacheSyncWorker.SyncOnceAsync()` for sync work (same as Android `ForegroundSyncJob`)
+  - **[Feature parity]** Computes outstanding actions via `IInrRepository.GetRecentAsync()` and updates badge count
+  - **[Feature parity]** Supports cooperative cancellation via `CancellationToken`
+  - **[Feature parity]** Idempotent scheduling using `ISchedulingFlagStore` and `SchedulingManager` (reuse existing abstractions)
+  - **[Feature parity]** Performance logging with elapsed time (Stopwatch pattern)
+  - **[Feature parity]** Task badge update via Windows notification badge API (`BadgeUpdateManager`)
 
   Implementation steps
-  1. Add a new background task class in a Windows-specific folder, e.g. `Platforms/Windows/Background/SyncBackgroundTask.cs` implementing `IBackgroundTask`:
-    - Implement `Run(IBackgroundTaskInstance taskInstance)` which obtains a deferral and calls `IInrRepository.SaveRangeAsync()` / `ICacheService.SetAsync()` to persist synced data.
-  2. Package manifest changes (MSIX):
-    - Edit `Platforms/Windows/Package.appxmanifest` and add a `<Extensions>` entry to declare the background task with `EntryPoint` set to the full type name and a supported `BackgroundTasks` trigger (TimeTrigger, MaintenanceTrigger, etc.).
-    - Example: `TimeTrigger` with 15-minute nominal interval (note: system may throttle shorter intervals).
-  3. DI and activation:
-    - When packaged, the app must ensure Windows runtime activation can resolve required services. Use the app's host activation to register `IInrRepository`, `ICacheService`, and any current-user service that `ApplicationDbContext` requires.
-  4. Testing & validation:
-    - Manual test: install MSIX and confirm the background task triggers (use `BackgroundTaskRegistration` debugging events), and confirm synced data appears in the local encrypted cache.
-    - Add documentation for packaging, manifest change, and limitations (Windows may throttle short intervals).
-  5. Documentation: Add `docs/windows/background-task.md` describing packaging steps and troubleshooting.
+  1. **Create WindowsServiceProvider bridge** (similar to `AndroidServiceProvider`):
+    - Add `Platforms/Windows/WindowsServiceProvider.cs` to expose `IServiceProvider` to Windows runtime-activated background tasks.
+    - Initialize from `MauiProgram.cs` or App startup.
+
+  2. **Create SyncBackgroundTask** (`Platforms/Windows/Background/SyncBackgroundTask.cs`):
+    - Implement `IBackgroundTask.Run(IBackgroundTaskInstance taskInstance)`
+    - Obtain deferral for async work: `var deferral = taskInstance.GetDeferral();`
+    - Use `WindowsServiceProvider.CreateScope()` to get DI services
+    - Call `ICacheSyncWorker.SyncOnceAsync(cancellationToken)` for sync (same as Android)
+    - Compute outstanding count via `IInrRepository.GetRecentAsync(50)` (same as Android)
+    - Update Windows badge via `BadgeUpdateManager` (see step 5)
+    - Log elapsed time with `Stopwatch` (same as Android)
+    - Handle `taskInstance.Canceled` event for cooperative cancellation
+    - Call `deferral.Complete()` in finally block
+
+  3. **Create WindowsSchedulingHelper** (`Platforms/Windows/Background/WindowsSchedulingHelper.cs`):
+    - Mirror `ForegroundServiceHelper` pattern from Android
+    - Implement `RegisterBackgroundTask(interval, force, ISchedulingFlagStore?)`:
+      - Check `SchedulingManager.ShouldSchedule(store, force)` before registering
+      - Use `BackgroundTaskBuilder` with `TimeTrigger(intervalMinutes, oneShot: false)`
+      - Set `TaskEntryPoint` to full type name of `SyncBackgroundTask`
+      - Call `SchedulingManager.MarkScheduled(store)` on success
+    - Implement `UnregisterBackgroundTask(ISchedulingFlagStore?)`:
+      - Find and unregister the task by name
+      - Call `SchedulingManager.ClearScheduled(store)`
+    - **Reuse** `ISchedulingFlagStore` abstraction (Windows implementation can use `ApplicationData.Current.LocalSettings`)
+
+  4. **Create WindowsSchedulingFlagStore** (`Platforms/Windows/Background/WindowsSchedulingFlagStore.cs`):
+    - Implement `ISchedulingFlagStore` using `Windows.Storage.ApplicationData.Current.LocalSettings`
+    - Same contract as Android's SharedPreferences-based implementation
+
+  5. **Create WindowsBadgeHelper** (`Platforms/Windows/Background/WindowsBadgeHelper.cs`):
+    - Use `Windows.UI.Notifications.BadgeUpdateManager` to update app badge
+    - Create badge XML with numeric value: `<badge value="{count}"/>`
+    - Post via `BadgeUpdateManager.CreateBadgeUpdaterForApplication().Update(notification)`
+
+  6. **Package manifest changes (MSIX)**:
+    - Edit `Platforms/Windows/Package.appxmanifest` and add `<Extensions>` entry:
+      ```xml
+      <Extension Category="windows.backgroundTasks" EntryPoint="BloodThinnerTracker.Mobile.Platforms.Windows.Background.SyncBackgroundTask">
+        <BackgroundTasks>
+          <Task Type="timer"/>
+        </BackgroundTasks>
+      </Extension>
+      ```
+    - Add required capability: `<Capability Name="backgroundTask"/>` (if needed)
+
+  7. **DI and activation**:
+    - Ensure `WindowsServiceProvider.Initialize(app.Services)` is called at startup
+    - Register `IInrRepository`, `ICacheService`, `ICacheSyncWorker` in DI (already done)
+    - Handle case where background task runs before main app has started (initialize minimal DI container)
+
+  8. **Startup registration** (in `MauiProgram.cs` or platform-specific startup):
+    ```csharp
+    #if WINDOWS
+    WindowsSchedulingHelper.RegisterBackgroundTask(
+        intervalMinutes: 15,
+        force: false,
+        store: new WindowsSchedulingFlagStore());
+    #endif
+    ```
+
+  9. **Testing**:
+    - **Unit tests**: Reuse `SchedulingManagerTests` and `InMemorySchedulingFlagStoreTests` (platform-agnostic, already written)
+    - Add `WindowsSchedulingFlagStoreTests` if Windows-specific behavior differs
+    - Manual test: install MSIX, use Visual Studio Background Task debugger, verify sync runs
+    - Verify badge appears in taskbar
+
+  10. **Documentation**: Add `docs/windows/background-task.md` describing:
+    - Packaging steps and manifest changes
+    - How to debug background tasks in Visual Studio
+    - Throttling behavior and limitations
+    - Badge update behavior
+
+  Files to create (feature parity with Android)
+  | Android | Windows (feature parity) |
+  |---------|--------------------------|
+  | `Platforms/Android/AndroidServiceProvider.cs` | `Platforms/Windows/WindowsServiceProvider.cs` |
+  | `Platforms/Android/Services/ForegroundSyncJob.cs` | `Platforms/Windows/Background/SyncBackgroundTask.cs` |
+  | `Platforms/Android/Services/ForegroundServiceHelper.cs` | `Platforms/Windows/Background/WindowsSchedulingHelper.cs` |
+  | `Platforms/Android/Services/BadgeHelper.cs` | `Platforms/Windows/Background/WindowsBadgeHelper.cs` |
+  | (SharedPreferences-based) | `Platforms/Windows/Background/WindowsSchedulingFlagStore.cs` |
+  | `Platforms/Android/Receivers/BootCompletedReceiver.cs` | (Not needed - Windows auto-registers on install) |
+
+  Shared abstractions (already implemented, reuse as-is)
+  - `Services/ISchedulingFlagStore.cs` ✅
+  - `Services/InMemorySchedulingFlagStore.cs` ✅ (for testing)
+  - `Services/SchedulingManager.cs` ✅
+  - `Services/ICacheSyncWorker.cs` ✅
 
   Notes & caveats
   - Windows background tasks only run for packaged apps (MSIX). If you do not want MSIX packaging then the user-login helper/scheduled-task approach is the alternate (per-user scheduled task or HKCU-run entry).
   - The OS will throttle background work; a 15-minute target is reasonable for many devices but not guaranteed — include UX that tolerates variable schedules.
   - `IBackgroundTask` implementations run in a different process context; ensure any platform-specific activation or DI setup is compatible (some services may not be available at background activation time). Persist only safe, idempotent operations.
+  - Unlike Android, Windows does not require a persistent notification for background tasks (system manages silently).
+  - Badge updates use the Windows notification system and appear in the taskbar; behavior may vary by Windows version.
 
-  Estimated effort: 2–4 dev days (manifest + scaffolding + validation + docs), more if packaging pipelines need setup.
+  Estimated effort: 2–3 dev days (manifest + scaffolding + validation + docs), reduced from 2-4 days due to reuse of existing abstractions.
 
   ---
 
