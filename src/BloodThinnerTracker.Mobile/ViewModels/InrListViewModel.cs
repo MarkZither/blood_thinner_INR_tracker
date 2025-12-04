@@ -204,7 +204,10 @@ namespace BloodThinnerTracker.Mobile.ViewModels
                     sw.Stop();
                     _telemetry?.TrackHistogram("InrListLoadMs", sw.Elapsed.TotalMilliseconds);
                 }
-                catch { }
+                catch (Exception tex)
+                {
+                    _logger?.LogDebug(tex, "Failed to track InrListLoadMs telemetry");
+                }
             }
         }
 

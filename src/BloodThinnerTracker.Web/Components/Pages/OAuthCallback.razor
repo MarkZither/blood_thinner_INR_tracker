@@ -121,8 +121,8 @@
                 var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
 
-                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}",
-                    email ?? "N/A", name ?? "N/A");
+                Logger.LogInformation("OAuth complete: User authenticated - Email present: {HasEmail}, Name present: {HasName}",
+                    !string.IsNullOrEmpty(email), !string.IsNullOrEmpty(name));
 
                 // Store the principal's claims for later use
                 _authenticatedPrincipal = principal;
@@ -132,15 +132,13 @@
                 Logger.LogWarning("OAuth complete: Principal is not authenticated");
             }
 
-            // CRITICAL: Log all claims from principal to debug which ones are available
-            // The OIDC middleware has already extracted claims from id_token during authentication
+            // Log claim types present (without values) for debugging - avoid PII exposure
             if (_authenticatedPrincipal != null)
             {
-                Logger.LogInformation("OAuth complete: Principal claims:");
-                foreach (var claim in _authenticatedPrincipal.Claims)
-                {
-                    Logger.LogInformation("  - {ClaimType}: {ClaimValue}", claim.Type, claim.Value);
-                }
+                var claims = _authenticatedPrincipal.Claims.ToList();
+                var claimTypes = claims.Select(c => c.Type).Distinct().ToList();
+                Logger.LogInformation("OAuth complete: Principal has {ClaimCount} claims, types present: {ClaimTypes}",
+                    claims.Count, string.Join(", ", claimTypes));
             }
 
             // Attempt to capture returnUrl that may have been stored in AuthenticationProperties.Items during Challenge
@@ -196,7 +194,7 @@
                     userIdentifier = ExtractClaimFromJwt(_idToken, "oid");
                     var subFromToken = ExtractClaimFromJwt(_idToken, "sub");
 
-                    Logger.LogInformation("OAuth complete: id_token claims present - oid: {HasOid}, sub: {HasSub}",
+                    Logger.LogInformation("OAuth complete: id_token claims - oid present: {HasOID}, sub present: {HasSUB}",
                         !string.IsNullOrEmpty(userIdentifier), !string.IsNullOrEmpty(subFromToken));
 
                     // Fallback to sub if oid is missing
@@ -217,10 +215,10 @@
                     userIdentifier = _authenticatedPrincipal.FindFirst("oid")?.Value
                         ?? _authenticatedPrincipal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
                         ?? _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                    Logger.LogWarning("OAuth complete: Using fallback from principal - has identifier: {HasUserIdentifier}", !string.IsNullOrEmpty(userIdentifier));
+                    Logger.LogWarning("OAuth complete: Using fallback from principal: identifier present = {HasIdentifier}", !string.IsNullOrEmpty(userIdentifier));
                 }
 
-                Logger.LogInformation("OAuth complete: Extracted claims - HasEmail: {HasEmail}, HasName: {HasName}, HasUserIdentifier: {HasUserIdentifier}",
+                Logger.LogInformation("OAuth complete: Extracted claims - Email present: {HasEmail}, Name present: {HasName}, UserIdentifier present: {HasUserIdentifier}",
                     !string.IsNullOrEmpty(email), !string.IsNullOrEmpty(name), !string.IsNullOrEmpty(userIdentifier));
 
                 if (string.IsNullOrEmpty(email))
@@ -254,8 +252,8 @@
                     DevicePlatform = "Web"
                 };
 
-                Logger.LogInformation("Calling API claims exchange endpoint for provider: {Provider}, externalUserId: {ExternalUserId}",
-                    exchangeRequest.Provider, exchangeRequest.ExternalUserId);
+                Logger.LogInformation("Calling API claims exchange endpoint for provider: {Provider}, externalUserId present: {HasExternalUserId}",
+                    exchangeRequest.Provider, !string.IsNullOrEmpty(exchangeRequest.ExternalUserId));
 
                 var response = await Http.PostAsJsonAsync("api/auth/exchange", exchangeRequest);
 
@@ -265,7 +263,7 @@
 
                     if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
                     {
-                        Logger.LogInformation("Token exchange successful! Got our JWT for user: {Email}", authResponse.User?.Email);
+                        Logger.LogInformation("Token exchange successful! Got our JWT, user email present: {HasEmail}", !string.IsNullOrEmpty(authResponse.User?.Email));
 
                         // Store OUR JWT (not Microsoft's token)
                         await AuthStateProvider.MarkUserAsAuthenticatedAsync(
@@ -407,7 +405,7 @@
             if (jsonDoc.RootElement.TryGetProperty(claimName, out var claimElement))
             {
                 var value = claimElement.GetString();
-                Logger.LogDebug("ExtractClaimFromJwt: Found claim '{ClaimName}' = {Value}", claimName, value);
+                Logger.LogDebug("ExtractClaimFromJwt: Found claim '{ClaimName}', value present: {HasValue}", claimName, !string.IsNullOrEmpty(value));
                 return value;
             }
 
