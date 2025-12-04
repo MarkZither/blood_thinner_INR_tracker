@@ -72,6 +72,9 @@ jobs:
     - name: 📦 Restore workloads
       run: dotnet workload restore
 
+    - name: 🔁 Install iOS workload
+      run: dotnet workload install ios
+
     - name: 🔁 Install Android workload
       run: dotnet workload install android
 
@@ -80,25 +83,11 @@ jobs:
 
     - name: 🔨 Build Android App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: |
-        dotnet build ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-android \
-          -c Debug \
-          /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Debug /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
 
     - name: 🔨 Build Android App (Release)
       if: github.ref == 'refs/heads/main'
-      run: |
-        dotnet publish ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-android \
-          -c Release \
-          -o ./publish/android \
-          /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
-          /p:AndroidKeyStore=true \
-          /p:AndroidSigningKeyStore=${{ secrets.ANDROID_KEYSTORE_FILE }} \
-          /p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} \
-          /p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} \
-          /p:AndroidSigningStorePass=${{ secrets.ANDROID_STORE_PASSWORD }}
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Release -o ./publish/android /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=${{ secrets.ANDROID_KEYSTORE_FILE }} /p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} /p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} /p:AndroidSigningStorePass=${{ secrets.ANDROID_STORE_PASSWORD }}
 
     - name: 📁 Upload Android artifacts
       uses: actions/upload-artifact@v4
@@ -156,26 +145,19 @@ jobs:
     - name: 📦 Restore workloads
       run: dotnet workload restore
 
+    - name: 🔁 Install maccatalyst workload
+      run: dotnet workload install maccatalyst
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
     - name: 🔨 Build iOS App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: |
-        dotnet build ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-ios \
-          -c Debug
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-ios -c Debug
 
     - name: 🔨 Build iOS App (Release)
       if: github.ref == 'refs/heads/main'
-      run: |
-        dotnet publish ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-ios \
-          -c Release \
-          -o ./publish/ios \
-          /p:ArchiveOnBuild=true \
-          /p:CodesignKey="${{ secrets.IOS_CODESIGN_KEY }}" \
-          /p:CodesignProvision="${{ secrets.IOS_PROVISION_PROFILE }}"
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-ios -c Release -o ./publish/ios /p:ArchiveOnBuild=true /p:CodesignKey="${{ secrets.IOS_CODESIGN_KEY }}" /p:CodesignProvision="${{ secrets.IOS_PROVISION_PROFILE }}"
 
     - name: 📁 Upload iOS artifacts
       uses: actions/upload-artifact@v4
@@ -217,21 +199,11 @@ jobs:
 
     - name: 🔨 Build Windows App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: |
-        dotnet build ${{ env.MOBILE_PROJECT_PATH }} `
-          -f net10.0-windows10.0.19041.0 `
-          -c Debug
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Debug
 
     - name: 🔨 Build Windows App (Release)
       if: github.ref == 'refs/heads/main'
-      run: |
-        dotnet publish ${{ env.MOBILE_PROJECT_PATH }} `
-          -f net10.0-windows10.0.19041.0 `
-          -c Release `
-          -o ./publish/windows `
-          /p:GenerateAppxPackageOnBuild=true `
-          /p:AppxPackageSigningEnabled=true `
-          /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Release -o ./publish/windows /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
 
     - name: 📁 Upload Windows artifacts
       uses: actions/upload-artifact@v4
@@ -267,19 +239,11 @@ jobs:
 
     - name: 🔨 Build macOS App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: |
-        dotnet build ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-maccatalyst \
-          -c Debug
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-maccatalyst -c Debug
 
     - name: 🔨 Build macOS App (Release)
       if: github.ref == 'refs/heads/main'
-      run: |
-        dotnet publish ${{ env.MOBILE_PROJECT_PATH }} \
-          -f net10.0-maccatalyst \
-          -c Release \
-          -o ./publish/macos \
-          /p:CreatePackage=true
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-maccatalyst -c Release -o ./publish/macos /p:CreatePackage=true
 
     - name: 📁 Upload macOS artifacts
       uses: actions/upload-artifact@v4
