@@ -16,7 +16,7 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      - name: Restore
+      - name: Restore Workloads
         run: |
           dotnet workload restore
           dotnet workload install android
