@@ -39,7 +39,8 @@ jobs:
           set -e
           projects=( \
             "tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj" \
-            "tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj" \
+            # Integration.Tests excluded — runs DatabaseMigrationTests via dedicated workflow on Linux
+            # "tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj" \
             "tests/BloodThinnerTracker.Web.Tests/BloodThinnerTracker.Web.Tests.csproj" \
             "tests/BloodThinnerTracker.Shared.Tests/BloodThinnerTracker.Shared.Tests.csproj" \
             "tests/BloodThinnerTracker.AppHost.Tests/BloodThinnerTracker.AppHost.Tests.csproj" \
