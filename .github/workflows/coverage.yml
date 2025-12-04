@@ -54,7 +54,7 @@ jobs:
             # Use XPlat collector provided by coverlet.collector package referenced in test projects
             # Build the test project (no restore because restore ran earlier), then run tests with no-build/no-restore
             dotnet build "$proj" -c Release --no-restore
-            dotnet test "$proj" -c Release --nologo --no-restore --no-build --filter "FullyQualifiedName!~PerfTests" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
+            dotnet test "$proj" -c Release --nologo --no-restore --no-build --filter "FullyQualifiedName!~PerfTests&Category!=Integration" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
           done
 
       - name: Merge coverage reports (HTML)

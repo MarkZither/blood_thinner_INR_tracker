@@ -53,6 +53,7 @@ public class ServiceDiscoveryTests : IClassFixture<AppHostFixture>
     /// T060: Test connection string injection - API connects to PostgreSQL using injected connection string
     /// </summary>
     [Fact]
+    [Trait("Category","Integration")]
     public async Task ApiReceivesDatabaseConnectionStringViaAspireInjection()
     {
         // Arrange
