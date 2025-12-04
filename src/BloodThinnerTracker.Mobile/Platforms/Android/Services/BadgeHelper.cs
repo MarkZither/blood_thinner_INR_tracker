@@ -12,6 +12,8 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
     /// </summary>
     public static class BadgeHelper
     {
+        private const string Tag = "BadgeHelper";
+
         public static void UpdateBadge(Context context, int count)
         {
             // Many modern launchers honor Notification.Builder.SetNumber + NotificationChannel.showBadge
@@ -29,7 +31,10 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     if (launchClass != null) intent.PutExtra("com.sonyericsson.home.intent.extra.badge_class_name", launchClass);
                     context.SendBroadcast(intent);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Debug(Tag, $"Sony badge update failed (expected on non-Sony): {ex.Message}");
+                }
 
                 // HTC
                 try
@@ -39,7 +44,10 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     intent.PutExtra("com.htc.launcher.extra.BADGE_COUNT", count);
                     context.SendBroadcast(intent);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Debug(Tag, $"HTC badge update failed (expected on non-HTC): {ex.Message}");
+                }
 
                 // Samsung / generic - some implementations listen for this
                 try
@@ -50,7 +58,10 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     intent.PutExtra("badge_count_class_name", context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName ?? "");
                     context.SendBroadcast(intent);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Debug(Tag, $"Samsung badge update failed (expected on non-Samsung): {ex.Message}");
+                }
 
                 // Apex/Nova: use ACTION_APPLICATION_MESSAGE (common pattern)
                 try
@@ -65,7 +76,10 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                         context.SendBroadcast(intent);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Debug(Tag, $"Apex/Nova badge update failed: {ex.Message}");
+                }
 
                 // Huawei / some Xiaomi launchers: try content provider approach
                 try
@@ -82,14 +96,20 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                         {
                             context.ContentResolver.Insert(uri, values);
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            Android.Util.Log.Debug(Tag, $"Huawei content provider badge insert failed: {ex.Message}");
+                        }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Debug(Tag, $"Huawei badge update failed (expected on non-Huawei): {ex.Message}");
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // swallow - badge update is best-effort
+                Android.Util.Log.Warn(Tag, $"Badge update failed unexpectedly: {ex.Message}");
             }
         }
     }

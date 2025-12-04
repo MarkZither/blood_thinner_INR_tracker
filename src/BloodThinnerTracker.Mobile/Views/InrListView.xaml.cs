@@ -34,12 +34,17 @@ namespace BloodThinnerTracker.Mobile.Views
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // Parameterless constructor used by XAML/DataTemplate instantiation.
-        // Falls back to the application service provider to resolve the factory and logger.
+        /// <summary>
+        /// Parameterless constructor required for XAML DataTemplate instantiation.
+        /// Shell's ContentTemplate uses Activator, not DI, so we bridge to DI here.
+        /// This is a necessary workaround for MAUI Shell's DataTemplate limitation.
+        /// </summary>
         public InrListView()
             : this(
-                  App.ServiceProvider?.GetRequiredService<BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<InrListViewModel>>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or LazyViewModelFactory<InrListViewModel> not registered."),
-                  App.ServiceProvider?.GetRequiredService<Microsoft.Extensions.Logging.ILogger<InrListView>>() ?? throw new InvalidOperationException("ServiceProvider is not initialized or ILogger<InrListView> not registered."))
+                  App.ServiceProvider?.GetRequiredService<BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<InrListViewModel>>()
+                      ?? throw new InvalidOperationException("ServiceProvider not initialized"),
+                  App.ServiceProvider?.GetRequiredService<Microsoft.Extensions.Logging.ILogger<InrListView>>()
+                      ?? throw new InvalidOperationException("ILogger<InrListView> not registered"))
         {
         }
 
