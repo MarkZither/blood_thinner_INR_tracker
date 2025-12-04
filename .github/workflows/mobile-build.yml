@@ -200,11 +200,11 @@ jobs:
 
     - name: 🔨 Build Windows App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -r win-x64 -c Debug
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Debug /p:RuntimeIdentifier=
 
     - name: 🔨 Build Windows App (Release)
       if: github.ref == 'refs/heads/main'
-      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -r win-x64 -c Release -o ./publish/windows /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Release /p:RuntimeIdentifier= -o ./publish/windows /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
 
     - name: 📁 Upload Windows artifacts
       uses: actions/upload-artifact@v4
