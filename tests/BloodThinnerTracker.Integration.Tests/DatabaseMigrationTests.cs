@@ -27,7 +27,7 @@ public class DatabaseMigrationTests : IAsyncLifetime
     {
         // Start PostgreSQL container
         _postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
+            .WithImage("postgres:18-alpine")
             .WithDatabase("testdb")
             .WithUsername("postgres")
             .WithPassword("postgres")

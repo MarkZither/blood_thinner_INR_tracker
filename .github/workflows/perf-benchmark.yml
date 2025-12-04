@@ -21,6 +21,7 @@ jobs:
           dotnet workload restore
           dotnet workload install android
           dotnet restore BloodThinnerTracker.sln
+          echo "Restore completed"
 
       - name: Build perf tests
         run: |

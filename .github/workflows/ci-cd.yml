@@ -1,11 +1,7 @@
 name: 🩸 Blood Thinner Tracker - CI/CD Pipeline
 
 on:
-  push:
-    branches: [ main, develop, 'feature/*', 'release/*', 'hotfix/*' ]
-  pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 env:
   DOTNET_VERSION: '10.0.x'
@@ -368,51 +364,3 @@ jobs:
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
 
-  # Job 9: Notification
-  notify:
-    name: 📢 Notify Teams
-    runs-on: windows-latest
-    needs: [deploy-dev, deploy-prod, publish-cli]
-    if: always()
-    timeout-minutes: 5
-
-    steps:
-    - name: 📧 Send Slack notification
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        channel: '#bloodtracker-deployments'
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-    - name: 📨 Send Teams notification
-      uses: aliencube/microsoft-teams-actions@v0.8.0
-      with:
-        webhook_uri: ${{ secrets.TEAMS_WEBHOOK }}
-        title: "🩸 Blood Thinner Tracker Deployment"
-        summary: "Deployment completed for commit ${{ github.sha }}"
-        theme_color: ${{ job.status == 'success' && 'good' || 'danger' }}
-        sections: |
-          [
-            {
-              "activityTitle": "Deployment Status: ${{ job.status }}",
-              "activitySubtitle": "Branch: ${{ github.ref }}",
-              "activityImage": "https://github.com/identicons/${{ github.actor }}.png",
-              "facts": [
-                {
-                  "name": "Repository",
-                  "value": "${{ github.repository }}"
-                },
-                {
-                  "name": "Commit",
-                  "value": "${{ github.sha }}"
-                },
-                {
-                  "name": "Author",
-                  "value": "${{ github.actor }}"
-                }
-              ]
-            }
-          ]
