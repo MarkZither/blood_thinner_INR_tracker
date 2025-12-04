@@ -1,5 +1,4 @@
 using global::Windows.Storage;
-using System.Threading;
 using BloodThinnerTracker.Mobile.Services;
 
 namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
@@ -11,14 +10,19 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
     ///
     /// Note: This only works in MSIX-packaged apps. In unpackaged debug builds,
     /// ApplicationData.Current is not available and methods will return defaults.
+    /// 
+    /// This class should be registered as a singleton in DI so that the instance
+    /// fallback field maintains consistent state across all callers.
     /// </summary>
     public class WindowsSchedulingFlagStore : ISchedulingFlagStore
     {
         private const string ScheduledKey = "BackgroundTaskScheduled";
 
         // Fallback for unpackaged apps where ApplicationData is not available.
-        // Uses int (0/1) for Interlocked atomic operations (bool not supported).
-        private static int _inMemoryScheduled = 0;
+        // This is an instance field (not static) because the class is expected
+        // to be registered as a singleton in DI.
+        private bool _inMemoryScheduled;
+        private readonly object _lock = new();
 
         /// <summary>
         /// Check if ApplicationData is available (only in packaged apps).
@@ -51,8 +55,11 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
                 return false;
             }
 
-            // Fallback for unpackaged apps - use Interlocked for thread-safe read
-            return Interlocked.CompareExchange(ref _inMemoryScheduled, 0, 0) != 0;
+            // Fallback for unpackaged apps - use lock for thread-safe read
+            lock (_lock)
+            {
+                return _inMemoryScheduled;
+            }
         }
 
         /// <summary>
@@ -67,8 +74,11 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
             }
             else
             {
-                // Fallback for unpackaged apps - use Interlocked for thread-safe write
-                Interlocked.Exchange(ref _inMemoryScheduled, scheduled ? 1 : 0);
+                // Fallback for unpackaged apps - use lock for thread-safe write
+                lock (_lock)
+                {
+                    _inMemoryScheduled = scheduled;
+                }
             }
         }
     }
