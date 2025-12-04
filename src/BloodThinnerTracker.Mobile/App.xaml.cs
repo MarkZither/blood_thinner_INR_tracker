@@ -38,8 +38,9 @@ namespace BloodThinnerTracker.Mobile
             }
             catch (Exception ex)
             {
+                // Best-effort telemetry - log but don't fail startup
                 var logger = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
-                logger?.LogDebug(ex, "Failed to track cold-start metric");
+                logger?.LogDebug(ex, "Cold-start telemetry tracking failed");
             }
 
             // Schedule navigation after shell is ready. Perform initialization and auth check asynchronously
