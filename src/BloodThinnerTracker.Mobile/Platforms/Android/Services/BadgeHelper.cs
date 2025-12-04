@@ -21,32 +21,39 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
 
             try
             {
+                var pm = context?.PackageManager;
+                var packageName = context?.PackageName;
+                if (pm == null || string.IsNullOrEmpty(packageName))
+                {
+                    global::Android.Util.Log.Warn(Tag, "Context/PackageName or PackageManager is null; skipping badge update");
+                    return;
+                }
                 // Sony
                 try
                 {
                     var intent = new Intent("com.sonyericsson.home.action.UPDATE_BADGE");
                     intent.PutExtra("com.sonyericsson.home.intent.extra.badge_count", count);
-                    intent.PutExtra("com.sonyericsson.home.intent.extra.badge_package_name", context.PackageName);
-                    var launchClass = context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName;
+                    intent.PutExtra("com.sonyericsson.home.intent.extra.badge_package_name", packageName);
+                    var launchClass = pm.GetLaunchIntentForPackage(packageName)?.Component?.ClassName;
                     if (launchClass != null) intent.PutExtra("com.sonyericsson.home.intent.extra.badge_class_name", launchClass);
-                    context.SendBroadcast(intent);
+                    context?.SendBroadcast(intent);
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Debug(Tag, $"Sony badge update failed (expected on non-Sony): {ex.Message}");
+                    global::Android.Util.Log.Debug(Tag, $"Sony badge update failed (expected on non-Sony): {ex.Message}");
                 }
 
                 // HTC
                 try
                 {
                     var intent = new Intent("com.htc.launcher.action.SET_BADGE");
-                    intent.PutExtra("com.htc.launcher.extra.COMPONENT", context.PackageName + "/" + (context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName ?? ""));
+                    intent.PutExtra("com.htc.launcher.extra.COMPONENT", packageName + "/" + (pm.GetLaunchIntentForPackage(packageName)?.Component?.ClassName ?? ""));
                     intent.PutExtra("com.htc.launcher.extra.BADGE_COUNT", count);
-                    context.SendBroadcast(intent);
+                    context?.SendBroadcast(intent);
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Debug(Tag, $"HTC badge update failed (expected on non-HTC): {ex.Message}");
+                    global::Android.Util.Log.Debug(Tag, $"HTC badge update failed (expected on non-HTC): {ex.Message}");
                 }
 
                 // Samsung / generic - some implementations listen for this
@@ -54,62 +61,77 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                 {
                     var intent = new Intent("com.sec.android.app.badge.update");
                     intent.PutExtra("badge_count", count);
-                    intent.PutExtra("badge_count_package_name", context.PackageName);
-                    intent.PutExtra("badge_count_class_name", context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName ?? "");
-                    context.SendBroadcast(intent);
+                    intent.PutExtra("badge_count_package_name", packageName);
+                    intent.PutExtra("badge_count_class_name", pm.GetLaunchIntentForPackage(packageName)?.Component?.ClassName ?? "");
+                    context?.SendBroadcast(intent);
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Debug(Tag, $"Samsung badge update failed (expected on non-Samsung): {ex.Message}");
+                    global::Android.Util.Log.Debug(Tag, $"Samsung badge update failed (expected on non-Samsung): {ex.Message}");
                 }
 
                 // Apex/Nova: use ACTION_APPLICATION_MESSAGE (common pattern)
                 try
                 {
-                    var launchClass = context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName;
+                    var launchClass = pm.GetLaunchIntentForPackage(packageName)?.Component?.ClassName;
                     if (!string.IsNullOrEmpty(launchClass))
                     {
                         var intent = new Intent("com.anddoes.launcher.COUNTER_CHANGED");
-                        intent.PutExtra("package", context.PackageName);
+                        intent.PutExtra("package", packageName);
                         intent.PutExtra("class", launchClass);
                         intent.PutExtra("count", count);
-                        context.SendBroadcast(intent);
+                        context?.SendBroadcast(intent);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Debug(Tag, $"Apex/Nova badge update failed: {ex.Message}");
+                    global::Android.Util.Log.Debug(Tag, $"Apex/Nova badge update failed: {ex.Message}");
                 }
 
                 // Huawei / some Xiaomi launchers: try content provider approach
                 try
                 {
-                    var launchClass = context.PackageManager.GetLaunchIntentForPackage(context.PackageName)?.Component?.ClassName;
+                    var launchClass = pm.GetLaunchIntentForPackage(packageName)?.Component?.ClassName;
                     if (!string.IsNullOrEmpty(launchClass))
                     {
-                        var uri = Uri.Parse($"content://com.huawei.android.launcher.settings/badge/");
-                        var values = new Android.Content.ContentValues();
-                        values.Put("package", context.PackageName);
+                        var uri = global::Android.Net.Uri.Parse($"content://com.huawei.android.launcher.settings/badge/");
+                        var values = new global::Android.Content.ContentValues();
+                        values.Put("package", packageName);
                         values.Put("class", launchClass);
                         values.Put("badge", count);
                         try
                         {
-                            context.ContentResolver.Insert(uri, values);
+                            var resolver = context?.ContentResolver;
+                            if (resolver != null)
+                            {
+                                if (uri != null)
+                                {
+                                    resolver.Insert(uri, values);
+                                }
+                                else
+                                {
+                                    global::Android.Util.Log.Debug(Tag, "Parsed URI was null; skipping Huawei insert");
+                                }
+                            }
+                            else
+                            {
+                                global::Android.Util.Log.Debug(Tag, "ContentResolver was null; skipping Huawei insert");
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Android.Util.Log.Debug(Tag, $"Huawei content provider badge insert failed: {ex.Message}");
+                            global::Android.Util.Log.Debug(Tag, $"Huawei content provider badge insert failed: {ex.Message}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Android.Util.Log.Debug(Tag, $"Huawei badge update failed (expected on non-Huawei): {ex.Message}");
+                    global::Android.Util.Log.Debug(Tag, $"Huawei badge update failed (expected on non-Huawei): {ex.Message}");
                 }
             }
             catch (Exception ex)
             {
-                Android.Util.Log.Warn(Tag, $"Badge update failed unexpectedly: {ex.Message}");
+                global::Android.Util.Log.Warn(Tag, $"Badge update failed unexpectedly: {ex.Message}");
             }
         }
     }

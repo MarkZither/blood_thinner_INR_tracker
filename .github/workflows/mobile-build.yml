@@ -81,6 +81,9 @@ jobs:
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
+    - name: 📦 Restore Android TFMs
+      run: dotnet dotnet msbuild ${{ env.MOBILE_PROJECT_PATH }}  /t:Restore /p:TargetFramework=net10.0-android /p:RuntimeIdentifier=android-arm64
+
     - name: 🔨 Build Android App (Debug)
       if: github.ref != 'refs/heads/main'
       run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Debug /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT

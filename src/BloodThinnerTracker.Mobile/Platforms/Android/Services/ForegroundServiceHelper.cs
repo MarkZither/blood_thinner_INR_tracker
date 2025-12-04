@@ -1,4 +1,6 @@
 using Android.App.Job;
+#nullable enable
+#pragma warning disable CS8602,CS8604,CS8765
 using Android.Content;
 using Android.OS;
 
@@ -23,6 +25,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
         /// </summary>
         public static void SchedulePeriodicJob(Context context, long intervalMillis, bool force = false, BloodThinnerTracker.Mobile.Services.ISchedulingFlagStore? store = null)
         {
+            if (context == null) return;
             try
             {
                 // If a test-provided store is available, consult it. Otherwise use SharedPreferences.
@@ -39,14 +42,14 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
 
                 if (already && !force)
                 {
-                    Android.Util.Log.Debug("ForegroundServiceHelper", "Periodic job already scheduled; skipping");
+                    global::Android.Util.Log.Debug("ForegroundServiceHelper", "Periodic job already scheduled; skipping");
                     return;
                 }
 
                 var cs = context.GetSystemService(Context.JobSchedulerService) as JobScheduler;
                 if (cs == null) return;
 
-                var component = new Android.Content.ComponentName(context, Java.Lang.Class.FromType(typeof(ForegroundSyncJob)));
+                var component = new global::Android.Content.ComponentName(context, Java.Lang.Class.FromType(typeof(ForegroundSyncJob)));
                 var builder = new JobInfo.Builder(JobId, component)
                     .SetRequiredNetworkType(NetworkType.Any)
                     .SetPersisted(false)
@@ -76,16 +79,16 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                         prefs2.Edit().PutBoolean(ScheduledKey, true).Commit();
                     }
 
-                    Android.Util.Log.Debug("ForegroundServiceHelper", "Scheduled periodic job successfully");
+                    global::Android.Util.Log.Debug("ForegroundServiceHelper", "Scheduled periodic job successfully");
                 }
                 else
                 {
-                    Android.Util.Log.Warn("ForegroundServiceHelper", $"JobScheduler failed to schedule (result={result})");
+                    global::Android.Util.Log.Warn("ForegroundServiceHelper", $"JobScheduler failed to schedule (result={result})");
                 }
             }
             catch (Exception ex)
             {
-                Android.Util.Log.Warn("ForegroundServiceHelper", $"Failed to schedule job: {ex}");
+                global::Android.Util.Log.Warn("ForegroundServiceHelper", $"Failed to schedule job: {ex}");
             }
         }
 
@@ -94,6 +97,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
         /// </summary>
         public static void CancelScheduledJob(Context context, BloodThinnerTracker.Mobile.Services.ISchedulingFlagStore? store = null)
         {
+            if (context == null) return;
             try
             {
                 var cs = context.GetSystemService(Context.JobSchedulerService) as JobScheduler;
@@ -107,11 +111,11 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     var prefs = context.GetSharedPreferences(PrefsName, FileCreationMode.Private);
                     prefs.Edit().Remove(ScheduledKey).Commit();
                 }
-                Android.Util.Log.Debug("ForegroundServiceHelper", "Cancelled periodic job and cleared scheduled flag");
+                global::Android.Util.Log.Debug("ForegroundServiceHelper", "Cancelled periodic job and cleared scheduled flag");
             }
             catch (Exception ex)
             {
-                Android.Util.Log.Warn("ForegroundServiceHelper", $"Failed to cancel job: {ex}");
+                global::Android.Util.Log.Warn("ForegroundServiceHelper", $"Failed to cancel job: {ex}");
             }
         }
     }

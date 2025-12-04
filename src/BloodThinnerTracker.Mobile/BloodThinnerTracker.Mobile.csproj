@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
 	<PropertyGroup>
-		<TargetFrameworks>net10.0;net10.0-android;</TargetFrameworks>
+		<TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
 		<OutputType Condition="'$(TargetFramework)' != 'net10.0'">Exe</OutputType>
@@ -37,6 +37,10 @@
 		<!-- Prevent self-contained WindowsAppSDK packaging requiring explicit arch -->
 		<WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
 
+		<!-- Explicit Android runtime identifiers to ensure restore generates assets for common Android architectures
+		otherwise in project.assets.json it only contains the target net10.0-android36.0-->
+		<RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net10.0-android'">android-arm64;android-x64</RuntimeIdentifiers>
+		<RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
 	</PropertyGroup>
 
 	<ItemGroup>

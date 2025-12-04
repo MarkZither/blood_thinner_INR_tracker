@@ -1,6 +1,7 @@
 using System;
 using Android.App;
 using Android.Content;
+using Microsoft.Extensions.Logging;
 
 namespace BloodThinnerTracker.Mobile.Platforms.Android.Receivers
 {
@@ -29,12 +30,12 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Receivers
                     try
                     {
                         var scope = BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.CreateScope();
-                        var logger = scope.ServiceProvider.GetService(typeof(Microsoft.Extensions.Logging.ILogger<BootCompletedReceiver>)) as Microsoft.Extensions.Logging.ILogger;
+                        var logger = scope.ServiceProvider.GetService(typeof(Microsoft.Extensions.Logging.ILogger<BootCompletedReceiver>)) as Microsoft.Extensions.Logging.ILogger<BootCompletedReceiver>;
                         logger?.LogWarning(ex, "BootCompletedReceiver: failed to schedule periodic job");
                     }
                     catch
                     {
-                        try { Android.Util.Log.Warn("BootCompletedReceiver", ex.ToString()); } catch { }
+                        try { global::Android.Util.Log.Warn("BootCompletedReceiver", ex.ToString()); } catch { }
                     }
                 }
             }

@@ -6,10 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Android.App.Job;
+#nullable enable
+#pragma warning disable CS8602,CS8604,CS8765
 using Android.Content;
 using Android.OS;
 using Android.Util;
 using Microsoft.Extensions.Logging;
+using BloodThinnerTracker.Mobile.Services;
 
 namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
 {
@@ -30,15 +33,16 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
         // Track running jobs so we can cancel them on OnStopJob
         static readonly ConcurrentDictionary<int, CancellationTokenSource> _runningJobs = new();
 
-        public override bool OnStartJob(JobParameters @params)
+        public override bool OnStartJob(JobParameters? @params)
         {
+            if (@params == null) return false;
             var jobId = @params.JobId;
             var cts = new CancellationTokenSource();
             _runningJobs[jobId] = cts;
 
             Task.Run(async () =>
             {
-                var ctx = Application.Context;
+                var ctx = global::Android.App.Application.Context;
                 int outstandingCount = 0;
 
                 ILogger? logger = null;
@@ -51,7 +55,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     // Attempt to run a full sync via the shared worker
                     try
                     {
-                        var worker = scope.ServiceProvider.GetService(typeof(BloodThinnerTracker.Mobile.Services.ICacheSyncWorker)) as BloodThinnerTracker.Mobile.Services.ICacheSyncWorker;
+                        var worker = scope.ServiceProvider.GetService(typeof(ICacheSyncWorker)) as ICacheSyncWorker;
                         if (worker != null)
                         {
                             logger?.LogInformation("ForegroundSyncJob #{JobId} starting worker sync", jobId);
@@ -60,7 +64,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                             {
                                 await worker.SyncOnceAsync(cts.Token).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException)
+                            catch (System.OperationCanceledException)
                             {
                                 logger?.LogInformation("ForegroundSyncJob #{JobId} cancelled during sync", jobId);
                                 return;
@@ -81,7 +85,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     catch (Exception ex)
                     {
                         if (logger != null) logger.LogWarning(ex, "ForegroundSyncJob #{JobId} failed to run sync", jobId);
-                        else Log.Warn("ForegroundSyncJob", $"Sync failed: {ex}");
+                        else global::Android.Util.Log.Warn("ForegroundSyncJob", $"Sync failed: {ex}");
                     }
 
                     // Compute outstanding actions using repository. If the local DB is empty (worker didn't
@@ -89,7 +93,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     // reflect canonical DB state.
                     try
                     {
-                        var repo = scope.ServiceProvider.GetService(typeof(BloodThinnerTracker.Mobile.Services.IInrRepository)) as BloodThinnerTracker.Mobile.Services.IInrRepository;
+                        var repo = scope.ServiceProvider.GetService(typeof(IInrRepository)) as IInrRepository;
                         if (repo != null)
                         {
                             var items = await repo.GetRecentAsync(50).ConfigureAwait(false);
@@ -97,7 +101,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                             {
                                 try
                                 {
-                                    var api = scope.ServiceProvider.GetService(typeof(BloodThinnerTracker.Mobile.Services.IInrService)) as BloodThinnerTracker.Mobile.Services.IInrService;
+                                    var api = scope.ServiceProvider.GetService(typeof(IInrService)) as IInrService;
                                     if (api != null)
                                     {
                                         var fetched = await api.GetRecentAsync(50).ConfigureAwait(false);
@@ -144,7 +148,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                     catch (Exception ex)
                     {
                         if (logger != null) logger.LogWarning(ex, "ForegroundSyncJob #{JobId} failed to compute outstanding count", jobId);
-                        else Log.Warn("ForegroundSyncJob", $"Compute outstanding failed: {ex}");
+                        else global::Android.Util.Log.Warn("ForegroundSyncJob", $"Compute outstanding failed: {ex}");
                         var prefs = ctx.GetSharedPreferences(PrefsName, FileCreationMode.Private);
                         outstandingCount = prefs.GetInt(BadgeKey, 0) + 1;
                         prefs.Edit().PutInt(BadgeKey, outstandingCount).Commit();
@@ -174,15 +178,17 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                         try { existing.Dispose(); } catch { }
                     }
 
-                    try { JobFinished(@params, false); } catch { }
+                    try { if (@params != null) JobFinished(@params, false); } catch { }
                 }
             }, cts.Token);
 
             return true; // still work running
         }
 
-        public override bool OnStopJob(JobParameters @params)
+        public override bool OnStopJob(JobParameters? @params)
         {
+            if (@params == null) return true;
+
             // Try to cancel the running job cooperatively
             if (_runningJobs.TryRemove(@params.JobId, out var cts))
             {
@@ -196,7 +202,10 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
 
         void PostNotification(Context context, int outstandingCount)
         {
-            var nm = (NotificationManager)context.GetSystemService(Context.NotificationService);
+            if (context == null) return;
+
+            var nm = context.GetSystemService(Context.NotificationService) as NotificationManager;
+            if (nm == null) return;
 
             if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             {
@@ -212,8 +221,18 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                 }
             }
 
-            var packageName = context.PackageName;
-            Intent launchIntent = context.PackageManager.GetLaunchIntentForPackage(packageName) ?? new Intent(context, typeof(Activity));
+            var packageName = context.PackageName ?? string.Empty;
+            var pm = context!.PackageManager;
+            Intent? launchIntent = null;
+            if (!string.IsNullOrEmpty(packageName))
+            {
+                try { launchIntent = pm.GetLaunchIntentForPackage(packageName); } catch { launchIntent = null; }
+            }
+            if (launchIntent == null)
+            {
+                launchIntent = new Intent(context, typeof(global::Android.App.Activity));
+            }
+
             launchIntent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
             var pending = PendingIntent.GetActivity(context, 0, launchIntent, PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent);
 
@@ -226,7 +245,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                 var builder = new Notification.Builder(context, ChannelId)
                     .SetContentTitle(title)
                     .SetContentText(text)
-                    .SetSmallIcon(context.ApplicationInfo.Icon)
+                    .SetSmallIcon(context.ApplicationInfo?.Icon ?? 0)
                     .SetContentIntent(pending)
                     .SetAutoCancel(true)
                     .SetNumber(outstandingCount);
@@ -239,7 +258,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android.Services
                 var builder = new Notification.Builder(context)
                     .SetContentTitle(title)
                     .SetContentText(text)
-                    .SetSmallIcon(context.ApplicationInfo.Icon)
+                    .SetSmallIcon(context.ApplicationInfo?.Icon ?? 0)
                     .SetContentIntent(pending)
                     .SetAutoCancel(true)
                     .SetNumber(outstandingCount);

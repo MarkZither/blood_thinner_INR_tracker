@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-  <!-- Minimal theme to ensure splash is shown as window background on Android -->
-  <style name="MainTheme" parent="Theme.Maui.Splash">
-    <!-- The windowBackground is provided by MAUI's generated drawable for the MauiSplashScreen -->
-    <item name="android:windowBackground">@drawable/launch_background</item>
-  </style>
-</resources>

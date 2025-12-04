@@ -8,7 +8,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
     /// Android runtime-created components (BroadcastReceiver, JobService).
     ///
     /// Usage: call AndroidServiceProvider.Initialize(app.Services) once during
-    /// startup (MauiProgram) and then components can call CreateScope()/GetService<T>().
+    /// startup (MauiProgram) and then components can call CreateScope()/GetService&lt;T&gt;().
     /// </summary>
     public static class AndroidServiceProvider
     {
