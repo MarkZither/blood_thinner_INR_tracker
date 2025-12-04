@@ -55,7 +55,7 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     needs: bump-and-tag
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKER_TAG: ${{ needs.bump-and-tag.outputs.new-tag }}
