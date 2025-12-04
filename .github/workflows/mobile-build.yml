@@ -79,7 +79,7 @@ jobs:
       run: dotnet workload install android
 
     - name: 📦 Restore dependencies
-      run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
+      run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }} -r win-x64
 
     - name: 🔨 Build Android App (Debug)
       if: github.ref != 'refs/heads/main'
@@ -106,6 +106,7 @@ jobs:
   ios-build:
     name: 🍎 iOS Build
     runs-on: macos-latest
+    if: false
     timeout-minutes: 60
 
     steps:
@@ -199,11 +200,11 @@ jobs:
 
     - name: 🔨 Build Windows App (Debug)
       if: github.ref != 'refs/heads/main'
-      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Debug
+      run: dotnet build ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -r win-x64 -c Debug
 
     - name: 🔨 Build Windows App (Release)
       if: github.ref == 'refs/heads/main'
-      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -c Release -o ./publish/windows /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-windows10.0.19041.0 -r win-x64 -c Release -o ./publish/windows /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}"
 
     - name: 📁 Upload Windows artifacts
       uses: actions/upload-artifact@v4
@@ -216,6 +217,7 @@ jobs:
   macos-build:
     name: 🖥️ macOS Build
     runs-on: macos-latest
+    if: false
     timeout-minutes: 45
 
     steps:

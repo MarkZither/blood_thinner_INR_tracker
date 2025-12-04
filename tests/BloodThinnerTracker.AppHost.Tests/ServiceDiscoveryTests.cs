@@ -39,12 +39,12 @@ public class ServiceDiscoveryTests : IClassFixture<AppHostFixture>
 
         // Act - Get HTTP client for Web to verify it can call API
         var httpClient = app.CreateHttpClient("web", "https");
-        
+
         // Make a request to verify web is responding
         var response = await httpClient.GetAsync("/", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
         // Assert
-        Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.Redirect, 
+        Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.Redirect,
             $"Web should be accessible. Status: {response.StatusCode}");
     }
 
@@ -69,7 +69,7 @@ public class ServiceDiscoveryTests : IClassFixture<AppHostFixture>
         var response = await httpClient.GetAsync("/health", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
         // Assert - If health check passes, database connection string was injected correctly
-        Assert.True(response.IsSuccessStatusCode, 
+        Assert.True(response.IsSuccessStatusCode,
             $"API health check should pass if connection string injected correctly. Status: {response.StatusCode}");
     }
 
