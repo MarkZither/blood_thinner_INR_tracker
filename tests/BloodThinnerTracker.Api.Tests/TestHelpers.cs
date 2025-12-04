@@ -19,7 +19,13 @@ namespace BloodThinnerTracker.Api.Tests
 
             var logger = NullLogger<ApplicationDbContext>.Instance;
 
-            return new ApplicationDbContext(options, logger);
+            var ctx = new ApplicationDbContext(options, logger);
+
+            // Ensure the in-memory SQLite database schema is created for tests.
+            // Using EnsureCreated avoids needing migrations for ephemeral test DBs.
+            ctx.Database.EnsureCreated();
+
+            return ctx;
         }
 
         private class EphemeralDataProtectionProvider : IDataProtectionProvider

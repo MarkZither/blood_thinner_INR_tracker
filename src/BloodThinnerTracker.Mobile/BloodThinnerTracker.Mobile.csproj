@@ -45,8 +45,8 @@
 
 		<!-- Splash Screen (use generic splash for plain net10.0, platform-specific entries below handle mobile/desktop TFMs) -->
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Condition="'$(TargetFramework)' == 'net10.0'" Color="#512BD4" BaseSize="128,128" />
-		<MauiSplashScreen Include="Resources\Images\Splash\splash-android.svg" Condition="'$(TargetFramework)' == 'net10.0-android'" Color="#0066CC" BaseSize="128,128" />
-		<MauiSplashScreen Include="Resources\Images\Splash\splash-ios.svg" Condition="$(TargetFramework.StartsWith('net10.0-ios'))" Color="#0066CC" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Images\Splash\splash_android.svg" Condition="'$(TargetFramework)' == 'net10.0-android'" Color="#0066CC" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Images\Splash\splash_ios.svg" Condition="$(TargetFramework.StartsWith('net10.0-ios'))" Color="#0066CC" BaseSize="128,128" />
 		<MauiSplashScreen Include="Resources\Images\Splash\splash_windows.svg" Condition="$(TargetFramework.StartsWith('net10.0-windows'))" Color="#0066CC" BaseSize="128,128" />
 
 		<!-- Images -->

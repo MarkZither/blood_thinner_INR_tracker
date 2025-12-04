@@ -104,15 +104,16 @@
             _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
             _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
-            if (string.IsNullOrEmpty(_accessToken))
+            // Require the provider-signed id_token for server-side validation. Do not rely on access_token.
+            if (string.IsNullOrEmpty(_idToken))
             {
-                Logger.LogError("OAuth complete: No access_token in authentication properties");
+                Logger.LogError("OAuth complete: No id_token in authentication properties");
                 _error = "Authorization incomplete. Please sign in again.";
                 _isProcessing = false;
                 return;
             }
 
-            Logger.LogInformation("OAuth complete: access_token present, length: {Length}", _accessToken.Length);
+            Logger.LogInformation("OAuth complete: id_token present, length: {Length}", _idToken.Length);
 
             // Extract basic claims from the authenticated principal for display/logging
             var principal = authResult.Principal;
@@ -173,7 +174,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !string.IsNullOrEmpty(_accessToken) && _authenticatedPrincipal != null)
+        if (firstRender && !string.IsNullOrEmpty(_idToken) && _authenticatedPrincipal != null)
         {
             try
             {
@@ -240,20 +241,19 @@
                     return;
                 }
 
-                Logger.LogInformation("OAuth complete: Attempting token exchange with claims via /api/auth/exchange...");
+                Logger.LogInformation("OAuth complete: Attempting token exchange with provider id_token via /api/auth/exchange...");
 
-                var exchangeRequest = new ClaimsLoginRequest
+                // Send the provider-signed id_token to the API for server-side validation.
+                var exchangeRequest = new ExternalLoginRequest
                 {
                     Provider = Provider == "microsoft" ? "AzureAD" : "Google",
-                    Email = email,
-                    Name = name,
-                    ExternalUserId = userIdentifier,  // Use sub for personal MSA, oid for organizational accounts
+                    IdToken = _idToken!, // must be present (checked above)
                     DeviceId = "web-app",
                     DevicePlatform = "Web"
                 };
 
-                Logger.LogInformation("Calling API claims exchange endpoint for provider: {Provider}, externalUserId present: {HasExternalUserId}",
-                    exchangeRequest.Provider, !string.IsNullOrEmpty(exchangeRequest.ExternalUserId));
+                Logger.LogInformation("Calling API token exchange endpoint for provider: {Provider}, id_token length: {Length}",
+                    exchangeRequest.Provider, exchangeRequest.IdToken?.Length ?? 0);
 
                 var response = await Http.PostAsJsonAsync("api/auth/exchange", exchangeRequest);
 
@@ -354,9 +354,9 @@
                 StateHasChanged();
             }
         }
-        else if (firstRender && string.IsNullOrEmpty(_accessToken))
+        else if (firstRender && string.IsNullOrEmpty(_idToken))
         {
-            Logger.LogError("OAuth complete: No access token available after first render");
+            Logger.LogError("OAuth complete: No id_token available after first render");
             _error = "Authentication incomplete. Please try again.";
             _isProcessing = false;
             StateHasChanged();

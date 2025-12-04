@@ -90,12 +90,14 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_MigrationsApplySuccessfully()
+        public async Task PostgreSQL_MigrationsApplySuccessfully()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
             .EnableDetailedErrors()
             .EnableSensitiveDataLogging()
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -115,10 +117,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_AllTablesCreated()
+        public async Task PostgreSQL_AllTablesCreated()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -150,10 +154,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_CheckConstraintsWork()
+        public async Task PostgreSQL_CheckConstraintsWork()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -179,10 +185,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_ColumnNamesAreCaseCorrect()
+        public async Task PostgreSQL_ColumnNamesAreCaseCorrect()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -203,10 +211,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_NoNVarcharTypes()
+        public async Task PostgreSQL_NoNVarcharTypes()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -228,10 +238,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_InsertAndQueryUser()
+        public async Task PostgreSQL_InsertAndQueryUser()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
