@@ -17,7 +17,7 @@ env:
 jobs:
   bump-and-tag:
     name: Compute next minor version and tag
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     outputs:
       new-tag: ${{ steps.bump.outputs.newtag }}
     steps:
