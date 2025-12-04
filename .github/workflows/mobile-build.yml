@@ -79,7 +79,7 @@ jobs:
       run: dotnet workload install android
 
     - name: 📦 Restore dependencies
-      run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }} -r win-x64
+      run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
     - name: 🔨 Build Android App (Debug)
       if: github.ref != 'refs/heads/main'
