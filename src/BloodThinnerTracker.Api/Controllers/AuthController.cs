@@ -356,6 +356,9 @@ public class AuthController : ControllerBase
                 });
             }
 
+            _logger.LogInformation("ID token validation successful - Provider: {Provider}, ExternalUserId: {ExternalUserId}, Email: {Email}",
+                validationResult.Provider, validationResult.ExternalUserId, validationResult.Email);
+
             // Authenticate using validated claims
             var response = await _authenticationService.AuthenticateExternalAsync(
                 validationResult.Provider!,
@@ -400,30 +403,70 @@ public class AuthController : ControllerBase
     [HttpPost("exchange")]
     [ProducesResponseType(typeof(AuthenticationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AuthenticationResponse>> ExchangeWebToken([FromBody] ClaimsLoginRequest request)
+    public async Task<ActionResult<AuthenticationResponse>> ExchangeWebToken([FromBody] ExternalLoginRequest request)
     {
         try
         {
-            if (!ModelState.IsValid || string.IsNullOrEmpty(request.Email))
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid claims login request");
+                _logger.LogWarning("Invalid external login request");
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Processing token exchange for email: {Email}, provider: {Provider}",
-                request.Email, request.Provider);
+            if (string.IsNullOrWhiteSpace(request.IdToken))
+            {
+                _logger.LogWarning("External login request missing id_token");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid request",
+                    Detail = "id_token is required for token exchange"
+                });
+            }
 
-            // Authenticate using provided claims (Web app already validated OAuth)
+            _logger.LogInformation("Processing token exchange for provider: {Provider}", request.Provider);
+
+            // Validate the provider-signed ID token (do not trust client-supplied claims)
+            IdTokenValidationResult validationResult;
+            if (string.Equals(request.Provider, "Google", StringComparison.OrdinalIgnoreCase))
+            {
+                validationResult = await _idTokenValidationService.ValidateGoogleTokenAsync(request.IdToken);
+            }
+            else if (string.Equals(request.Provider, "AzureAD", StringComparison.OrdinalIgnoreCase))
+            {
+                validationResult = await _idTokenValidationService.ValidateAzureAdTokenAsync(request.IdToken);
+            }
+            else
+            {
+                _logger.LogWarning("Unsupported provider in external login request: {Provider}", request.Provider);
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid provider",
+                    Detail = "Unsupported authentication provider"
+                });
+            }
+
+            if (!validationResult.IsValid || string.IsNullOrEmpty(validationResult.ExternalUserId))
+            {
+                _logger.LogWarning("ID token validation failed for provider {Provider}: {Error}", request.Provider, validationResult.ErrorMessage);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Authentication Failed",
+                    Detail = "Invalid or untrusted identity token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            // Authenticate / provision user using validated token claims
             var response = await _authenticationService.AuthenticateExternalAsync(
-                request.Provider ?? "AzureAD",
-                request.ExternalUserId ?? request.Email,
-                request.Email,
-                request.Name ?? request.Email,
+                validationResult.Provider ?? request.Provider ?? "AzureAD",
+                validationResult.ExternalUserId,
+                validationResult.Email ?? string.Empty,
+                validationResult.Name ?? string.Empty,
                 request.DeviceId ?? "web-app");
 
             if (response == null)
             {
-                _logger.LogWarning("External authentication failed for {Email}", request.Email);
+                _logger.LogWarning("External authentication failed for ExternalUserId {ExternalUserId}", validationResult.ExternalUserId);
                 return Unauthorized(new ProblemDetails
                 {
                     Title = "Authentication Failed",
@@ -437,7 +480,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during web token exchange for {Email}", request.Email);
+            _logger.LogError(ex, "Error during web token exchange for provider {Provider}", request?.Provider);
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "Internal Server Error",
@@ -784,6 +827,62 @@ public class AuthController : ControllerBase
                 Status = StatusCodes.Status500InternalServerError
             });
         }
+    }
+
+    /// <summary>
+    /// Get OAuth configuration for mobile clients.
+    /// Returns client IDs, redirect URIs, and scopes for all configured providers.
+    /// This is a public endpoint (no authentication required).
+    /// </summary>
+    /// <returns>OAuth configuration for all providers</returns>
+    /// <response code="200">OAuth configuration</response>
+    [HttpGet("config")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig), StatusCodes.Status200OK)]
+    public ActionResult<BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig> GetOAuthConfig()
+    {
+        var config = new BloodThinnerTracker.Shared.Models.Authentication.OAuthConfig
+        {
+            FetchedAt = DateTimeOffset.UtcNow,
+            Providers = new List<BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig>()
+        };
+
+        // Add Google OAuth configuration if enabled
+        if (!string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]))
+        {
+            config.Providers.Add(new BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig
+            {
+                Provider = "google",
+                ClientId = _configuration["Authentication:Google:ClientId"] ?? string.Empty,
+                RedirectUri = _configuration["Authentication:Google:RedirectUri"] ?? "http://localhost/callback",
+                Authority = "https://accounts.google.com",
+                Scopes = string.Join(" ", _configuration.GetSection("Authentication:Google:Scopes").Get<string[]>() ?? new[] { "openid", "profile", "email" })
+            });
+        }
+
+        // Add Azure AD OAuth configuration if enabled
+        if (!string.IsNullOrEmpty(_configuration["Authentication:AzureAd:ClientId"]))
+        {
+            var tenantId = _configuration["Authentication:AzureAd:TenantId"] ?? "common";
+            var instance = _configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+            var appIdUri = _configuration["Authentication:AzureAd:AppIdUri"] ?? _configuration["Authentication:AzureAd:ClientId"];
+
+            // For PKCE public client flow, request the API scope instead of 'openid'
+            // Azure AD automatically includes openid profile email in id_token response
+            var defaultScopes = new[] { $"{appIdUri}/.default" };
+
+            config.Providers.Add(new BloodThinnerTracker.Shared.Models.Authentication.OAuthProviderConfig
+            {
+                Provider = "azure",
+                ClientId = _configuration["Authentication:AzureAd:ClientId"] ?? string.Empty,
+                RedirectUri = _configuration["Authentication:AzureAd:RedirectUri"] ?? "http://localhost/callback",
+                Authority = $"{instance}{tenantId}",
+                Scopes = string.Join(" ", _configuration.GetSection("Authentication:AzureAd:Scopes").Get<string[]>() ?? defaultScopes)
+            });
+        }
+
+        _logger.LogInformation("OAuth configuration requested, returning {ProviderCount} configured providers", config.Providers.Count);
+        return Ok(config);
     }
 
     /// <summary>

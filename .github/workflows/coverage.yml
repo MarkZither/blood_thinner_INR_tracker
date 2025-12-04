@@ -8,7 +8,7 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,6 +18,15 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Install MAUI workloads
+        # Install only recognized MAUI workload IDs so CI restore/build doesn't fail
+        run: |
+          echo "Installing MAUI workloads (maui-android, maui-windows). This may take a few minutes..."
+          dotnet workload restore
+
+      - name: 🔁 Install Android workload
+        run: dotnet workload install android
+
       - name: Install reportgenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
 
@@ -25,11 +34,13 @@ jobs:
         run: dotnet restore
 
       - name: Run tests with XPlat Code Coverage
+        shell: bash
         run: |
           set -e
           projects=( \
             "tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj" \
-            "tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj" \
+            # Integration.Tests excluded — runs DatabaseMigrationTests via dedicated workflow on Linux
+            # "tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj" \
             "tests/BloodThinnerTracker.Web.Tests/BloodThinnerTracker.Web.Tests.csproj" \
             "tests/BloodThinnerTracker.Shared.Tests/BloodThinnerTracker.Shared.Tests.csproj" \
             "tests/BloodThinnerTracker.AppHost.Tests/BloodThinnerTracker.AppHost.Tests.csproj" \
@@ -41,19 +52,33 @@ jobs:
           for proj in "${projects[@]}"; do
             echo "Running tests for: $proj"
             # Use XPlat collector provided by coverlet.collector package referenced in test projects
-            # Use coverage runsettings to exclude migrations, generated files and provider assemblies
-            dotnet test "$proj" -c Release --nologo --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
+            # Build the test project (no restore because restore ran earlier), then run tests with no-build/no-restore
+            dotnet build "$proj" -c Release --no-restore
+            dotnet test "$proj" -c Release --nologo --no-restore --no-build --filter "FullyQualifiedName!~PerfTests&Category!=Integration" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
           done
 
       - name: Merge coverage reports (HTML)
+        shell: pwsh
         run: |
-          reports=$(printf '%s;' tests/**/TestResults/**/coverage.cobertura.xml)
-          echo "Reports: $reports"
-          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report -reporttypes:HtmlInline_AzurePipelines || true
+          $files = Get-ChildItem -Path tests -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          if (-not $files) {
+            Write-Host "No coverage reports found"
+            exit 0
+          }
+          $reports = $files -join ';'
+          Write-Host "Reports: $reports"
+          reportgenerator "-reports:$reports" -targetdir:coverage/report -reporttypes:HtmlInline_AzurePipelines || Write-Host "reportgenerator failed, continuing"
 
       - name: Generate text summary
+        shell: pwsh
         run: |
-          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report-summary -reporttypes:TextSummary || true
+          $files = Get-ChildItem -Path tests -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          if (-not $files) {
+            Write-Host "No coverage reports found"
+            exit 0
+          }
+          $reports = $files -join ';'
+          reportgenerator "-reports:$reports" -targetdir:coverage/report-summary -reporttypes:TextSummary || Write-Host "reportgenerator (TextSummary) failed, continuing"
 
       - name: Upload coverage report (HTML)
         uses: actions/upload-artifact@v4

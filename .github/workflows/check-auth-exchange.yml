@@ -1,0 +1,39 @@
+name: Check Auth Exchange
+
+on:
+  push:
+    paths:
+      - 'tests/BloodThinnerTracker.Api.Tests/**'
+      - 'src/BloodThinnerTracker.Api/**'
+  pull_request:
+    paths:
+      - 'tests/BloodThinnerTracker.Api.Tests/**'
+      - 'src/BloodThinnerTracker.Api/**'
+
+jobs:
+  integration-linux:
+    name: Run API integration tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore API project
+        run: dotnet restore src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj
+
+      - name: Build API (Debug)
+        run: dotnet build src/BloodThinnerTracker.Api/BloodThinnerTracker.Api.csproj -c Debug --no-restore
+
+      - name: Restore API test project
+        run: dotnet restore tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj
+
+      - name: Build API tests (Debug) without rebuilding dependencies
+        run: dotnet build tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj -c Debug --no-restore --no-dependencies
+
+      - name: Run integration tests
+        run: |
+          dotnet test tests/BloodThinnerTracker.Api.Tests/BloodThinnerTracker.Api.Tests.csproj \
+            --filter "Category=Integration|Namespace=BloodThinnerTracker.Api.Tests.Integration" \
+            --no-restore --no-build

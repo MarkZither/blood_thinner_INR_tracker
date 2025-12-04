@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BloodThinnerTracker.Mobile.Views.InrListView"
+             Title="INR Logs"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+        <!-- Header with Title and Refresh Button -->
+        <Grid ColumnDefinitions="*,Auto" Padding="20,15" ColumnSpacing="10" BackgroundColor="{StaticResource PrimaryBlue}">
+            <Label
+                Grid.Column="0"
+                Text="INR Test History"
+                FontSize="24"
+                FontAttributes="Bold"
+                TextColor="{StaticResource BackgroundWhite}"
+                VerticalOptions="Center" />
+
+            <Button
+                Grid.Column="1"
+                Text="↻ Refresh"
+                Command="{Binding LoadInrLogsCommand}"
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                BackgroundColor="{StaticResource BackgroundWhite}"
+                TextColor="{StaticResource PrimaryBlue}"
+                FontAttributes="Bold"
+                FontSize="12"
+                Padding="12,8"
+                CornerRadius="6"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="15">
+            <!-- Last Updated Info -->
+            <Label
+                Grid.Row="0"
+                Text="{Binding LastUpdatedText}"
+                FontSize="11"
+                TextColor="{StaticResource TextLight}"
+                Margin="0,0,0,10" />
+
+            <!-- Stale Data Warning (Orange Banner) -->
+            <Border
+                Grid.Row="1"
+                IsVisible="{Binding ShowStaleWarning}"
+                Background="{StaticResource StatusOrange}"
+                Padding="12,10"
+                Margin="0,0,0,10">
+                <Label
+                    Text="{Binding StaleWarningText}"
+                    FontSize="12"
+                    TextColor="{StaticResource TextDark}"
+                    FontAttributes="Bold" />
+            </Border>
+
+            <!-- Offline Mode Warning (Gray Banner) -->
+            <Border
+                Grid.Row="2"
+                IsVisible="{Binding IsOfflineMode}"
+                Background="{StaticResource OfflineGray}"
+                Padding="12,10"
+                Margin="0,0,0,10">
+                <Label
+                    Text="{Binding OfflineModeText}"
+                    FontSize="12"
+                    TextColor="{StaticResource BackgroundWhite}"
+                    FontAttributes="Bold" />
+            </Border>
+
+            <!-- Loading Indicator -->
+            <StackLayout Grid.Row="3" IsVisible="{Binding IsBusy}" Spacing="15" VerticalOptions="Center" HorizontalOptions="Center">
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource PrimaryBlue}"
+                    Scale="1.5" />
+                <Label
+                    Text="Loading INR data..."
+                    FontSize="14"
+                    TextColor="{StaticResource TextMedium}"
+                    HorizontalOptions="Center" />
+            </StackLayout>
+
+            <!-- Error State -->
+            <StackLayout Grid.Row="3" IsVisible="{Binding ShowError}" Spacing="10" Padding="20" VerticalOptions="Center" HorizontalOptions="Fill">
+                <Border Style="{StaticResource AlertFrame}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="⚠ Error Loading Data"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource TextDark}" />
+
+                        <Label
+                            Text="{Binding ErrorMessage}"
+                            FontSize="12"
+                            TextColor="{StaticResource TextDark}"
+                            LineBreakMode="WordWrap" />
+
+                        <Button
+                            Text="Retry"
+                            Command="{Binding LoadInrLogsCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                            Style="{StaticResource SecondaryButton}" />
+                    </VerticalStackLayout>
+                </Border>
+            </StackLayout>
+
+            <!-- INR List -->
+            <CollectionView
+                Grid.Row="3"
+                ItemsSource="{Binding InrLogs}"
+                IsVisible="{Binding ShowList}"
+                SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardFrame}" Margin="0,8">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15">
+                                <!-- Date and Status -->
+                                <StackLayout Grid.Column="0" Grid.Row="0" Spacing="5">
+                                    <Label
+                                        Text="{Binding TestDate, StringFormat='Test Date: {0:MMMM d, yyyy}'}"
+                                        FontAttributes="Bold"
+                                        FontSize="14"
+                                        TextColor="{StaticResource TextLight}" />
+                                </StackLayout>
+
+                                <!-- Status Badge -->
+                                <Border
+                                    Grid.Column="1"
+                                    Grid.Row="0"
+                                    Padding="8,4"
+                                    Background="{Binding StatusColor}"
+                                    Stroke="Transparent">
+                                    <Label
+                                        Text="{Binding StatusLabel}"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource BackgroundWhite}"
+                                        HorizontalOptions="Center" />
+                                </Border>
+
+                                <!-- INR Value -->
+                                <Label
+                                    Grid.Column="0"
+                                    Grid.Row="1"
+                                    Text="{Binding InrValue, StringFormat='INR Value: {0:F2}'}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{Binding InrValueColor}" />
+
+                                <!-- Notes -->
+                                <Label
+                                    Grid.Column="0"
+                                    Grid.Row="2"
+                                    Grid.ColumnSpan="2"
+                                    Text="{Binding Notes}"
+                                    FontSize="11"
+                                    TextColor="{StaticResource TextLight}"
+                                    IsVisible="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Empty State -->
+            <StackLayout Grid.Row="3" IsVisible="{Binding ShowEmpty}" Spacing="15" VerticalOptions="Center" HorizontalOptions="Fill">
+                <Label
+                    Text="No INR Records"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource TextMedium}"
+                    HorizontalOptions="Center" />
+
+                <Label
+                    Text="Your INR test history will appear here once you have records."
+                    FontSize="13"
+                    TextColor="{StaticResource TextLight}"
+                    HorizontalOptions="Center"
+                    HorizontalTextAlignment="Center" />
+            </StackLayout>
+        </Grid>
+    </Grid>
+
+</ContentPage>

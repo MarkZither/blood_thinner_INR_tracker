@@ -1,0 +1,32 @@
+name: Perf Benchmark
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  perf:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore Workloads
+        run: |
+          dotnet workload restore
+          dotnet workload install android
+          dotnet restore BloodThinnerTracker.sln
+          echo "Restore completed"
+
+      - name: Build perf tests
+        run: |
+          dotnet build tests/Mobile.UnitTests/Mobile.UnitTests.csproj -c Release --no-restore
+
+      - name: Run perf unit tests
+        run: |
+          dotnet test tests/Mobile.UnitTests/Mobile.UnitTests.csproj --no-restore --no-build --configuration Release --filter FullyQualifiedName~PerfTests

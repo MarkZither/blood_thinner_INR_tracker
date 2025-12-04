@@ -50,6 +50,7 @@
 		<ProjectReference Include="..\BloodThinnerTracker.ServiceDefaults\BloodThinnerTracker.ServiceDefaults.csproj" />
 		<ProjectReference Include="..\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
 		<ProjectReference Include="..\BloodThinnerTracker.Data.Shared\BloodThinnerTracker.Data.Shared.csproj" />
+		<ProjectReference Include="..\BloodThinnerTracker.Data.PostgreSQL\BloodThinnerTracker.Data.PostgreSQL.csproj" />
 		<ProjectReference Include="..\BloodThinnerTracker.Data.SqlServer\BloodThinnerTracker.Data.SqlServer.csproj" />
 		<ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
 	</ItemGroup>

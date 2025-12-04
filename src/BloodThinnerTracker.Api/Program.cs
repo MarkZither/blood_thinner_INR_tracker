@@ -18,6 +18,7 @@ using Serilog;
 using BloodThinnerTracker.ServiceDefaults.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.HttpOverrides;
+using BloodThinnerTracker.Api.Middleware;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
 // This application handles medical data and must comply with healthcare regulations.
@@ -26,18 +27,54 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 
 // Configure Serilog for file logging before builder creation
-var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "medical-app.log");
-Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+// Load minimal configuration early so logging templates and paths can be configured
+var preConfig = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .Build();
+
+// Enable Serilog SelfLog conditionally to help diagnose sink/configuration errors
+var enableSelfLog = preConfig.GetValue<bool?>("Diagnostics:Serilog:EnableSelfLog") ?? false;
+if (enableSelfLog)
+{
+    var selfLogPath = preConfig["Diagnostics:Serilog:SelfLogPath"];
+    if (!string.IsNullOrEmpty(selfLogPath))
+    {
+        try
+        {
+            var resolved = Path.IsPathRooted(selfLogPath) ? selfLogPath : Path.Combine(AppContext.BaseDirectory, selfLogPath);
+            var sw = File.CreateText(resolved);
+            sw.AutoFlush = true;
+            Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(sw));
+        }
+        catch (Exception ex)
+        {
+            // Fallback to console if file can't be created
+            Serilog.Debugging.SelfLog.WriteLine($"Failed to enable SelfLog file '{selfLogPath}': {ex}");
+            Serilog.Debugging.SelfLog.Enable(Console.Error);
+        }
+    }
+    else
+    {
+        Serilog.Debugging.SelfLog.Enable(Console.Error);
+    }
+}
+
 Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(preConfig)
     .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7)
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Replace default logging with Serilog
 builder.Host.UseSerilog();
+
+// Reduce noisy Entity Framework Core SQL command logs to avoid flooding the console
+// Specifically raise the minimum level for the DB command category to Warning.
+// This prevents verbose query text from being written to the console sink.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", Microsoft.Extensions.Logging.LogLevel.Warning);
 
 // Run as a Windows Service when deployed on Windows hosts.
 // This makes the Host integrate with Windows service lifetime APIs.
@@ -310,6 +347,10 @@ app.UseRouting();
 
 // Authentication and authorization for medical data security
 app.UseAuthentication();
+
+// Ensure DbContext instances see the current request user for audit fields
+app.UseMiddleware<DbContextCurrentUserMiddleware>();
+
 app.UseAuthorization();
 
 // Map controllers

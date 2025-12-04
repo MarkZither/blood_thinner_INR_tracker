@@ -17,7 +17,7 @@ env:
 jobs:
   bump-and-tag:
     name: Compute next minor version and tag
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     outputs:
       new-tag: ${{ steps.bump.outputs.newtag }}
     steps:
@@ -55,7 +55,7 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     needs: bump-and-tag
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKER_TAG: ${{ needs.bump-and-tag.outputs.new-tag }}

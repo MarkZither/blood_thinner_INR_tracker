@@ -1,26 +1,70 @@
-using BloodThinnerTracker.Mobile.ViewModels;
-
 namespace BloodThinnerTracker.Mobile;
 
-/// <summary>
-/// Application Shell for navigation and layout
-/// </summary>
 public partial class AppShell : Shell
 {
-    public AppShell()
-    {
-        InitializeComponent();
-        
-        // Register routes for pages that aren't in the shell structure
-        Routing.RegisterRoute("login", typeof(Views.LoginPage));
-        Routing.RegisterRoute("register", typeof(Views.RegisterPage));
-        Routing.RegisterRoute("medication/add", typeof(Views.AddMedicationPage));
-        Routing.RegisterRoute("medication/edit", typeof(Views.EditMedicationPage));
-        Routing.RegisterRoute("inr/add", typeof(Views.AddINRTestPage));
-        Routing.RegisterRoute("inr/history", typeof(Views.INRHistoryPage));
-        Routing.RegisterRoute("notifications", typeof(Views.NotificationsPage));
-        Routing.RegisterRoute("emergency", typeof(Views.EmergencyPage));
+    private readonly Services.IThemeService _themeService;
 
-        BindingContext = new AppShellViewModel();
+    public AppShell(Services.IThemeService themeService)
+    {
+        if (themeService == null) throw new ArgumentNullException(nameof(themeService));
+
+        InitializeComponent();
+        _themeService = themeService;
+
+        // Apply persisted theme at shell creation (guard Application.Current)
+        var theme = _themeService.GetCurrentTheme();
+        if (Application.Current != null)
+        {
+            try { Application.Current.UserAppTheme = theme; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AppShell: Failed to apply theme: {ex.Message}");
+            }
+        }
+    }
+
+    private void OnThemeToggleClicked(object? sender, EventArgs e)
+    {
+        var next = _themeService.CycleTheme();
+        // No UI feedback here; theme change is applied immediately.
+    }
+
+    private async void OnFlyoutHomeClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///flyouthome/inrlist");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to flyouthome failed: {ex.Message}");
+        }
+    }
+
+    private async void OnFlyoutAboutClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///flyoutabout/about");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to flyoutabout failed: {ex.Message}");
+        }
+    }
+
+    private async void OnFlyoutLoginClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///login");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to login failed: {ex.Message}");
+        }
     }
 }

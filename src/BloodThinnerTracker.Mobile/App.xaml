@@ -1,69 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<Application x:Class="BloodThinnerTracker.Mobile.App"
-             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:BloodThinnerTracker.Mobile">
-    
-    <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
-                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+             xmlns:converters="clr-namespace:BloodThinnerTracker.Mobile.Converters"
+             x:Class="BloodThinnerTracker.Mobile.App">
+  <Application.Resources>
+    <!-- Theme Resources - Merged Dictionaries -->
+    <ResourceDictionary Source="Themes/AppColors.xaml" />
+    <ResourceDictionary Source="Themes/AppStyles.xaml" />
 
-            <!-- Medical Theme Colors -->
-            <Color x:Key="Primary">#007ACC</Color>
-            <Color x:Key="PrimaryDark">#005A9E</Color>
-            <Color x:Key="Secondary">#28A745</Color>
-            <Color x:Key="SecondaryDark">#1E7E34</Color>
-            <Color x:Key="Tertiary">#6F42C1</Color>
-            <Color x:Key="Warning">#FFC107</Color>
-            <Color x:Key="Danger">#DC3545</Color>
-            <Color x:Key="Success">#28A745</Color>
-            <Color x:Key="Info">#17A2B8</Color>
-            <Color x:Key="Light">#F8F9FA</Color>
-            <Color x:Key="Dark">#343A40</Color>
-
-            <!-- Text Colors -->
-            <Color x:Key="TextPrimary">#212529</Color>
-            <Color x:Key="TextSecondary">#6C757D</Color>
-            <Color x:Key="TextMuted">#ADB5BD</Color>
-            <Color x:Key="TextWhite">#FFFFFF</Color>
-
-            <!-- Background Colors -->
-            <Color x:Key="BackgroundPrimary">#FFFFFF</Color>
-            <Color x:Key="BackgroundSecondary">#F8F9FA</Color>
-            <Color x:Key="BackgroundTertiary">#E9ECEF</Color>
-
-            <!-- Medical Status Colors -->
-            <Color x:Key="INRInRange">#28A745</Color>
-            <Color x:Key="INRBelowRange">#FFC107</Color>
-            <Color x:Key="INRAboveRange">#DC3545</Color>
-            <Color x:Key="MedicationTaken">#28A745</Color>
-            <Color x:Key="MedicationMissed">#DC3545</Color>
-            <Color x:Key="MedicationDelayed">#FFC107</Color>
-
-            <!-- Font Sizes -->
-            <x:Double x:Key="FontSizeSmall">12</x:Double>
-            <x:Double x:Key="FontSizeMedium">14</x:Double>
-            <x:Double x:Key="FontSizeLarge">16</x:Double>
-            <x:Double x:Key="FontSizeXLarge">18</x:Double>
-            <x:Double x:Key="FontSizeXXLarge">20</x:Double>
-            <x:Double x:Key="FontSizeTitle">24</x:Double>
-            <x:Double x:Key="FontSizeHeader">28</x:Double>
-
-            <!-- Spacing -->
-            <x:Double x:Key="SpacingXSmall">4</x:Double>
-            <x:Double x:Key="SpacingSmall">8</x:Double>
-            <x:Double x:Key="SpacingMedium">16</x:Double>
-            <x:Double x:Key="SpacingLarge">24</x:Double>
-            <x:Double x:Key="SpacingXLarge">32</x:Double>
-
-            <!-- Border Radius -->
-            <x:Double x:Key="BorderRadiusSmall">4</x:Double>
-            <x:Double x:Key="BorderRadiusMedium">8</x:Double>
-            <x:Double x:Key="BorderRadiusLarge">12</x:Double>
-
-        </ResourceDictionary>
-    </Application.Resources>
+    <!-- Value Converters -->
+    <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+    <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
+  </Application.Resources>
 </Application>

@@ -1,5 +1,4 @@
 using BloodThinnerTracker.Data.Shared;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -13,10 +12,8 @@ public class ApplicationDbContext : ApplicationDbContextBase
 {
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
-        IDataProtectionProvider dataProtectionProvider,
-        ICurrentUserService currentUserService,
         ILogger<ApplicationDbContext> logger)
-        : base(options, dataProtectionProvider, currentUserService, logger)
+        : base(options, logger)
     {
     }
 

@@ -39,7 +39,7 @@ public class AuthController : Controller
 
         if (!validationResult.IsValid)
         {
-            _logger.LogWarning("LoginMicrosoft: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}", 
+            _logger.LogWarning("LoginMicrosoft: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}",
                 validationResult.ValidationResultCode, returnUrl ?? "(null)");
         }
 
@@ -56,7 +56,7 @@ public class AuthController : Controller
             RedirectUri = redirectAfterExternal,
             Items =
             {
-                { "scheme", MicrosoftAccountDefaults.AuthenticationScheme },
+                { "scheme", "AzureAD" },
                 // Store the raw/safe return URL as an item so it can also be retrieved from properties.Items
                 { "returnUrl", safeReturn }
             }
@@ -64,7 +64,7 @@ public class AuthController : Controller
 
         _logger.LogInformation("Initiating Microsoft OAuth challenge. ReturnUrl: {ReturnUrl} RedirectUri: {RedirectUri}", safeReturn, redirectAfterExternal);
 
-        return Challenge(properties, MicrosoftAccountDefaults.AuthenticationScheme);
+        return Challenge(properties, "AzureAD");
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public class AuthController : Controller
 
         if (!validationResult.IsValid)
         {
-            _logger.LogWarning("LoginGoogle: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}", 
+            _logger.LogWarning("LoginGoogle: Invalid returnUrl rejected. Reason: {Reason}, Raw: {RawUrl}",
                 validationResult.ValidationResultCode, returnUrl ?? "(null)");
         }
 

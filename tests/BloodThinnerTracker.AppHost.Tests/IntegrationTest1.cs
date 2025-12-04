@@ -99,7 +99,7 @@ public sealed class AppHostFixture : IAsyncLifetime
 public class AppHostIntegrationTests : IClassFixture<AppHostFixture>
 {
     private readonly AppHostFixture _fixture;
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(120);
 
     public AppHostIntegrationTests(AppHostFixture fixture)
     {

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal iOS LaunchScreen storyboard that centers the MAUI splash image -->
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard" version="3.0" toolsVersion="17596" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" initialViewController="1">
+  <scenes>
+    <scene sceneID="1">
+      <objects>
+        <viewController id="2" sceneMemberID="viewController">
+          <view key="view" contentMode="scaleToFill" id="3">
+            <subviews>
+              <imageView userInteractionEnabled="NO" contentMode="center" translatesAutoresizingMaskIntoConstraints="NO" image="splash" id="4"/>
+            </subviews>
+            <constraints>
+              <constraint firstItem="4" firstAttribute="centerX" secondItem="3" secondAttribute="centerX" id="c1"/>
+              <constraint firstItem="4" firstAttribute="centerY" secondItem="3" secondAttribute="centerY" id="c2"/>
+            </constraints>
+          </view>
+        </viewController>
+      </objects>
+    </scene>
+  </scenes>
+</document>

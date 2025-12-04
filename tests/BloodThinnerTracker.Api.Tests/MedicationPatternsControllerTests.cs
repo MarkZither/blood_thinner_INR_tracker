@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BloodThinnerTracker.Api.Controllers;
 using BloodThinnerTracker.Api.Validators;
 using BloodThinnerTracker.Data.Shared;
@@ -7,10 +8,10 @@ using FluentValidation;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Security.Claims;
 
 namespace BloodThinnerTracker.Api.Tests;
 
@@ -26,29 +27,24 @@ namespace BloodThinnerTracker.Api.Tests;
 /// </remarks>
 public class MedicationPatternsControllerTests : IDisposable
 {
+    private readonly SqliteConnection _connection;
     private readonly ApplicationDbContext _context;
     private readonly MedicationPatternsController _controller;
-    private readonly ILogger<MedicationPatternsController> _logger;
     private readonly Mock<IValidator<CreateDosagePatternRequest>> _mockValidator;
     private readonly User _testUser;
     private readonly User _otherUser;
 
     public MedicationPatternsControllerTests()
     {
-        // Create in-memory database
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
 
         // Mock required dependencies
-        var mockDataProtection = new Mock<IDataProtectionProvider>();
-        var mockCurrentUser = new Mock<ICurrentUserService>();
-        var mockLogger = new Mock<ILogger<ApplicationDbContext>>();
-        _logger = Mock.Of<ILogger<MedicationPatternsController>>();
         _mockValidator = new Mock<IValidator<CreateDosagePatternRequest>>();
 
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+
         // Create context with all required dependencies
-        _context = new ApplicationDbContext(options, mockDataProtection.Object, mockCurrentUser.Object, mockLogger.Object);
+        _context = TestHelpers.CreateSqliteContext(_connection);
 
         // Seed test users (OAuth-based, no password)
         _testUser = new User
@@ -81,7 +77,8 @@ public class MedicationPatternsControllerTests : IDisposable
         _context.SaveChanges();
 
         // Create controller with validator
-        _controller = new MedicationPatternsController(_context, _logger, _mockValidator.Object);
+        var controllerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.MedicationPatternsController>.Instance;
+        _controller = new MedicationPatternsController(_context, controllerLogger, _mockValidator.Object);
     }
 
     private void SetupAuthenticatedUser(User user)

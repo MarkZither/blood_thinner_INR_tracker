@@ -41,6 +41,7 @@
     private string? _error;
     private string? _accessToken;
     private string? _refreshToken;
+    private string? _idToken;  // Store id_token for oid extraction
     private System.Security.Claims.ClaimsPrincipal? _authenticatedPrincipal;
     // Store a returnUrl restored from AuthenticationProperties.Items during initial authentication read
     private string? _restoredReturnFromProperties;
@@ -99,43 +100,30 @@
             }
 
             var idToken = tokens.FirstOrDefault(t => t.Name == "id_token")?.Value;
+            _idToken = idToken;  // Store for later use in OnAfterRenderAsync
             _accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
             _refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
 
-            Logger.LogInformation("OAuth complete: id_token present: {HasIdToken}, access_token present: {HasAccessToken}",
-                !string.IsNullOrEmpty(idToken), !string.IsNullOrEmpty(_accessToken));
-
-            // For authentication in our app, use id_token (it's a proper JWT with claims)
-            // The access_token is for calling Microsoft APIs, not for our backend
-            if (!string.IsNullOrEmpty(idToken))
+            // Require the provider-signed id_token for server-side validation. Do not rely on access_token.
+            if (string.IsNullOrEmpty(_idToken))
             {
-                _accessToken = idToken; // Use id_token as our auth token
-                Logger.LogInformation("OAuth complete: Using id_token (JWT) for app authentication, length: {Length}, starts with: {Prefix}",
-                    idToken.Length, idToken.Substring(0, Math.Min(50, idToken.Length)));
-            }
-            else if (string.IsNullOrEmpty(_accessToken))
-            {
-                Logger.LogError("OAuth complete: No id_token or access_token available");
+                Logger.LogError("OAuth complete: No id_token in authentication properties");
                 _error = "Authorization incomplete. Please sign in again.";
                 _isProcessing = false;
                 return;
             }
-            else
-            {
-                Logger.LogWarning("OAuth complete: No id_token found, using access_token (might be opaque). Length: {Length}, starts with: {Prefix}",
-                    _accessToken.Length, _accessToken.Substring(0, Math.Min(50, _accessToken.Length)));
-            }
 
-            // Extract claims from the authenticated principal (don't try to parse opaque access_token)
+            Logger.LogInformation("OAuth complete: id_token present, length: {Length}", _idToken.Length);
+
+            // Extract basic claims from the authenticated principal for display/logging
             var principal = authResult.Principal;
             if (principal?.Identity?.IsAuthenticated == true)
             {
                 var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
-                var sub = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-                Logger.LogInformation("OAuth complete: User authenticated - Email: {Email}, Name: {Name}, Sub: {Sub}",
-                    email ?? "N/A", name ?? "N/A", sub ?? "N/A");
+                Logger.LogInformation("OAuth complete: User authenticated - Email present: {HasEmail}, Name present: {HasName}",
+                    !string.IsNullOrEmpty(email), !string.IsNullOrEmpty(name));
 
                 // Store the principal's claims for later use
                 _authenticatedPrincipal = principal;
@@ -143,6 +131,15 @@
             else
             {
                 Logger.LogWarning("OAuth complete: Principal is not authenticated");
+            }
+
+            // Log claim types present (without values) for debugging - avoid PII exposure
+            if (_authenticatedPrincipal != null)
+            {
+                var claims = _authenticatedPrincipal.Claims.ToList();
+                var claimTypes = claims.Select(c => c.Type).Distinct().ToList();
+                Logger.LogInformation("OAuth complete: Principal has {ClaimCount} claims, types present: {ClaimTypes}",
+                    claims.Count, string.Join(", ", claimTypes));
             }
 
             // Attempt to capture returnUrl that may have been stored in AuthenticationProperties.Items during Challenge
@@ -177,16 +174,53 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !string.IsNullOrEmpty(_accessToken) && _authenticatedPrincipal != null)
+        if (firstRender && !string.IsNullOrEmpty(_idToken) && _authenticatedPrincipal != null)
         {
             try
             {
-                Logger.LogInformation("OAuth complete: Exchanging OAuth ID token for API JWT...");
+                Logger.LogInformation("OAuth complete: Exchanging OAuth claims for API JWT...");
 
-                // Extract user info from claims
+                // CRITICAL: Extract oid from ClaimsPrincipal first (OpenIdConnect middleware extracts it from id_token)
+                // Then fall back to parsing id_token manually if needed
                 var email = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
                 var name = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
-                var sub = _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                // CRITICAL: Extract user identifier (oid) from id_token JWT
+                // Organizational Azure AD tenant returns real oid (unique Object ID)
+                string? userIdentifier = null;
+
+                if (!string.IsNullOrEmpty(_idToken))
+                {
+                    // Parse id_token to get oid claim
+                    userIdentifier = ExtractClaimFromJwt(_idToken, "oid");
+                    var subFromToken = ExtractClaimFromJwt(_idToken, "sub");
+
+                    Logger.LogInformation("OAuth complete: id_token claims - oid present: {HasOID}, sub present: {HasSUB}",
+                        !string.IsNullOrEmpty(userIdentifier), !string.IsNullOrEmpty(subFromToken));
+
+                    // Fallback to sub if oid is missing
+                    if (string.IsNullOrEmpty(userIdentifier))
+                    {
+                        Logger.LogWarning("OAuth complete: oid claim missing, using sub claim");
+                        userIdentifier = subFromToken;
+                    }
+                }
+                else
+                {
+                    Logger.LogWarning("OAuth complete: id_token is NULL or empty - cannot extract user identifier");
+                }
+
+                // Last resort: Use claims from principal
+                if (string.IsNullOrEmpty(userIdentifier))
+                {
+                    userIdentifier = _authenticatedPrincipal.FindFirst("oid")?.Value
+                        ?? _authenticatedPrincipal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
+                        ?? _authenticatedPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    Logger.LogWarning("OAuth complete: Using fallback from principal: identifier present = {HasIdentifier}", !string.IsNullOrEmpty(userIdentifier));
+                }
+
+                Logger.LogInformation("OAuth complete: Extracted claims - Email present: {HasEmail}, Name present: {HasName}, UserIdentifier present: {HasUserIdentifier}",
+                    !string.IsNullOrEmpty(email), !string.IsNullOrEmpty(name), !string.IsNullOrEmpty(userIdentifier));
 
                 if (string.IsNullOrEmpty(email))
                 {
@@ -197,39 +231,31 @@
                     return;
                 }
 
-                // Try token exchange with ID token first (preferred method)
-                Logger.LogInformation("OAuth complete: Attempting token exchange with ID token...");
+                if (string.IsNullOrEmpty(userIdentifier))
+                {
+                    Logger.LogError("OAuth complete: No user identifier found in id_token or principal. Available claims: {Claims}",
+                        string.Join(", ", _authenticatedPrincipal.Claims.Select(c => c.Type)));
+                    _error = "Authentication failed: No user identifier found.";
+                    _isProcessing = false;
+                    StateHasChanged();
+                    return;
+                }
 
+                Logger.LogInformation("OAuth complete: Attempting token exchange with provider id_token via /api/auth/exchange...");
+
+                // Send the provider-signed id_token to the API for server-side validation.
                 var exchangeRequest = new ExternalLoginRequest
                 {
                     Provider = Provider == "microsoft" ? "AzureAD" : "Google",
-                    IdToken = _accessToken, // This is the id_token we stored
+                    IdToken = _idToken!, // must be present (checked above)
                     DeviceId = "web-app",
                     DevicePlatform = "Web"
                 };
 
-                Logger.LogInformation("Calling API token exchange endpoint for email: {Email}, provider: {Provider}, token length: {TokenLength}, token starts with: {TokenPrefix}",
-                    email, exchangeRequest.Provider, _accessToken?.Length ?? 0, _accessToken?.Substring(0, Math.Min(50, _accessToken?.Length ?? 0)));
+                Logger.LogInformation("Calling API token exchange endpoint for provider: {Provider}, id_token length: {Length}",
+                    exchangeRequest.Provider, exchangeRequest.IdToken?.Length ?? 0);
 
-                var response = await Http.PostAsJsonAsync("api/auth/external/mobile", exchangeRequest);
-
-                // If ID token validation fails, try claims-based exchange
-                if (!response.IsSuccessStatusCode)
-                {
-                    Logger.LogWarning("ID token exchange failed: {Status}, trying claims-based exchange", response.StatusCode);
-
-                    var claimsRequest = new ClaimsLoginRequest
-                    {
-                        Provider = Provider == "microsoft" ? "AzureAD" : "Google",
-                        Email = email,
-                        Name = name,
-                        ExternalUserId = sub,
-                        DeviceId = "web-app",
-                        DevicePlatform = "Web"
-                    };
-
-                    response = await Http.PostAsJsonAsync("api/auth/exchange", claimsRequest);
-                }
+                var response = await Http.PostAsJsonAsync("api/auth/exchange", exchangeRequest);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -237,7 +263,7 @@
 
                     if (authResponse != null && !string.IsNullOrEmpty(authResponse.AccessToken))
                     {
-                        Logger.LogInformation("Token exchange successful! Got our JWT for user: {Email}", authResponse.User?.Email);
+                        Logger.LogInformation("Token exchange successful! Got our JWT, user email present: {HasEmail}", !string.IsNullOrEmpty(authResponse.User?.Email));
 
                         // Store OUR JWT (not Microsoft's token)
                         await AuthStateProvider.MarkUserAsAuthenticatedAsync(
@@ -328,12 +354,68 @@
                 StateHasChanged();
             }
         }
-        else if (firstRender && string.IsNullOrEmpty(_accessToken))
+        else if (firstRender && string.IsNullOrEmpty(_idToken))
         {
-            Logger.LogError("OAuth complete: No access token available after first render");
+            Logger.LogError("OAuth complete: No id_token available after first render");
             _error = "Authentication incomplete. Please try again.";
             _isProcessing = false;
             StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Extract a claim value directly from JWT payload without validation.
+    /// OIDC middleware has already validated the signature, so we just parse the payload.
+    /// This ensures we get the REAL claim values, not middleware-remapped values.
+    /// </summary>
+    /// <remarks>
+    /// JWT format: base64url(header).base64url(payload).base64url(signature)
+    /// We only care about the payload to extract claims like 'oid', 'email', etc.
+    /// </remarks>
+    private string? ExtractClaimFromJwt(string? jwt, string claimName)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(jwt))
+            {
+                Logger.LogWarning("ExtractClaimFromJwt: JWT is null or empty");
+                return null;
+            }
+
+            var parts = jwt.Split('.');
+            if (parts.Length != 3)
+            {
+                Logger.LogWarning("ExtractClaimFromJwt: JWT does not have 3 parts");
+                return null;
+            }
+
+            // Decode JWT payload (add padding if needed for base64 decoding)
+            var payload = parts[1];
+            var padding = 4 - (payload.Length % 4);
+            if (padding != 4)
+            {
+                payload += new string('=', padding);
+            }
+
+            var decodedBytes = Convert.FromBase64String(payload);
+            var decoded = System.Text.Encoding.UTF8.GetString(decodedBytes);
+
+            // Parse JSON and extract the requested claim
+            using var jsonDoc = System.Text.Json.JsonDocument.Parse(decoded);
+            if (jsonDoc.RootElement.TryGetProperty(claimName, out var claimElement))
+            {
+                var value = claimElement.GetString();
+                Logger.LogDebug("ExtractClaimFromJwt: Found claim '{ClaimName}', value present: {HasValue}", claimName, !string.IsNullOrEmpty(value));
+                return value;
+            }
+
+            Logger.LogWarning("ExtractClaimFromJwt: Claim '{ClaimName}' not found in JWT payload", claimName);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ExtractClaimFromJwt: Failed to extract claim '{ClaimName}' from JWT", claimName);
+            return null;
         }
     }
 }

@@ -1,12 +1,9 @@
 using BloodThinnerTracker.Shared.Models;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
-using DataProtectionKey = Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey;
 
 namespace BloodThinnerTracker.Data.Shared;
 
@@ -18,20 +15,19 @@ namespace BloodThinnerTracker.Data.Shared;
 /// ⚠️ MEDICAL DATABASE CONTEXT:
 /// Handles sensitive medical data with encryption, audit trails, and compliance features.
 /// </summary>
-public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyContext, IApplicationDbContext
+public abstract class ApplicationDbContextBase : DbContext, IApplicationDbContext
 {
-    protected readonly IDataProtector _dataProtector;
-    protected readonly ICurrentUserService _currentUserService;
     protected readonly ILogger<ApplicationDbContextBase> _logger;
+
+    /// <summary>
+    /// The current user id to be set by the hosting/service layer per request.
+    /// </summary>
+    public int? CurrentUserId { get; set; }
 
     protected ApplicationDbContextBase(
         DbContextOptions options,
-        IDataProtectionProvider dataProtectionProvider,
-        ICurrentUserService currentUserService,
         ILogger<ApplicationDbContextBase> logger) : base(options)
     {
-        _dataProtector = dataProtectionProvider.CreateProtector("BloodThinnerTracker.MedicalData");
-        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -44,7 +40,8 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
     public DbSet<INRSchedule> INRSchedules { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
     public DbSet<AuditRecord> AuditRecords { get; set; } = null!;
-    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
+    // DataProtectionKeys removed from DB-backed storage. DataProtection responsibility moved
+    // to the platform/DB engine (TDE/SQLCipher/pgcrypto) instead of application-level key storage.
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -54,8 +51,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
         // Configure audit logging
         ConfigureAuditLogging(modelBuilder);
 
-        // Configure data protection keys
-        ConfigureDataProtection(modelBuilder);
+        // DataProtection keys stored in DB have been removed. Use DB-level encryption instead.
 
         // Configure global query filters for soft deletion and user isolation
         ConfigureGlobalFilters(modelBuilder);
@@ -113,18 +109,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
         });
     }
 
-    /// <summary>
-    /// Configures data protection keys storage in database.
-    /// </summary>
-    private void ConfigureDataProtection(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<DataProtectionKey>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.FriendlyName).HasMaxLength(100);
-            entity.Property(e => e.Xml).IsRequired();
-        });
-    }
+    // DataProtection key persistence removed. See docs for DB-level encryption guidance.
 
     /// <summary>
     /// Configures global query filters for soft deletion and user data isolation.
@@ -243,7 +228,7 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
 
     private void ConfigureMedicalDataEncryption(ModelBuilder modelBuilder)
     {
-        _logger.LogDebug("Medical data encryption configuration prepared");
+        _logger.LogDebug("Medical data encryption: rely on DB-level encryption, not runtime IDataProtector");
     }
 
     private void ConfigureIndexes(ModelBuilder modelBuilder)
@@ -349,13 +334,13 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
     /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.GetCurrentUserId();
+        var currentUserId = this.CurrentUserId;
         var currentTime = DateTime.UtcNow;
 
         // Process changes for audit logging
         foreach (var entry in ChangeTracker.Entries())
         {
-            if (entry.Entity is AuditLog or DataProtectionKey)
+            if (entry.Entity is AuditLog)
                 continue;
 
             // Update audit fields for medical entities
@@ -370,7 +355,14 @@ public abstract class ApplicationDbContextBase : DbContext, IDataProtectionKeyCo
                         // Special case: User entities self-reference
                         if (entry.Entity is not User && medicalEntity.UserId == 0)
                         {
-                            medicalEntity.UserId = currentUserId ?? throw new InvalidOperationException("User ID is required for medical data");
+                            if (currentUserId == null)
+                            {
+                                _logger.LogWarning("Saving medical data with null CurrentUserId - treating as system/anonymous");
+                            }
+                            else
+                            {
+                                medicalEntity.UserId = currentUserId.Value;
+                            }
                         }
                         break;
                     case EntityState.Modified:

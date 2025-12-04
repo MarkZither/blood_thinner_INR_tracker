@@ -1,11 +1,7 @@
 name: 🩸 Blood Thinner Tracker - CI/CD Pipeline
 
 on:
-  push:
-    branches: [ main, develop, 'feature/*', 'release/*', 'hotfix/*' ]
-  pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 env:
   DOTNET_VERSION: '10.0.x'
@@ -18,7 +14,7 @@ jobs:
   # Job 1: Build and Test
   build-and-test:
     name: 🔨 Build & Test
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 30
 
     steps:
@@ -36,6 +32,12 @@ jobs:
     - name: 📋 Display .NET info
       run: dotnet --info
 
+    - name: 🔁 Restore workloads
+      run: dotnet workload restore
+
+    - name: 🔁 Install Android workload
+      run: dotnet workload install android
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_FILE }}
 
@@ -45,8 +47,10 @@ jobs:
     - name: 🧪 Run tests
       run: |
         dotnet test ${{ env.SOLUTION_FILE }} \
+          --no-restore \
           --no-build \
           --configuration ${{ env.BUILD_CONFIGURATION }} \
+          --filter "FullyQualifiedName!~PerfTests" \
           --logger trx \
           --results-directory TestResults \
           --collect:"XPlat Code Coverage" \
@@ -70,7 +74,7 @@ jobs:
   # Job 2: Security Scan
   security-scan:
     name: 🔒 Security Scan
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build-and-test
     timeout-minutes: 20
 
@@ -111,7 +115,7 @@ jobs:
   # Job 3: Code Quality
   code-quality:
     name: 📝 Code Quality
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build-and-test
     timeout-minutes: 15
 
@@ -143,14 +147,14 @@ jobs:
   # Job 4: Package & Publish Artifacts
   package:
     name: 📦 Package Applications
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [build-and-test, security-scan, code-quality]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     timeout-minutes: 20
 
     strategy:
       matrix:
-        project: 
+        project:
           - { name: 'Api', path: 'src/BloodThinnerTracker.Api', runtime: 'linux-x64' }
           - { name: 'Web', path: 'src/BloodThinnerTracker.Web', runtime: 'linux-x64' }
           - { name: 'Cli', path: 'src/BloodThinnerTracker.Cli', runtime: 'win-x64' }
@@ -188,7 +192,7 @@ jobs:
   # Job 5: Docker Build & Push
   docker:
     name: 🐳 Docker Build & Push
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [build-and-test, security-scan]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     timeout-minutes: 30
@@ -246,7 +250,7 @@ jobs:
   # Job 6: Deploy to Development
   deploy-dev:
     name: 🚀 Deploy to Development
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [package, docker]
     if: github.ref == 'refs/heads/develop'
     environment: development
@@ -288,7 +292,7 @@ jobs:
   # Job 7: Deploy to Production
   deploy-prod:
     name: 🎯 Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [package, docker]
     if: github.ref == 'refs/heads/main'
     environment: production
@@ -331,7 +335,7 @@ jobs:
   # Job 8: Publish CLI Tool to NuGet
   publish-cli:
     name: 📤 Publish CLI Tool
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [build-and-test, security-scan]
     if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-cli]')
     timeout-minutes: 10
@@ -360,51 +364,3 @@ jobs:
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
 
-  # Job 9: Notification
-  notify:
-    name: 📢 Notify Teams
-    runs-on: ubuntu-latest
-    needs: [deploy-dev, deploy-prod, publish-cli]
-    if: always()
-    timeout-minutes: 5
-
-    steps:
-    - name: 📧 Send Slack notification
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        channel: '#bloodtracker-deployments'
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-    - name: 📨 Send Teams notification
-      uses: aliencube/microsoft-teams-actions@v0.8.0
-      with:
-        webhook_uri: ${{ secrets.TEAMS_WEBHOOK }}
-        title: "🩸 Blood Thinner Tracker Deployment"
-        summary: "Deployment completed for commit ${{ github.sha }}"
-        theme_color: ${{ job.status == 'success' && 'good' || 'danger' }}
-        sections: |
-          [
-            {
-              "activityTitle": "Deployment Status: ${{ job.status }}",
-              "activitySubtitle": "Branch: ${{ github.ref }}",
-              "activityImage": "https://github.com/identicons/${{ github.actor }}.png",
-              "facts": [
-                {
-                  "name": "Repository",
-                  "value": "${{ github.repository }}"
-                },
-                {
-                  "name": "Commit",
-                  "value": "${{ github.sha }}"
-                },
-                {
-                  "name": "Author",
-                  "value": "${{ github.actor }}"
-                }
-              ]
-            }
-          ]

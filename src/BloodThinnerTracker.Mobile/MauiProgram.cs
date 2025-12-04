@@ -1,86 +1,454 @@
-using BloodThinnerTracker.Mobile.Services;
-using BloodThinnerTracker.Mobile.ViewModels;
-using BloodThinnerTracker.Mobile.Views;
-using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using Plugin.LocalNotification;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Events;
+using Microsoft.Maui;
+using Microsoft.Maui.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Exporter;
+using BloodThinnerTracker.Mobile.Extensions;
+using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
 
-/// <summary>
-/// MAUI Application entry point for Blood Thinner Tracker
-/// </summary>
 public static class MauiProgram
 {
-    public static MauiApp CreateMauiApp()
+        public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-        
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit()
-            .UseLocalNotification()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                fonts.AddFont("FontAwesome6Free-Regular-400.otf", "FontAwesomeRegular");
-                fonts.AddFont("FontAwesome6Free-Solid-900.otf", "FontAwesomeSolid");
-            });
+            .ConfigureFonts(fonts => { });
 
-        // Register services
-        builder.Services.AddSingleton<IApiService, ApiService>();
-        builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
-        builder.Services.AddSingleton<INotificationService, NotificationService>();
-        builder.Services.AddSingleton<ISyncService, SyncService>();
-        builder.Services.AddSingleton<ISecureStorageService, SecureStorageService>();
-        builder.Services.AddSingleton<IBiometricService, BiometricService>();
+        builder.Services.AddMauiBlazorWebView();
 
-        // Register ViewModels
-        builder.Services.AddTransient<MainViewModel>();
-        builder.Services.AddTransient<DashboardViewModel>();
-        builder.Services.AddTransient<MedicationViewModel>();
-        builder.Services.AddTransient<INRTrackingViewModel>();
-        builder.Services.AddTransient<LoginViewModel>();
-        builder.Services.AddTransient<ProfileViewModel>();
-
-        // Register Views
-        builder.Services.AddTransient<MainPage>();
-        builder.Services.AddTransient<DashboardPage>();
-        builder.Services.AddTransient<MedicationPage>();
-        builder.Services.AddTransient<INRTrackingPage>();
-        builder.Services.AddTransient<LoginPage>();
-        builder.Services.AddTransient<ProfilePage>();
-
-        // HTTP Client configuration
-        builder.Services.AddHttpClient("BloodThinnerApi", client =>
+        // Load configuration from appsettings.json embedded resource
+        using var stream = typeof(App).Assembly.GetManifestResourceStream("BloodThinnerTracker.Mobile.appsettings.json");
+        IConfiguration? preConfig = null;
+        if (stream != null)
         {
-            client.BaseAddress = new Uri("https://localhost:5001/api/");
-            client.DefaultRequestHeaders.Add("User-Agent", "BloodThinnerTracker-Mobile/1.0");
+            preConfig = new ConfigurationBuilder()
+                .AddJsonStream(stream)
+                .Build();
+            builder.Configuration.AddInMemoryCollection(preConfig.AsEnumerable());
+        }
+
+        // Serilog initialization is configuration-driven below; keep configuration-driven setup
+            // Configure Serilog using configuration (preferred) while ensuring the file path
+            // is set to a platform-safe AppDataDirectory. We add a small in-memory override
+            // for the Serilog file sink path and ensure a console sink is available as a
+            // fallback so something is always logged even if file creation fails.
+            try
+            {
+                // Determine diagnostics options from pre-config (if available)
+                var useAppData = preConfig?.GetValue<bool?>("Diagnostics:Serilog:UseAppDataDirectory") ?? true;
+                var fileName = preConfig?["Diagnostics:Serilog:FileName"] ?? "mobile-.log";
+                var enableConsole = preConfig?.GetValue<bool?>("Diagnostics:Serilog:EnableConsole") ?? true;
+
+                // Enable Serilog SelfLog to Console.Error to capture internal Serilog errors if sinks fail
+                Serilog.Debugging.SelfLog.Enable(Console.Error);
+
+                // Build base logger configuration from the merged configuration (embedded appsettings)
+                var loggerConfig = new LoggerConfiguration()
+                    .ReadFrom.Configuration(builder.Configuration)
+                    .Enrich.FromLogContext();
+
+                // If requested, ensure there's a File sink pointing at the platform AppData path.
+                if (useAppData)
+                {
+                    var logsDir = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "Logs");
+                    try
+                    {
+                        System.IO.Directory.CreateDirectory(logsDir);
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Debugging.SelfLog.WriteLine($"Failed to create logs directory '{logsDir}': {ex}");
+                    }
+
+                    // Use a date-stamped file name to avoid depending on sink-specific enums
+                    var dateStamped = fileName.Replace(".log", "");
+                    var filePath = System.IO.Path.Combine(logsDir, $"{dateStamped}-{DateTime.UtcNow:yyyy-MM-dd}.log");
+
+                    // Detect if the embedded config already defines a File sink
+                    var writeToSection = preConfig?.GetSection("Serilog:WriteTo");
+                    var hasFileSink = false;
+                    var hasConsoleSink = false;
+                    if (writeToSection != null)
+                    {
+                        foreach (var child in writeToSection.GetChildren())
+                        {
+                            var name = child["Name"];
+                            if (string.Equals(name, "File", StringComparison.OrdinalIgnoreCase)) hasFileSink = true;
+                            if (string.Equals(name, "Console", StringComparison.OrdinalIgnoreCase)) hasConsoleSink = true;
+                        }
+                    }
+
+                    // If there's no File sink configured, add one programmatically pointing to AppData
+                    if (!hasFileSink)
+                    {
+                        loggerConfig = loggerConfig.WriteTo.File(filePath, shared: true);
+                    }
+
+                    // If Console isn't configured and enableConsole is true, add it programmatically
+                    if (enableConsole && !hasConsoleSink)
+                    {
+                        loggerConfig = loggerConfig.WriteTo.Console();
+                    }
+                }
+
+                // Create the logger and register it
+                Log.Logger = loggerConfig.CreateLogger();
+                builder.Logging.ClearProviders();
+                builder.Logging.AddSerilog(Log.Logger, dispose: true);
+            }
+            catch (Exception ex)
+            {
+                // Ensure at least debug logging remains available
+                Serilog.Debugging.SelfLog.WriteLine($"Serilog initialization failed: {ex}");
+            }
+
+        // Add environment variables (higher priority - overrides appsettings.json)
+        // Supports Features__UseMockServices, Features__ApiRootUrl, etc.
+        // Read all environment variables and add them to configuration
+        var envVars = new Dictionary<string, string?>();
+        foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
+        {
+            var key = entry.Key?.ToString() ?? string.Empty;
+            var value = entry.Value?.ToString();
+            // Normalize to colon separator for configuration key paths (Features:UseMockServices)
+            var normalizedKey = key.Replace("__", ":");
+            envVars[normalizedKey] = value;
+        }
+        builder.Configuration.AddInMemoryCollection(envVars);
+
+        // Register SplashOptions and its validation via extension to keep startup concise
+        builder.Services.AddSplashOptions(builder.Configuration);
+        // ensure the extension namespace is available
+
+        // Register optional app initializer (warms tokens, remote config fetch, etc.)
+        builder.Services.AddSingleton<Services.IAppInitializer, Services.AppInitializer>();
+
+#if DEBUG
+        builder.Services.AddBlazorWebViewDeveloperTools();
+        builder.Logging.AddDebug();
+#endif
+        // Register services (DI) - minimal bootstrap
+        builder.Services.AddSingleton<App>();
+        builder.Services.AddSingleton<AppShell>();
+        // Register MainPage for DI resolution in App
+        builder.Services.AddSingleton<MainPage>();
+
+        // Register views and viewmodels for navigation
+        builder.Services.AddTransient<Views.LoginView>();
+        builder.Services.AddTransient<ViewModels.LoginViewModel>();
+        builder.Services.AddTransient<Views.InrListView>();
+        builder.Services.AddTransient<ViewModels.InrListViewModel>();
+        // Lazy factory registration for deferred ViewModel creation
+        builder.Services.AddTransient(typeof(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<>));
+        builder.Services.AddTransient<Views.AboutView>();
+
+        // Register Feature services - use configuration flag instead of #if DEBUG
+        // Features.UseMockServices: true = mock, false = real API
+        // Note: JSON boolean true becomes string "True" (capitalized) - use case-insensitive comparison
+        var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        // Bind configuration to strongly-typed FeaturesOptions (no more magic strings!)
+        builder.Services.Configure<Services.FeaturesOptions>(builder.Configuration.GetSection(Services.FeaturesOptions.SectionName));
+
+        builder.Services.AddSingleton<Services.EncryptionService>();
+        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
+        builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
+
+        // OpenTelemetry: configure tracing and metrics exporters and register wrapper service
+        try
+        {
+            var otlpEndpoint = builder.Configuration["Telemetry:OtlpEndpoint"]; // e.g. "http://otel-collector:4317"
+
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(tracerProviderBuilder =>
+                {
+                    tracerProviderBuilder
+                        .AddSource("BloodThinnerTracker.Mobile");
+
+                    if (!string.IsNullOrEmpty(otlpEndpoint))
+                    {
+                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
+                        tracerProviderBuilder.AddOtlpExporter(opts =>
+                        {
+                            opts.Endpoint = new Uri(otlpEndpoint);
+                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
+                        });
+                    }
+                    else
+                    {
+                        tracerProviderBuilder.AddConsoleExporter();
+                    }
+                })
+                .WithMetrics(meterProviderBuilder =>
+                {
+                    meterProviderBuilder
+                        .AddMeter("BloodThinnerTracker.Mobile.Metrics");
+
+                    if (!string.IsNullOrEmpty(otlpEndpoint))
+                    {
+                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
+                        meterProviderBuilder.AddOtlpExporter(opts =>
+                        {
+                            opts.Endpoint = new Uri(otlpEndpoint);
+                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
+                        });
+                    }
+                    else
+                    {
+                        meterProviderBuilder.AddConsoleExporter();
+                    }
+                });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: OpenTelemetry setup failed: {ex.Message}");
+        }
+
+        builder.Services.AddSingleton<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService, BloodThinnerTracker.Mobile.Services.Telemetry.OpenTelemetryTelemetryService>();
+
+        // Theme service - manages user theme preference
+        builder.Services.AddSingleton<Services.IThemeService, Services.ThemeService>();
+
+        // Register Feature services with mock/real selection
+        builder.Services.AddSingleton<Services.IInrService>(sp =>
+        {
+            return useMockServices
+                ? (Services.IInrService)new Services.MockInrService()
+                : sp.GetRequiredService<Services.ApiInrService>();
         });
 
-        // Configure logging
-#if DEBUG
-        builder.Logging.AddDebug();
-        builder.Logging.SetMinimumLevel(LogLevel.Debug);
-#else
-        builder.Logging.SetMinimumLevel(LogLevel.Information);
-#endif
+        // If the Data.SQLite project is available, register a read-only adapter to query
+        // the canonical local DB for offline reads. This keeps the mobile app consistent
+        // with server-side schema while remaining read-only.
+        try
+        {
+            // Register Data Protection services required by ApplicationDbContext for encryption
+            var dataProtectionPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "DataProtection-Keys");
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(new System.IO.DirectoryInfo(dataProtectionPath))
+                .SetApplicationName("BloodThinnerTracker.Mobile");
 
-        // Platform-specific configurations
-        ConfigurePlatformServices(builder);
+            // Register mobile-specific ICurrentUserService (single-user device)
+            // Also register a seeder that ensures the device-local user exists
+            builder.Services.AddScoped<Services.MobileUserSeeder>();
+            builder.Services.AddScoped<BloodThinnerTracker.Data.Shared.ICurrentUserService, Services.MobileCurrentUserService>();
 
-        return builder.Build();
-    }
+            builder.Services.AddScoped<Services.IInrRepository, Services.InrRepository>();
+            // Register the EF DbContext from Data.SQLite using a file-based connection.
+            var dbPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "bloodtracker_mobile.db");
+            builder.Services.AddDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>(opts =>
+            {
+                opts.UseSqlite($"Data Source={dbPath}", b => b.MigrationsAssembly("BloodThinnerTracker.Data.SQLite"));
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: SQLite/DataProtection registration failed: {ex.Message}");
+        }
 
-    private static void ConfigurePlatformServices(MauiAppBuilder builder)
-    {
+        // HttpClient for API-backed services (uses IOptions to get API root URL)
+        // Keep a general-purpose HttpClient for other services that need it
+        builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
+            return new System.Net.Http.HttpClient
+            {
+                BaseAddress = new System.Uri(options.Value.ApiRootUrl)
+            };
+        });
+
+        // Token handler and ApiInrService configured with a token-aware HttpClient
+        builder.Services.AddSingleton<Services.ApiInrService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
+            var auth = sp.GetRequiredService<Services.IAuthService>();
+            var handlerLogger = sp.GetRequiredService<ILogger<Services.TokenDelegatingHandler>>();
+            var apiLogger = sp.GetRequiredService<ILogger<Services.ApiInrService>>();
+
+            var tokenHandler = new Services.TokenDelegatingHandler(auth, handlerLogger)
+            {
+                InnerHandler = new System.Net.Http.HttpClientHandler()
+            };
+
+            var client = new System.Net.Http.HttpClient(tokenHandler)
+            {
+                BaseAddress = new Uri(options.Value.ApiRootUrl)
+            };
+
+            return new Services.ApiInrService(client, apiLogger);
+        });
+
+        // OAuth configuration service - use configuration flag for mock/real
+        builder.Services.AddSingleton<Services.IOAuthConfigService>(sp =>
+        {
+            return useMockServices
+                ? (Services.IOAuthConfigService)new Services.MockOAuthConfigService()
+                : new Services.OAuthConfigService(
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
+                    sp.GetRequiredService<System.Net.Http.HttpClient>(),
+                    sp.GetRequiredService<ILogger<Services.OAuthConfigService>>(),
+                    sp.GetRequiredService<Services.ICacheService>());
+        });
+
+        // Register AuthService - use configuration flag for mock/real
+        builder.Services.AddSingleton<Services.IAuthService>(sp =>
+        {
+            return useMockServices
+                ? (Services.IAuthService)new Services.MockAuthService(
+                    sp.GetRequiredService<ILogger<Services.MockAuthService>>())
+                : new Services.AuthService(
+                    sp.GetRequiredService<Services.ISecureStorageService>(),
+                    sp.GetRequiredService<Services.IOAuthConfigService>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
+                    sp.GetRequiredService<ILogger<Services.AuthService>>(),
+                    sp.GetRequiredService<System.Net.Http.HttpClient>());
+        });
+
+        // Background cache sync service: periodically fetch latest INR data and populate encrypted cache
+        try
+        {
+            // Register the concrete CacheSyncService as a singleton and expose it as both
+            // ICacheSyncWorker and IHostedService so platform jobs can invoke SyncOnceAsync
+            builder.Services.AddSingleton<Services.CacheSyncService>();
+            builder.Services.AddSingleton<Services.ICacheSyncWorker>(sp => sp.GetRequiredService<Services.CacheSyncService>());
+            builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.CacheSyncService>());
+
+            // Development-only in-process worker: register DevSyncHostedService when debugging locally
+            // or when the feature flag is explicitly enabled. This runs the same sync logic in-process
+            // so you can iterate without packaging the app.
+            var enableInProc = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+            if (System.Diagnostics.Debugger.IsAttached || enableInProc)
+            {
+                // Register the concrete dev worker as a singleton and map IHostedService
+                // to the same instance so the host (if it starts hosted services) will
+                // use the same instance and tests can resolve the concrete type.
+                builder.Services.AddSingleton<Services.DevSyncHostedService>();
+                builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.DevSyncHostedService>());
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: CacheSyncService/DevSyncHostedService registration failed: {ex.Message}");
+        }
+
+        var app = builder.Build();
+
+        // Diagnostic: log which hosted services are registered and whether in-proc background
+        // was requested. This helps debug cases where AddHostedService appears to be ignored.
+        try
+        {
+            var startupLogger = app.Services.GetService<ILogger<App>>();
+            var dbgAttached = System.Diagnostics.Debugger.IsAttached;
+            var enableInProcFlag = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var hostedSvcTypes = app.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>()
+                .Select(s => s.GetType().FullName)
+                .ToList();
+
+            startupLogger?.LogInformation("Startup diagnostic: Debugger.IsAttached={Attached} EnableInProcBackground={EnableInProc} RegisteredHostedServices={Services}", dbgAttached, enableInProcFlag, string.Join(",", hostedSvcTypes));
+
+            // If we're in development in-proc mode, ensure the dev hosted service is started.
+            if (dbgAttached || enableInProcFlag)
+            {
+                try
+                {
+                    var dev = app.Services.GetService<Services.DevSyncHostedService>();
+                    if (dev != null)
+                    {
+                        // Start in background to avoid blocking startup; StartAsync should be idempotent
+                        _ = Task.Run(() => dev.StartAsync(System.Threading.CancellationToken.None));
+                        startupLogger?.LogInformation("Startup: Triggered DevSyncHostedService.StartAsync()");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    startupLogger?.LogWarning(ex, "Failed to start DevSyncHostedService proactively");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: Startup diagnostic logging failed: {ex.Message}");
+        }
+
+        // Ensure SQLite database is created and migrations applied BEFORE any views load.
+        // This must happen synchronously during startup to prevent "no such table" errors.
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetService<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>();
+            if (db != null)
+            {
+                var startupLogger = scope.ServiceProvider.GetService<ILogger<App>>();
+                startupLogger?.LogInformation("Startup: Applying EF Core migrations to local SQLite database");
+
+                // Use synchronous migration to ensure DB is ready before app continues
+                db.Database.Migrate();
+
+                startupLogger?.LogInformation("Startup: Local SQLite database migrations applied successfully");
+
+                // Also seed the mobile user
+                var seeder = scope.ServiceProvider.GetService<Services.MobileUserSeeder>();
+                seeder?.EnsureSeeded();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't crash - app can still function with API fallback
+            var fallbackLogger = app.Services.GetService<ILogger<App>>();
+            fallbackLogger?.LogError(ex, "Startup: Failed to apply database migrations");
+        }
+
 #if ANDROID
-        builder.Services.AddSingleton<Platforms.Android.Services.AndroidNotificationService>();
-#elif IOS
-        builder.Services.AddSingleton<Platforms.iOS.Services.iOSNotificationService>();
-#elif WINDOWS
-        builder.Services.AddSingleton<Platforms.Windows.Services.WindowsNotificationService>();
+        // Initialize the Android service provider bridge so OS-created components
+        // (JobService / BroadcastReceiver) can obtain scoped services safely.
+        try
+        {
+            BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.Initialize(app.Services);
+        }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetService<ILogger<App>>();
+            logger?.LogError(ex, "Failed to initialize Android service provider bridge");
+        }
 #endif
+
+#if WINDOWS
+        // Initialize the Windows service provider bridge so OS-created background tasks
+        // can obtain scoped services safely, and register the periodic background task.
+        try
+        {
+            BloodThinnerTracker.Mobile.Platforms.Windows.WindowsServiceProvider.Initialize(app.Services);
+
+            // Register background task for periodic INR data sync (idempotent - won't re-register if already done)
+            var logger = app.Services.GetService<ILogger<App>>();
+            BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingHelper.RegisterBackgroundTask(
+                intervalMinutes: 15,
+                force: false,
+                store: new BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingFlagStore(),
+                logger: logger);
+        }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetService<ILogger<App>>();
+            logger?.LogError(ex, "Failed to initialize Windows service provider or register background task");
+        }
+#endif
+
+
+
+        return app;
     }
 }

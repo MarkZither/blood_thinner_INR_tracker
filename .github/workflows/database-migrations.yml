@@ -1,0 +1,47 @@
+name: Database Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/BloodThinnerTracker.Data.*/**'
+      - 'src/BloodThinnerTracker.Shared/**'
+      - 'tests/BloodThinnerTracker.Integration.Tests/**'
+  pull_request:
+    paths:
+      - 'src/BloodThinnerTracker.Data.*/**'
+      - 'src/BloodThinnerTracker.Shared/**'
+      - 'tests/BloodThinnerTracker.Integration.Tests/**'
+
+jobs:
+  migration-tests:
+    name: Run Database Migration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Integration.Tests project
+        run: dotnet restore tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj
+
+      - name: Build Integration.Tests (Debug)
+        run: dotnet build tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj -c Debug --no-restore
+
+      - name: Run DatabaseMigration tests
+        run: |
+          dotnet test tests/BloodThinnerTracker.Integration.Tests/BloodThinnerTracker.Integration.Tests.csproj \
+            --filter "FullyQualifiedName~DatabaseMigration" \
+            --no-restore --no-build \
+            --logger "trx;LogFileName=migration-tests.trx" \
+            --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-test-results
+          path: ./TestResults/*.trx

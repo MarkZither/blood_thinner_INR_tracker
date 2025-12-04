@@ -1,4 +1,6 @@
+using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
 using BloodThinnerTracker.Data.Shared;
 using System.Data;
@@ -114,7 +116,7 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
     /// </summary>
     private void ConfigurePostgreSQL(DbContextOptionsBuilder options, string connectionString, IWebHostEnvironment environment)
     {
-        /*options.UseNpgsql(connectionString, postgres =>
+        options.UseNpgsql(connectionString, postgres =>
         {
             postgres.MigrationsAssembly("BloodThinnerTracker.Data.PostgreSQL");
             postgres.CommandTimeout(30);
@@ -122,7 +124,7 @@ public class DatabaseConfigurationService : IDatabaseConfigurationService
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
                 errorCodesToAdd: null);
-        });*/
+        });
 
         _logger.LogInformation("Configured PostgreSQL database for {Environment} environment", environment.EnvironmentName);
     }
@@ -388,7 +390,6 @@ public static class DatabaseConfigurationExtensions
                 {
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
-                .PersistKeysToDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>()
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
                 .SetApplicationName("BloodThinnerTracker");
 
@@ -397,7 +398,7 @@ public static class DatabaseConfigurationExtensions
                     .AddDbContextCheck<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>("database");
                 break;
 
-            /*case DatabaseProvider.PostgreSQL:
+            case DatabaseProvider.PostgreSQL:
                 services.AddDbContext<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>(
                     (serviceProvider, options) =>
                     {
@@ -416,14 +417,12 @@ public static class DatabaseConfigurationExtensions
                 {
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
-                .PersistKeysToDbContext<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
                 .SetApplicationName("BloodThinnerTracker");
 
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>("database");
                 break;
-            */
             case DatabaseProvider.SqlServer:
                 services.AddDbContext<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>(
                     (serviceProvider, options) =>
@@ -442,7 +441,6 @@ public static class DatabaseConfigurationExtensions
                 {
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
-                .PersistKeysToDbContext<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>()
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
                 .SetApplicationName("BloodThinnerTracker");
 

@@ -93,11 +93,35 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            _logger.LogInformation("External authentication attempt for {Email} via {Provider}", email, provider);
+            _logger.LogInformation("External authentication attempt for {Email} via {Provider} with ExternalUserId: {ExternalUserId}",
+                email, provider, externalId);
 
-            // Look up existing user by ExternalUserId
+            // Look up existing user by ExternalUserId first
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.ExternalUserId == externalId && u.AuthProvider == provider);
+
+            _logger.LogDebug("Lookup by ExternalUserId: {ExternalUserId} and Provider: {Provider} - Found: {Found}",
+                externalId, provider, existingUser != null);
+
+            // If not found by external ID, try to find by email (user may have registered via other methods)
+            if (existingUser == null)
+            {
+                existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == email);
+
+                if (existingUser != null)
+                {
+                    _logger.LogInformation("Found existing user by email {Email}, updating external auth info - Current ExternalUserId: {CurrentExternalUserId}, New ExternalUserId: {NewExternalUserId}",
+                        email, existingUser.ExternalUserId, externalId);
+                    // Update the existing user with external auth info
+                    existingUser.AuthProvider = provider;
+                    existingUser.ExternalUserId = externalId;
+                }
+                else
+                {
+                    _logger.LogInformation("No existing user found by email {Email}", email);
+                }
+            }
 
             User user;
             bool isNewUser = false;

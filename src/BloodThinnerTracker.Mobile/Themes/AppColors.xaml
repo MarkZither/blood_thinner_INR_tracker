@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+  <!-- Primary brand color -->
+  <Color x:Key="PrimaryColor">#0066CC</Color>
+  <Color x:Key="PrimaryBlue">#0066CC</Color>
+  <Color x:Key="PrimaryBlueDark">#004999</Color>
+  <Color x:Key="PrimaryBlueDarker">#003366</Color>
+
+  <!-- Accent / Danger for elevated INR -->
+  <Color x:Key="AccentColor">#DC3545</Color>
+  <Color x:Key="AccentRed">#DC3545</Color>
+  <Color x:Key="AccentRedDark">#A02830</Color>
+
+  <!-- Neutral palette / Text -->
+  <Color x:Key="Neutral900">#333333</Color>
+  <Color x:Key="TextDark">#333333</Color>
+  <Color x:Key="Neutral700">#666666</Color>
+  <Color x:Key="TextMedium">#666666</Color>
+  <Color x:Key="TextLight">#999999</Color>
+  <Color x:Key="Neutral300">#CCCCCC</Color>
+  <Color x:Key="BorderGray">#CCCCCC</Color>
+  <Color x:Key="Neutral100">#F5F5F5</Color>
+  <Color x:Key="BackgroundGray">#F5F5F5</Color>
+  <Color x:Key="BackgroundWhite">#FFFFFF</Color>
+  <!-- Offline / secondary gray used for banners -->
+  <Color x:Key="OfflineGray">#6C757D</Color>
+
+  <!-- Status colors -->
+  <Color x:Key="StatusNormal">#28A745</Color>
+  <Color x:Key="StatusGreen">#28A745</Color>
+  <Color x:Key="StatusWarning">#FFC107</Color>
+  <Color x:Key="StatusOrange">#FFC107</Color>
+  <Color x:Key="StatusCritical">#DC3545</Color>
+  <Color x:Key="StatusRed">#DC3545</Color>
+
+  <!-- Page Background / Semantic -->
+  <Color x:Key="PageBackground">#FFFFFF</Color>
+
+  <!-- Dark Mode -->
+  <Color x:Key="DarkModeBackground">#1F1F1F</Color>
+  <Color x:Key="DarkModeCardBackground">#2D2D2D</Color>
+  <Color x:Key="DarkModeText">#FFFFFF</Color>
+  <Color x:Key="DarkModeTextSecondary">#CCCCCC</Color>
+  <Color x:Key="DarkModeBorder">#404040</Color>
+
+  <!-- Semantic brushes / brushes for convenience -->
+  <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource Neutral100}" />
+  <SolidColorBrush x:Key="ForegroundBrush" Color="{StaticResource Neutral900}" />
+
+</ResourceDictionary>

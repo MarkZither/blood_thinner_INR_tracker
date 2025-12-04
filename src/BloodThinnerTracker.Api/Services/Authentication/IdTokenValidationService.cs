@@ -158,19 +158,21 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             _logger.LogDebug("Azure AD Config - TenantId: {TenantId}, ClientId: {ClientId}", tenantId, clientId);
 
+            // Use organizational tenant for consistent oid claim (not 'common' which returns MSA tokens)
+            // tenantId already extracted from configuration above
             var authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
             var tokenHandler = new JwtSecurityTokenHandler();
 
             // Decode token to see what's in it (for debugging)
             var jwtToken = tokenHandler.ReadJwtToken(idToken);
-            _logger.LogDebug("Token Issuer: {Issuer}, Audience: {Audience}", 
+            _logger.LogDebug("Token Issuer: {Issuer}, Audience: {Audience}",
                 jwtToken.Issuer, string.Join(", ", jwtToken.Audiences));
 
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuers = new[] 
-                { 
+                ValidIssuers = new[]
+                {
                     $"https://login.microsoftonline.com/{tenantId}/v2.0",
                     $"https://sts.windows.net/{tenantId}/",
                     $"https://login.microsoftonline.com/{tenantId}/"
@@ -186,7 +188,7 @@ public class IdTokenValidationService : IIdTokenValidationService
                     var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                         metadataAddress,
                         new OpenIdConnectConfigurationRetriever());
-                    
+
                     var config = configManager.GetConfigurationAsync().GetAwaiter().GetResult();
                     return config.SigningKeys;
                 }
@@ -196,36 +198,33 @@ public class IdTokenValidationService : IIdTokenValidationService
 
             // Azure AD v2.0 uses short claim names by default
             // Look for claims with various possible names
-            var emailClaim = principal.FindFirst("preferred_username") 
+            var emailClaim = principal.FindFirst("preferred_username")
                 ?? principal.FindFirst("email")
                 ?? principal.FindFirst("upn");
-            
-            var nameClaim = principal.FindFirst("name");
-            
-            // Object ID (oid) is the unique user identifier in Azure AD
-            var oidClaim = principal.FindFirst("oid") 
-                ?? principal.FindFirst("sub")
-                ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
 
-            _logger.LogDebug("Azure AD Claims - oid: {Oid}, sub: {Sub}, email: {Email}, preferred_username: {PreferredUsername}, name: {Name}, upn: {Upn}",
+            var nameClaim = principal.FindFirst("name");
+
+            // Resolve the external user id using centralized precedence rules
+            var externalId = IdTokenClaimResolver.ResolveExternalUserId(principal);
+
+            _logger.LogDebug("Azure AD Claims - resolvedExternalId: {ExternalId}, oid: {Oid}, sub: {Sub}, email: {Email}",
+                externalId ?? "null",
                 principal.FindFirst("oid")?.Value ?? "null",
                 principal.FindFirst("sub")?.Value ?? "null",
-                principal.FindFirst("email")?.Value ?? "null",
-                principal.FindFirst("preferred_username")?.Value ?? "null",
-                principal.FindFirst("name")?.Value ?? "null",
-                principal.FindFirst("upn")?.Value ?? "null");
+                principal.FindFirst("email")?.Value ?? "null");
 
-            if (oidClaim == null || string.IsNullOrEmpty(oidClaim.Value))
+            if (string.IsNullOrEmpty(externalId))
             {
                 _logger.LogError("Azure AD token missing oid/sub claim - cannot identify user");
             }
 
-            _logger.LogInformation("Azure AD ID token validated successfully for user {Email}", emailClaim?.Value);
+            _logger.LogInformation("Azure AD ID token validated successfully for user {Email} with ExternalUserId: {ExternalUserId}",
+                emailClaim?.Value, externalId ?? "MISSING");
 
             return new IdTokenValidationResult
             {
                 IsValid = true,
-                ExternalUserId = oidClaim?.Value ?? "",
+                ExternalUserId = externalId ?? "",
                 Email = emailClaim?.Value ?? "",
                 Name = nameClaim?.Value ?? "",
                 Provider = "AzureAD"

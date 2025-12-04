@@ -67,41 +67,37 @@ public class DatabaseMigrationTests : IAsyncLifetime
         }
         _serviceProvider?.Dispose();
     }
-    /*
+
     private BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext CreatePostgreSqlContext(DbContextOptions<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext> options)
     {
-        var dataProtectionProvider = _serviceProvider!.GetRequiredService<IDataProtectionProvider>();
-        var currentUserService = _serviceProvider!.GetRequiredService<ICurrentUserService>();
         var logger = _serviceProvider!.GetRequiredService<ILogger<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>>();
 
-        return new BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext(options, dataProtectionProvider, currentUserService, logger);
-    }*/
+        return new BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext(options, logger);
+    }
 
     private BloodThinnerTracker.Data.SqlServer.ApplicationDbContext CreateSqlServerContext(DbContextOptions<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext> options)
     {
-        var dataProtectionProvider = _serviceProvider!.GetRequiredService<IDataProtectionProvider>();
-        var currentUserService = _serviceProvider!.GetRequiredService<ICurrentUserService>();
         var logger = _serviceProvider!.GetRequiredService<ILogger<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>>();
 
-        return new BloodThinnerTracker.Data.SqlServer.ApplicationDbContext(options, dataProtectionProvider, currentUserService, logger);
+        return new BloodThinnerTracker.Data.SqlServer.ApplicationDbContext(options, logger);
     }
 
     private BloodThinnerTracker.Data.SQLite.ApplicationDbContext CreateSQLiteContext(DbContextOptions<BloodThinnerTracker.Data.SQLite.ApplicationDbContext> options)
     {
-        var dataProtectionProvider = _serviceProvider!.GetRequiredService<IDataProtectionProvider>();
-        var currentUserService = _serviceProvider!.GetRequiredService<ICurrentUserService>();
         var logger = _serviceProvider!.GetRequiredService<ILogger<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>>();
 
-        return new BloodThinnerTracker.Data.SQLite.ApplicationDbContext(options, dataProtectionProvider, currentUserService, logger);
+        return new BloodThinnerTracker.Data.SQLite.ApplicationDbContext(options, logger);
     }
-    /*
+
     [Fact]
-    public async Task PostgreSQL_MigrationsApplySuccessfully()
+        public async Task PostgreSQL_MigrationsApplySuccessfully()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
             .EnableDetailedErrors()
             .EnableSensitiveDataLogging()
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -121,10 +117,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_AllTablesCreated()
+        public async Task PostgreSQL_AllTablesCreated()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -156,10 +154,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_CheckConstraintsWork()
+        public async Task PostgreSQL_CheckConstraintsWork()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -185,10 +185,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_ColumnNamesAreCaseCorrect()
+        public async Task PostgreSQL_ColumnNamesAreCaseCorrect()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -209,10 +211,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_NoNVarcharTypes()
+        public async Task PostgreSQL_NoNVarcharTypes()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -225,7 +229,7 @@ public class DatabaseMigrationTests : IAsyncLifetime
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND data_type LIKE '%nvarchar%'";
-        
+
         await context.Database.OpenConnectionAsync();
         var nvarcharCount = (int)(await command.ExecuteScalarAsync() ?? 0);
 
@@ -234,10 +238,12 @@ public class DatabaseMigrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostgreSQL_InsertAndQueryUser()
+        public async Task PostgreSQL_InsertAndQueryUser()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>().UseNpgsql(_postgresConnectionString)
+        var options = new DbContextOptionsBuilder<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>()
+            .UseNpgsql(_postgresConnectionString)
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
 
         using var context = CreatePostgreSqlContext(options);
@@ -271,7 +277,7 @@ public class DatabaseMigrationTests : IAsyncLifetime
         Assert.Equal(testEmail, retrievedUser.Email);
         Assert.True(retrievedUser.Id > 0); // Verify internal Id was generated
         Assert.Equal(publicId, retrievedUser.PublicId);
-    }*/
+    }
 
     #region SQL Server Tests
 
