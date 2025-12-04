@@ -24,6 +24,9 @@ jobs:
           echo "Installing MAUI workloads (maui-android, maui-windows). This may take a few minutes..."
           dotnet workload restore
 
+      - name: 🔁 Install Android workload
+        run: dotnet workload install android
+
       - name: Install reportgenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
 

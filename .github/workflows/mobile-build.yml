@@ -82,6 +82,9 @@ jobs:
     - name: 📦 Restore workloads
       run: dotnet workload restore
 
+    - name: 🔁 Install Android workload
+      run: dotnet workload install android
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
