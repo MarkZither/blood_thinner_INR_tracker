@@ -273,8 +273,9 @@ public class MedicationDosagePatternTests
         var pattern = new MedicationDosagePattern
         {
             PatternSequence = new List<decimal> { 4.0m, 3.0m },
-            StartDate = new DateTime(2025, 11, 1),
-            EndDate = new DateTime(2025, 11, 30) // Future date, so pattern is still active
+            // Use relative dates so the test doesn't become time-sensitive
+            StartDate = DateTime.UtcNow.AddDays(-1),
+            EndDate = DateTime.UtcNow.AddDays(30) // Future date, so pattern is still active
         };
 
         // Act
