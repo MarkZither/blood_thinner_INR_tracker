@@ -39,6 +39,9 @@ jobs:
     - name: 🔁 Restore workloads
       run: dotnet workload restore
 
+    - name: 🔁 Install Android workload
+      run: dotnet workload install android
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_FILE }}
 
@@ -154,7 +157,7 @@ jobs:
 
     strategy:
       matrix:
-        project: 
+        project:
           - { name: 'Api', path: 'src/BloodThinnerTracker.Api', runtime: 'linux-x64' }
           - { name: 'Web', path: 'src/BloodThinnerTracker.Web', runtime: 'linux-x64' }
           - { name: 'Cli', path: 'src/BloodThinnerTracker.Cli', runtime: 'win-x64' }

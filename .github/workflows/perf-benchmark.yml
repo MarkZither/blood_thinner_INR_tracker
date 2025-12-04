@@ -19,6 +19,7 @@ jobs:
       - name: Restore
         run: |
           dotnet workload restore
+          dotnet workload restore
           dotnet restore BloodThinnerTracker.sln
 
       - name: Run perf unit tests
