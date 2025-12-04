@@ -75,7 +75,7 @@ jobs:
     - name: 🔨 Build Android App (Release)
       if: github.ref == 'refs/heads/main'
       #run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Release -o ./publish/android /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT /p:AndroidKeyStore=true /p:AndroidSigningKeyStore=${{ secrets.ANDROID_KEYSTORE_FILE }} /p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} /p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} /p:AndroidSigningStorePass=${{ secrets.ANDROID_STORE_PASSWORD }}
-      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Release -o ./publish/android -p:PublishedTrimmer=false -p:RunAOTCompilation=false /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
+      run: dotnet publish ${{ env.MOBILE_PROJECT_PATH }} -f net10.0-android -c Release -o ./publish/android /p:PublishedTrimmer=false /p:RunAOTCompilation=false /p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
 
     - name: 📁 Upload Android artifacts
       uses: actions/upload-artifact@v4
