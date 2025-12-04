@@ -22,6 +22,10 @@ jobs:
           dotnet workload install android
           dotnet restore BloodThinnerTracker.sln
 
+      - name: Build perf tests
+        run: |
+          dotnet build tests/Mobile.UnitTests/Mobile.UnitTests.csproj -c Release --no-restore
+
       - name: Run perf unit tests
         run: |
-          dotnet test tests/Mobile.UnitTests/Mobile.UnitTests.csproj --configuration Release --filter FullyQualifiedName~PerfTests
+          dotnet test tests/Mobile.UnitTests/Mobile.UnitTests.csproj --no-restore --no-build --configuration Release --filter FullyQualifiedName~PerfTests

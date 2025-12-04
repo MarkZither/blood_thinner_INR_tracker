@@ -213,7 +213,8 @@ jobs:
     - name: 🧪 Run tests after updates
       if: env.UPDATES_AVAILABLE == 'true'
       run: |
-        dotnet test --no-build --logger trx --results-directory TestResults
+        dotnet build --no-restore --configuration Release
+        dotnet test --no-restore --no-build --logger trx --results-directory TestResults
 
     - name: 📝 Generate update summary
       if: env.UPDATES_AVAILABLE == 'true'

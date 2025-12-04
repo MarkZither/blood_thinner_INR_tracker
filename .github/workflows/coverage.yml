@@ -50,8 +50,9 @@ jobs:
           for proj in "${projects[@]}"; do
             echo "Running tests for: $proj"
             # Use XPlat collector provided by coverlet.collector package referenced in test projects
-            # Exclude perf tests (FullyQualifiedName containing 'PerfTests') so perf runs only in the dedicated workflow
-            dotnet test "$proj" -c Release --nologo --filter "FullyQualifiedName!~PerfTests" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
+            # Build the test project (no restore because restore ran earlier), then run tests with no-build/no-restore
+            dotnet build "$proj" -c Release --no-restore
+            dotnet test "$proj" -c Release --nologo --no-restore --no-build --filter "FullyQualifiedName!~PerfTests" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
           done
 
       - name: Merge coverage reports (HTML)

@@ -55,8 +55,11 @@ jobs:
           Write-Error "Web app did not become available"
         shell: pwsh
 
+      - name: Build e2e tests
+        run: dotnet build tests/BloodThinnerTracker.Web.e2e.Tests -c Release --no-restore
+
       - name: Run e2e tests
-        run: dotnet test tests/BloodThinnerTracker.Web.e2e.Tests --no-build --configuration Release
+        run: dotnet test tests/BloodThinnerTracker.Web.e2e.Tests --no-restore --no-build --configuration Release
         env:
           TEST_BASE_URL: http://localhost:5236
 
