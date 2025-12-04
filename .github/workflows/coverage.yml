@@ -58,14 +58,27 @@ jobs:
           done
 
       - name: Merge coverage reports (HTML)
+        shell: pwsh
         run: |
-          reports=$(printf '%s;' tests/**/TestResults/**/coverage.cobertura.xml)
-          echo "Reports: $reports"
-          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report -reporttypes:HtmlInline_AzurePipelines || true
+          $files = Get-ChildItem -Path tests -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          if (-not $files) {
+            Write-Host "No coverage reports found"
+            exit 0
+          }
+          $reports = $files -join ';'
+          Write-Host "Reports: $reports"
+          reportgenerator "-reports:$reports" -targetdir:coverage/report -reporttypes:HtmlInline_AzurePipelines || Write-Host "reportgenerator failed, continuing"
 
       - name: Generate text summary
+        shell: pwsh
         run: |
-          reportgenerator -reports:tests/**/TestResults/**/coverage.cobertura.xml -targetdir:coverage/report-summary -reporttypes:TextSummary || true
+          $files = Get-ChildItem -Path tests -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          if (-not $files) {
+            Write-Host "No coverage reports found"
+            exit 0
+          }
+          $reports = $files -join ';'
+          reportgenerator "-reports:$reports" -targetdir:coverage/report-summary -reporttypes:TextSummary || Write-Host "reportgenerator (TextSummary) failed, continuing"
 
       - name: Upload coverage report (HTML)
         uses: actions/upload-artifact@v4
