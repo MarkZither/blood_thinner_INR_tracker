@@ -18,6 +18,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Install MAUI workloads
+        # Install MAUI workloads so solution-level restore/build won't fail
+        # Installing maui-tizen specifically resolves NETSDK1147 in CI.
+        run: |
+          echo "Installing MAUI workloads (maui-tizen + common MAUI packs). This may take a few minutes..."
+          dotnet workload install maui-tizen microsoft-maui microsoft-maui-android microsoft-maui-ios microsoft-maui-windows --skip-manifest-update
+
       - name: Install reportgenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
 
