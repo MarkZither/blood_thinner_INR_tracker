@@ -17,7 +17,9 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore
-        run: dotnet restore BloodThinnerTracker.sln
+        run: |
+          dotnet workload restore
+          dotnet restore BloodThinnerTracker.sln
 
       - name: Run perf unit tests
         run: |

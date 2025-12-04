@@ -21,7 +21,7 @@ jobs:
   # Job 1: Vulnerability Scanning
   vulnerability-scan:
     name: 🛡️ Vulnerability Scan
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 15
 
     steps:
@@ -35,7 +35,9 @@ jobs:
         include-prerelease: ${{ env.DOTNET_PREVIEW }}
 
     - name: 📦 Restore packages
-      run: dotnet restore
+      run: |
+        dotnet workload restore || true
+        dotnet restore
 
     - name: 🔍 Check for vulnerable packages
       run: |
@@ -84,7 +86,7 @@ jobs:
   # Job 2: OWASP Dependency Check
   owasp-dependency-check:
     name: 🔍 OWASP Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 20
 
     steps:
@@ -117,7 +119,7 @@ jobs:
   # Job 3: License Compliance
   license-check:
     name: 📄 License Compliance
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 10
 
     steps:
@@ -163,7 +165,7 @@ jobs:
   # Job 4: Dependency Updates
   dependency-updates:
     name: 🔄 Dependency Updates
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [vulnerability-scan, owasp-dependency-check]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
@@ -201,6 +203,7 @@ jobs:
         dotnet outdated --upgrade --version-lock Minor
         
         # Restore to ensure everything works
+        dotnet workload restore || true
         dotnet restore
         
         # Build to verify updates don't break anything
@@ -255,7 +258,7 @@ jobs:
   # Job 5: Security Policy Validation
   security-policy:
     name: 🛡️ Security Policy Validation
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 10
 
     steps:
@@ -316,7 +319,7 @@ jobs:
   # Job 6: Compliance Report
   compliance-report:
     name: 📋 Compliance Report
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [vulnerability-scan, owasp-dependency-check, license-check, security-policy]
     if: always()
     timeout-minutes: 5

@@ -8,7 +8,7 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,8 +47,8 @@ jobs:
           for proj in "${projects[@]}"; do
             echo "Running tests for: $proj"
             # Use XPlat collector provided by coverlet.collector package referenced in test projects
-            # Use coverage runsettings to exclude migrations, generated files and provider assemblies
-            dotnet test "$proj" -c Release --nologo --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
+            # Exclude perf tests (FullyQualifiedName containing 'PerfTests') so perf runs only in the dedicated workflow
+            dotnet test "$proj" -c Release --nologo --filter "FullyQualifiedName!~PerfTests" --collect:"XPlat Code Coverage" --settings ".github/coverage.runsettings"
           done
 
       - name: Merge coverage reports (HTML)

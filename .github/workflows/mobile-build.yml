@@ -10,13 +10,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Restore workloads
+        run: dotnet workload restore
+
       - name: Restore
         run: dotnet restore BloodThinnerTracker.sln
       - name: Build mobile project
@@ -51,7 +54,7 @@ jobs:
   # Job 1: Android Build
   android-build:
     name: 🤖 Android Build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 45
 
     steps:
@@ -75,6 +78,9 @@ jobs:
 
     - name: 🔧 Setup Android SDK
       uses: android-actions/setup-android@v3
+
+    - name: 📦 Restore workloads
+      run: dotnet workload restore
 
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
@@ -154,6 +160,9 @@ jobs:
         api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
         api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
 
+    - name: 📦 Restore workloads
+      run: dotnet workload restore
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
@@ -207,6 +216,9 @@ jobs:
     - name: 📱 Install .NET MAUI workload
       run: dotnet workload install maui
 
+    - name: 📦 Restore workloads
+      run: dotnet workload restore
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
@@ -254,6 +266,9 @@ jobs:
     - name: 📱 Install .NET MAUI workload
       run: dotnet workload install maui
 
+    - name: 📦 Restore workloads
+      run: dotnet workload restore
+
     - name: 📦 Restore dependencies
       run: dotnet restore ${{ env.MOBILE_PROJECT_PATH }}
 
@@ -283,7 +298,7 @@ jobs:
   # Job 5: App Store Deployment
   deploy-stores:
     name: 🏪 Deploy to App Stores
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [android-build, ios-build, windows-build]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.deploy_to_stores == 'true' || contains(github.event.head_commit.message, '[deploy-stores]'))
     timeout-minutes: 30
@@ -336,7 +351,7 @@ jobs:
   # Job 6: Performance Testing
   performance-test:
     name: 🚀 Performance Testing
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [android-build]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     timeout-minutes: 30
@@ -392,7 +407,7 @@ jobs:
   # Job 7: Accessibility Testing
   accessibility-test:
     name: ♿ Accessibility Testing
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [android-build]
     timeout-minutes: 20
 
@@ -424,7 +439,7 @@ jobs:
   # Job 8: Medical Compliance Validation
   medical-compliance:
     name: 🏥 Medical Compliance Validation
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 10
 
     steps:
@@ -464,7 +479,7 @@ jobs:
   # Job 9: Notification Summary
   notification:
     name: 📢 Build Summary
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: [android-build, ios-build, windows-build, macos-build]
     if: always()
     timeout-minutes: 5
