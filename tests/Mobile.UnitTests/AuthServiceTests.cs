@@ -123,7 +123,7 @@ namespace Mobile.UnitTests
             var oauth = new Mock<IOAuthConfigService>();
 
             var json = JsonSerializer.Serialize(new { accessToken = "new-access", refreshToken = "new-refresh", expiresIn = 3600 });
-            var client = CreateClientReturning(json);
+            using var client = CreateClientReturning(json);
 
             var svc = new AuthService(storage, oauth.Object, features, NullLogger<AuthService>.Instance, client);
 
@@ -145,7 +145,7 @@ namespace Mobile.UnitTests
             var oauth = new Mock<IOAuthConfigService>();
 
             var json = JsonSerializer.Serialize(new { accessToken = "rotated-access", refreshToken = "rotated-refresh", expiresIn = 3600 });
-            var client = CreateClientReturning(json);
+            using var client = CreateClientReturning(json);
 
             var svc = new AuthService(storage, oauth.Object, features, NullLogger<AuthService>.Instance, client);
 
@@ -163,7 +163,7 @@ namespace Mobile.UnitTests
             var oauth = new Mock<IOAuthConfigService>();
 
             var json = JsonSerializer.Serialize(new { accessToken = "x" });
-            var client = CreateClientReturning(json);
+            using var client = CreateClientReturning(json);
 
             var svc = new AuthService(storage, oauth.Object, features, NullLogger<AuthService>.Instance, client);
 
@@ -181,7 +181,7 @@ namespace Mobile.UnitTests
             var features = Options.Create(new FeaturesOptions { ApiRootUrl = "http://api/" });
             var oauth = new Mock<IOAuthConfigService>();
 
-            var client = CreateClientReturning("{\"error\":\"bad\"}", HttpStatusCode.BadRequest);
+            using var client = CreateClientReturning("{\"error\":\"bad\"}", HttpStatusCode.BadRequest);
 
             var svc = new AuthService(storage, oauth.Object, features, NullLogger<AuthService>.Instance, client);
 
@@ -200,7 +200,7 @@ namespace Mobile.UnitTests
             var features = Options.Create(new FeaturesOptions { ApiRootUrl = "http://api/" });
             var oauth = new Mock<IOAuthConfigService>();
 
-            var client = CreateClientReturning("not-a-json", HttpStatusCode.OK);
+            using var client = CreateClientReturning("not-a-json", HttpStatusCode.OK);
 
             var svc = new AuthService(storage, oauth.Object, features, NullLogger<AuthService>.Instance, client);
 
