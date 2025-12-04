@@ -21,8 +21,8 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
         // Fallback for unpackaged apps where ApplicationData is not available.
         // This is an instance field (not static) because the class is expected
         // to be registered as a singleton in DI.
-        private bool _inMemoryScheduled;
-        private readonly object _lock = new();
+        private bool _inMemoryScheduled = false;
+        private readonly object _inMemoryScheduledLock = new();
 
         /// <summary>
         /// Check if ApplicationData is available (only in packaged apps).
@@ -56,7 +56,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
             }
 
             // Fallback for unpackaged apps - use lock for thread-safe read
-            lock (_lock)
+            lock (_inMemoryScheduledLock)
             {
                 return _inMemoryScheduled;
             }
@@ -75,7 +75,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
             else
             {
                 // Fallback for unpackaged apps - use lock for thread-safe write
-                lock (_lock)
+                lock (_inMemoryScheduledLock)
                 {
                     _inMemoryScheduled = scheduled;
                 }
