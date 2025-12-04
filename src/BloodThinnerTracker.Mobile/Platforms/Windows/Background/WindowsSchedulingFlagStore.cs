@@ -1,4 +1,5 @@
 using global::Windows.Storage;
+using System.Threading;
 using BloodThinnerTracker.Mobile.Services;
 
 namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
@@ -15,8 +16,9 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
     {
         private const string ScheduledKey = "BackgroundTaskScheduled";
 
-        // Fallback for unpackaged apps where ApplicationData is not available
-        private static bool _inMemoryScheduled = false;
+        // Fallback for unpackaged apps where ApplicationData is not available.
+        // Uses int (0/1) for Interlocked atomic operations (bool not supported).
+        private static int _inMemoryScheduled = 0;
 
         /// <summary>
         /// Check if ApplicationData is available (only in packaged apps).
@@ -49,8 +51,8 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
                 return false;
             }
 
-            // Fallback for unpackaged apps
-            return _inMemoryScheduled;
+            // Fallback for unpackaged apps - use Interlocked for thread-safe read
+            return Interlocked.CompareExchange(ref _inMemoryScheduled, 0, 0) != 0;
         }
 
         /// <summary>
@@ -65,8 +67,8 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows.Background
             }
             else
             {
-                // Fallback for unpackaged apps
-                _inMemoryScheduled = scheduled;
+                // Fallback for unpackaged apps - use Interlocked for thread-safe write
+                Interlocked.Exchange(ref _inMemoryScheduled, scheduled ? 1 : 0);
             }
         }
     }

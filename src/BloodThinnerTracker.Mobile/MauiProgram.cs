@@ -211,7 +211,10 @@ public static class MauiProgram
                     }
                 });
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: OpenTelemetry setup failed: {ex.Message}");
+        }
 
         builder.Services.AddSingleton<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService, BloodThinnerTracker.Mobile.Services.Telemetry.OpenTelemetryTelemetryService>();
 
@@ -250,7 +253,10 @@ public static class MauiProgram
                 opts.UseSqlite($"Data Source={dbPath}", b => b.MigrationsAssembly("BloodThinnerTracker.Data.SQLite"));
             });
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: SQLite/DataProtection registration failed: {ex.Message}");
+        }
 
         // HttpClient for API-backed services (uses IOptions to get API root URL)
         // Keep a general-purpose HttpClient for other services that need it
@@ -332,7 +338,10 @@ public static class MauiProgram
                 builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.DevSyncHostedService>());
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: CacheSyncService/DevSyncHostedService registration failed: {ex.Message}");
+        }
 
         var app = builder.Build();
 
@@ -369,7 +378,10 @@ public static class MauiProgram
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MauiProgram: Startup diagnostic logging failed: {ex.Message}");
+        }
 
         // Ensure SQLite database is created and migrations applied BEFORE any views load.
         // This must happen synchronously during startup to prevent "no such table" errors.
@@ -406,7 +418,11 @@ public static class MauiProgram
         {
             BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.Initialize(app.Services);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetService<ILogger<App>>();
+            logger?.LogError(ex, "Failed to initialize Android service provider bridge");
+        }
 #endif
 
 #if WINDOWS
@@ -424,7 +440,11 @@ public static class MauiProgram
                 store: new BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingFlagStore(),
                 logger: logger);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetService<ILogger<App>>();
+            logger?.LogError(ex, "Failed to initialize Windows service provider or register background task");
+        }
 #endif
 
 

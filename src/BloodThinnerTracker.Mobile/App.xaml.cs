@@ -36,7 +36,11 @@ namespace BloodThinnerTracker.Mobile
                     telemetry.TrackHistogram("ColdStartMs", coldMs);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                var logger = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
+                logger?.LogDebug(ex, "Failed to track cold-start metric");
+            }
 
             // Schedule navigation after shell is ready. Perform initialization and auth check asynchronously
             var authService = _services.GetRequiredService<Services.IAuthService>();

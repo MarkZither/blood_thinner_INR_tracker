@@ -31,12 +31,15 @@ namespace BloodThinnerTracker.Mobile.Views
             vm.LoginSucceeded += OnLoginSucceeded;
         }
 
-        // Parameterless constructor used by XAML/DataTemplate instantiation.
-        // Falls back to the application service provider to resolve the ViewModel.
+        /// <summary>
+        /// Parameterless constructor required for XAML DataTemplate instantiation.
+        /// Shell's ContentTemplate uses Activator, not DI, so we bridge to DI here.
+        /// This is a necessary workaround for MAUI Shell's DataTemplate limitation.
+        /// </summary>
         public LoginView()
             : this(
                   App.ServiceProvider?.GetRequiredService<ViewModels.LoginViewModel>()
-                      ?? throw new InvalidOperationException("ServiceProvider is not initialized or LoginViewModel not registered."))
+                      ?? throw new InvalidOperationException("ServiceProvider not initialized"))
         {
         }
 
