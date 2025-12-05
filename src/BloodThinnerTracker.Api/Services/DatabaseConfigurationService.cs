@@ -391,7 +391,8 @@ public static class DatabaseConfigurationExtensions
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
-                .SetApplicationName("BloodThinnerTracker");
+                .SetApplicationName("BloodThinnerTracker")
+                .PersistKeysToDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>();
 
                 // Add health checks for database (requires concrete DbContext)
                 services.AddHealthChecks()
@@ -418,7 +419,8 @@ public static class DatabaseConfigurationExtensions
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
-                .SetApplicationName("BloodThinnerTracker");
+                .SetApplicationName("BloodThinnerTracker")
+                .PersistKeysToDbContext<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>();
 
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.PostgreSQL.ApplicationDbContext>("database");
@@ -442,7 +444,8 @@ public static class DatabaseConfigurationExtensions
                     options.ApplicationDiscriminator = "BloodThinnerTracker";
                 })
                 .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
-                .SetApplicationName("BloodThinnerTracker");
+                .SetApplicationName("BloodThinnerTracker")
+                .PersistKeysToDbContext<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>();
 
                 services.AddHealthChecks()
                     .AddDbContextCheck<BloodThinnerTracker.Data.SqlServer.ApplicationDbContext>("database");

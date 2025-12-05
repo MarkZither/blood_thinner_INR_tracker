@@ -11,7 +11,7 @@ Add read-only offline sync for medication, INR tests, and medication logs with p
 
 **Language/Version**: .NET 10 / C# 13  
 **Primary Dependencies**: .NET MAUI, Entity Framework Core, SQLite (local), Npgsql/Postgres (server), Microsoft.Extensions.Hosting, Playwright (e2e)  
-**Storage**: Local SQLite for mobile; Postgres for cloud canonical data  
+**Storage**: Local SQLite for mobile; Sqlite/Sql Server/Postgres for cloud canonical data  
 **Testing**: xUnit (unit/integration), Playwright (e2e), AppHost integration fixtures  
 **Target Platform**: Android (primary), Windows (secondary MAUI), Web/Blazor unaffected by this phase  
 **Project Type**: Mobile client (`src/BloodThinnerTracker.Mobile`) + API (`src/BloodThinnerTracker.Api`)  

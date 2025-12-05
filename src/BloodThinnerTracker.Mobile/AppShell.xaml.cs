@@ -1,26 +1,34 @@
+using Microsoft.Extensions.Logging;
+
 namespace BloodThinnerTracker.Mobile;
 
 public partial class AppShell : Shell
 {
     private readonly Services.IThemeService _themeService;
+    private readonly ILogger<AppShell>? _logger;
 
-    public AppShell(Services.IThemeService themeService)
+    public AppShell(Services.IThemeService themeService, ILogger<AppShell>? logger = null)
     {
         if (themeService == null) throw new ArgumentNullException(nameof(themeService));
+        _logger = logger;
+        _logger?.LogInformation("AppShell constructor called");
 
         InitializeComponent();
         _themeService = themeService;
 
-        // Apply persisted theme at shell creation (guard Application.Current)
-        var theme = _themeService.GetCurrentTheme();
-        if (Application.Current != null)
+        // Apply persisted theme at shell creation
+        try
         {
-            try { Application.Current.UserAppTheme = theme; }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"AppShell: Failed to apply theme: {ex.Message}");
-            }
+            var theme = _themeService.GetCurrentTheme();
+            _themeService.SetTheme(theme); // Use SetTheme instead of ApplyTheme
+            _logger?.LogInformation("Theme applied successfully: {Theme}", theme);
         }
+        catch (System.Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to apply theme in AppShell constructor");
+        }
+
+        _logger?.LogInformation("AppShell initialized successfully");
     }
 
     private void OnThemeToggleClicked(object? sender, EventArgs e)

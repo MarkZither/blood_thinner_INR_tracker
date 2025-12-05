@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 
 namespace BloodThinnerTracker.Data.Shared;
 
@@ -15,7 +16,7 @@ namespace BloodThinnerTracker.Data.Shared;
 /// ⚠️ MEDICAL DATABASE CONTEXT:
 /// Handles sensitive medical data with encryption, audit trails, and compliance features.
 /// </summary>
-public abstract class ApplicationDbContextBase : DbContext, IApplicationDbContext
+public abstract class ApplicationDbContextBase : DbContext, IApplicationDbContext, Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.IDataProtectionKeyContext
 {
     protected readonly ILogger<ApplicationDbContextBase> _logger;
 
@@ -40,8 +41,7 @@ public abstract class ApplicationDbContextBase : DbContext, IApplicationDbContex
     public DbSet<INRSchedule> INRSchedules { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
     public DbSet<AuditRecord> AuditRecords { get; set; } = null!;
-    // DataProtectionKeys removed from DB-backed storage. DataProtection responsibility moved
-    // to the platform/DB engine (TDE/SQLCipher/pgcrypto) instead of application-level key storage.
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

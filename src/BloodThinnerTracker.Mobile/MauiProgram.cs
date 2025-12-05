@@ -13,13 +13,14 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Exporter;
 using BloodThinnerTracker.Mobile.Extensions;
+using BloodThinnerTracker.Mobile.Config;
 using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
 
 public static class MauiProgram
 {
-        public static MauiApp CreateMauiApp()
+    public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
         builder
@@ -39,80 +40,8 @@ public static class MauiProgram
             builder.Configuration.AddInMemoryCollection(preConfig.AsEnumerable());
         }
 
-        // Serilog initialization is configuration-driven below; keep configuration-driven setup
-            // Configure Serilog using configuration (preferred) while ensuring the file path
-            // is set to a platform-safe AppDataDirectory. We add a small in-memory override
-            // for the Serilog file sink path and ensure a console sink is available as a
-            // fallback so something is always logged even if file creation fails.
-            try
-            {
-                // Determine diagnostics options from pre-config (if available)
-                var useAppData = preConfig?.GetValue<bool?>("Diagnostics:Serilog:UseAppDataDirectory") ?? true;
-                var fileName = preConfig?["Diagnostics:Serilog:FileName"] ?? "mobile-.log";
-                var enableConsole = preConfig?.GetValue<bool?>("Diagnostics:Serilog:EnableConsole") ?? true;
-
-                // Enable Serilog SelfLog to Console.Error to capture internal Serilog errors if sinks fail
-                Serilog.Debugging.SelfLog.Enable(Console.Error);
-
-                // Build base logger configuration from the merged configuration (embedded appsettings)
-                var loggerConfig = new LoggerConfiguration()
-                    .ReadFrom.Configuration(builder.Configuration)
-                    .Enrich.FromLogContext();
-
-                // If requested, ensure there's a File sink pointing at the platform AppData path.
-                if (useAppData)
-                {
-                    var logsDir = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "Logs");
-                    try
-                    {
-                        System.IO.Directory.CreateDirectory(logsDir);
-                    }
-                    catch (Exception ex)
-                    {
-                        Serilog.Debugging.SelfLog.WriteLine($"Failed to create logs directory '{logsDir}': {ex}");
-                    }
-
-                    // Use a date-stamped file name to avoid depending on sink-specific enums
-                    var dateStamped = fileName.Replace(".log", "");
-                    var filePath = System.IO.Path.Combine(logsDir, $"{dateStamped}-{DateTime.UtcNow:yyyy-MM-dd}.log");
-
-                    // Detect if the embedded config already defines a File sink
-                    var writeToSection = preConfig?.GetSection("Serilog:WriteTo");
-                    var hasFileSink = false;
-                    var hasConsoleSink = false;
-                    if (writeToSection != null)
-                    {
-                        foreach (var child in writeToSection.GetChildren())
-                        {
-                            var name = child["Name"];
-                            if (string.Equals(name, "File", StringComparison.OrdinalIgnoreCase)) hasFileSink = true;
-                            if (string.Equals(name, "Console", StringComparison.OrdinalIgnoreCase)) hasConsoleSink = true;
-                        }
-                    }
-
-                    // If there's no File sink configured, add one programmatically pointing to AppData
-                    if (!hasFileSink)
-                    {
-                        loggerConfig = loggerConfig.WriteTo.File(filePath, shared: true);
-                    }
-
-                    // If Console isn't configured and enableConsole is true, add it programmatically
-                    if (enableConsole && !hasConsoleSink)
-                    {
-                        loggerConfig = loggerConfig.WriteTo.Console();
-                    }
-                }
-
-                // Create the logger and register it
-                Log.Logger = loggerConfig.CreateLogger();
-                builder.Logging.ClearProviders();
-                builder.Logging.AddSerilog(Log.Logger, dispose: true);
-            }
-            catch (Exception ex)
-            {
-                // Ensure at least debug logging remains available
-                Serilog.Debugging.SelfLog.WriteLine($"Serilog initialization failed: {ex}");
-            }
+        // Configure Serilog logging via extension to keep MauiProgram concise
+        builder.AddLogging(builder.Configuration);
 
         // Add environment variables (higher priority - overrides appsettings.json)
         // Supports Features__UseMockServices, Features__ApiRootUrl, etc.
@@ -161,6 +90,9 @@ public static class MauiProgram
 
         // Bind configuration to strongly-typed FeaturesOptions (no more magic strings!)
         builder.Services.Configure<Services.FeaturesOptions>(builder.Configuration.GetSection(Services.FeaturesOptions.SectionName));
+
+        // Bind synchronization options for background sync intervals
+        builder.Services.Configure<SyncOptions>(builder.Configuration.GetSection(SyncOptions.SectionName));
 
         builder.Services.AddSingleton<Services.EncryptionService>();
         builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
@@ -232,8 +164,13 @@ public static class MauiProgram
         // If the Data.SQLite project is available, register a read-only adapter to query
         // the canonical local DB for offline reads. This keeps the mobile app consistent
         // with server-side schema while remaining read-only.
-        try
-        {
+        // Allow tests to opt-out of platform-specific registration by setting
+        // configuration `Test:SkipPlatformServices=true` (in-memory or environment).
+        var skipPlatformServices = builder.Configuration["Test:SkipPlatformServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+        if (!skipPlatformServices)
+            {
+                try
+                {
             // Register Data Protection services required by ApplicationDbContext for encryption
             var dataProtectionPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "DataProtection-Keys");
             builder.Services.AddDataProtection()
@@ -252,11 +189,19 @@ public static class MauiProgram
             {
                 opts.UseSqlite($"Data Source={dbPath}", b => b.MigrationsAssembly("BloodThinnerTracker.Data.SQLite"));
             });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MauiProgram: SQLite/DataProtection registration failed: {ex.Message}");
-        }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MauiProgram: SQLite/DataProtection registration failed: {ex.Message}");
+                }
+            }
+            else
+            {
+                // Test-mode fallbacks: register lightweight in-memory implementations so
+                // critical background services can be resolved without platform DB.
+                builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
+                builder.Services.AddSingleton<Services.IInrRepository, Services.InMemoryInrRepository>();
+            }
 
         // HttpClient for API-backed services (uses IOptions to get API root URL)
         // Keep a general-purpose HttpClient for other services that need it
