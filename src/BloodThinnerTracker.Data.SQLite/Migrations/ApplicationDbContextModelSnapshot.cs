@@ -897,6 +897,23 @@ namespace BloodThinnerTracker.Data.SQLite.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.INRSchedule", b =>
                 {
                     b.HasOne("BloodThinnerTracker.Shared.Models.INRTest", "CompletedTest")

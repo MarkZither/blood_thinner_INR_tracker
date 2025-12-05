@@ -80,6 +80,44 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("BloodThinnerTracker.Shared.Models.AuditRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("EntityPublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("PerformedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityPublicId");
+
+                    b.HasIndex("EntityType");
+
+                    b.HasIndex("PerformedBy");
+
+                    b.ToTable("AuditRecords");
+                });
+
             modelBuilder.Entity("BloodThinnerTracker.Shared.Models.INRSchedule", b =>
                 {
                     b.Property<int>("Id")
@@ -891,11 +929,9 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("FriendlyName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Xml")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
