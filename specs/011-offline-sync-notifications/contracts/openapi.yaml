@@ -1,0 +1,112 @@
+openapi: 3.0.3
+info:
+  title: BloodThinnerTracker - Read-only Sync API (excerpt)
+  version: 1.0.0
+
+paths:
+  /api/medications:
+    get:
+      summary: List medications (canonical)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Medication'
+
+  /api/medication-logs:
+    get:
+      summary: Query medication logs
+      parameters:
+        - in: query
+          name: days
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedicationLog'
+
+  /api/inr-tests:
+    get:
+      summary: Query INR tests
+      parameters:
+        - in: query
+          name: days
+          schema:
+            type: integer
+            default: 90
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/INRTest'
+
+  /api/health:
+    get:
+      summary: API health probe
+      responses:
+        '200':
+          description: healthy
+
+components:
+  schemas:
+    Medication:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        strength:
+          type: string
+        instructions:
+          type: string
+        isEnabled:
+          type: boolean
+
+    MedicationLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        medicationId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        expectedDosage:
+          type: number
+          format: decimal
+        actualDosage:
+          type: number
+          format: decimal
+
+    INRTest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        inrValue:
+          type: number
+          format: decimal

@@ -43,7 +43,7 @@ Application MUST respond to user interactions within 200ms for local operations 
 **Rationale**: Poor performance can cause users to abandon critical health tasks. Medication reminders require immediate responsiveness for patient safety.
 
 ### V. Security & OWASP Compliance
-All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use OAuth2/OpenID Connect with external providers Azure and Google. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
+All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use OAuth2/OpenID Connect with external providers Azure and Google. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256 or database specific features like TDE in Sql Server and sqlcipher for SQLite. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
 
 **Rationale**: Health data requires maximum security protection. OWASP compliance is essential for protecting patient privacy and meeting healthcare regulations.
 

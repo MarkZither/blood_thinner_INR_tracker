@@ -43,6 +43,11 @@
 		<RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
+	  <RunAOTCompilation>False</RunAOTCompilation>
+	  <PublishTrimmed>False</PublishTrimmed>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />

@@ -71,14 +71,12 @@
  - **FR-004**: The app MUST record sync outcomes (success/failure) for diagnostics.
  - **FR-005**: The app MUST respect user notification permissions and provide a fallback if notifications are blocked.
  - **FR-006**: Data is read-only in this phase: the server is the single source of truth and the client will only read and refresh canonical data. Client-side create/update/delete is out of scope for this feature and will be addressed in a future phase.
- - **FR-007**: The app MUST perform automatic background synchronization on a configurable periodic interval and perform a foreground refresh on app start when needed (if background sync hasn't recently aligned data).
  - **FR-007**: The app MUST perform automatic background synchronization on a configurable periodic interval and perform a foreground refresh on app start when needed (if background sync hasn't recently aligned data). The default interval will be 1 hour; when the device is charging and connected to Wi‑Fi the interval may reduce to 15 minutes to provide faster freshness.
  
  ### Key Entities *(include if feature involves data)*
  
  - **Medication**: identifier, display name, dosage instructions, schedule pattern reference, enabled/disabled flag.  
  - **MedicationDosagePattern**: sequence of dosing values / relative schedule entries and temporal validity window.  
- - **MedicationLog**: timestamp, medication id, expected dosage, actual dosage, createdBy (device/user), synced flag, conflict metadata.  
  - **MedicationLog**: timestamp, medication id, expected dosage, actual dosage, createdBy (device/user).
 <!-- SyncQueueItem intentionally removed for this phase; client is read-only. -->
  
@@ -95,7 +93,8 @@
  
  - The backend API supports idempotent create/update/delete operations and returns canonical state on query.  
  - The app has access to a local persistent store that survives restarts and reboots.  
- - Platform local-notification APIs are available on target devices (Android/iOS/Windows) and the app will prompt for permission where required.
+ - Platform local-notification APIs are available on target devices (Android/Windows) and the app will prompt for permission where required.
+ - iOS is a nice to have, but for this phase will be omitted due to lack of device for testing.
  
  **Spec Ready**: Draft complete and testable; see checklist for quality validation.
 
