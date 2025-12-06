@@ -9,56 +9,57 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-namespace ApiSdk.Api.V1.Medications.BloodThinners
+namespace ApiSdk.Api.V1.Medications.Item
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\v1\Medications\blood-thinners
+    /// Builds and executes requests for operations under \api\v1\Medications\{publicId}
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class BloodThinnersRequestBuilder : BaseRequestBuilder
+    public partial class WithPublicItemRequestBuilder : BaseRequestBuilder
     {
         /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Api.V1.Medications.BloodThinners.BloodThinnersRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::ApiSdk.Api.V1.Medications.Item.WithPublicItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public BloodThinnersRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/v1/Medications/blood-thinners", pathParameters)
+        public WithPublicItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/v1/Medications/{publicId}", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Api.V1.Medications.BloodThinners.BloodThinnersRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::ApiSdk.Api.V1.Medications.Item.WithPublicItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public BloodThinnersRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/v1/Medications/blood-thinners", rawUrl)
+        public WithPublicItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/v1/Medications/{publicId}", rawUrl)
         {
         }
         /// <summary>
-        /// Gets blood thinner medications for the current user.
+        /// Gets a specific medication by ID.
         /// </summary>
-        /// <returns>A List&lt;global::ApiSdk.Models.MedicationResponse&gt;</returns>
+        /// <returns>A <see cref="global::ApiSdk.Models.MedicationResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::ApiSdk.Models.ProblemDetails">When receiving a 401 status code</exception>
+        /// <exception cref="global::ApiSdk.Models.ProblemDetails">When receiving a 404 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<List<global::ApiSdk.Models.MedicationResponse>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::ApiSdk.Models.MedicationResponse?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<List<global::ApiSdk.Models.MedicationResponse>> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::ApiSdk.Models.MedicationResponse> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
                 { "401", global::ApiSdk.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "404", global::ApiSdk.Models.ProblemDetails.CreateFromDiscriminatorValue },
             };
-            var collectionResult = await RequestAdapter.SendCollectionAsync<global::ApiSdk.Models.MedicationResponse>(requestInfo, global::ApiSdk.Models.MedicationResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
-            return collectionResult?.AsList();
+            return await RequestAdapter.SendAsync<global::ApiSdk.Models.MedicationResponse>(requestInfo, global::ApiSdk.Models.MedicationResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <summary>
-        /// Gets blood thinner medications for the current user.
+        /// Gets a specific medication by ID.
         /// </summary>
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
@@ -79,18 +80,18 @@ namespace ApiSdk.Api.V1.Medications.BloodThinners
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::ApiSdk.Api.V1.Medications.BloodThinners.BloodThinnersRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::ApiSdk.Api.V1.Medications.Item.WithPublicItemRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::ApiSdk.Api.V1.Medications.BloodThinners.BloodThinnersRequestBuilder WithUrl(string rawUrl)
+        public global::ApiSdk.Api.V1.Medications.Item.WithPublicItemRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::ApiSdk.Api.V1.Medications.BloodThinners.BloodThinnersRequestBuilder(rawUrl, RequestAdapter);
+            return new global::ApiSdk.Api.V1.Medications.Item.WithPublicItemRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class BloodThinnersRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        public partial class WithPublicItemRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
         {
         }
     }

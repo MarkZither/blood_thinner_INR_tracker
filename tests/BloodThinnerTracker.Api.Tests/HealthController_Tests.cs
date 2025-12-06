@@ -1,7 +1,8 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
-using BloodThinnerTracker.Api.Controllers;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 namespace BloodThinnerTracker.Api.Tests
 {

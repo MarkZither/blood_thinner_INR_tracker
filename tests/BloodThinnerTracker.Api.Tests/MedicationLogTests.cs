@@ -2,7 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Bogus;
 using Xunit;
-using BloodThinnerTracker.Api.Controllers;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 namespace BloodThinnerTracker.Api.Tests
 {

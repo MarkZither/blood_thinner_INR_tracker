@@ -45,7 +45,7 @@ namespace ApiSdk
             ApiClientBuilder.RegisterDefaultDeserializer<FormParseNodeFactory>();
             if (string.IsNullOrEmpty(RequestAdapter.BaseUrl))
             {
-                RequestAdapter.BaseUrl = "http://localhost:5174";
+                RequestAdapter.BaseUrl = "https://localhost:7234";
             }
             PathParameters.TryAdd("baseurl", RequestAdapter.BaseUrl);
         }

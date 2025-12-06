@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using BloodThinnerTracker.Api.Controllers;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;

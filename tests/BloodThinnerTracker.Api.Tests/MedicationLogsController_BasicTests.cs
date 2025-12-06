@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Shared.Models;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 namespace BloodThinnerTracker.Api.Tests
 {
@@ -49,8 +51,8 @@ namespace BloodThinnerTracker.Api.Tests
             await _db.SaveChangesAsync();
 
             // prepare controller
-            var controllerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.MedicationLogsController>.Instance;
-            var controller = new BloodThinnerTracker.Api.Controllers.MedicationLogsController(_db, controllerLogger);
+            var controllerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<MedicationLogsController>.Instance;
+            var controller = new MedicationLogsController(_db, controllerLogger);
 
             // set user principal
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.PublicId.ToString()) }, "test");
@@ -58,7 +60,7 @@ namespace BloodThinnerTracker.Api.Tests
             controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = principal } };
 
             // call LogMedicationDose
-            var request = new BloodThinnerTracker.Api.Controllers.LogMedicationRequest
+            var request = new LogMedicationRequest
             {
                 MedicationId = med.PublicId,
                 ActualDosage = 150m

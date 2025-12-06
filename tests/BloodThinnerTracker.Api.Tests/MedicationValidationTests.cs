@@ -7,7 +7,8 @@
 //-----------------------------------------------------------------------
 
 using BloodThinnerTracker.Shared.Models;
-using BloodThinnerTracker.Api.Controllers;
+using BloodThinnerTracker.Api.Models.V1;
+using BloodThinnerTracker.Api.Controllers.V1;
 using System.Reflection;
 
 namespace BloodThinnerTracker.Api.Tests;
@@ -443,22 +444,18 @@ public sealed class MedicationValidationTests
     #region Helper Methods
 
     /// <summary>
-    /// Uses reflection to invoke the private ValidateMedicationSafety method.
-    /// This allows us to test the validation logic without making the method public.
+    /// Calls the dedicated medication safety validator.
+    /// Tests should exercise validator logic directly rather than reflect into controllers.
     /// </summary>
     private static ValidationResult InvokeValidateMedicationSafety(CreateMedicationRequest request)
     {
-        var controllerType = typeof(MedicationsController);
-        var method = controllerType.GetMethod("ValidateMedicationSafety",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        if (method == null)
+        var fv = new BloodThinnerTracker.Api.Validators.CreateMedicationRequestValidator();
+        var fvResult = fv.Validate(request);
+        return new ValidationResult
         {
-            throw new InvalidOperationException("ValidateMedicationSafety method not found");
-        }
-
-        var result = method.Invoke(null, new object[] { request });
-        return (ValidationResult)result!;
+            IsValid = fvResult.IsValid,
+            Errors = fvResult.Errors?.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+        };
     }
 
     #endregion

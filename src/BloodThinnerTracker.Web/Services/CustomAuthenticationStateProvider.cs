@@ -268,6 +268,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             // Also store claims for retrieval
             await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })), userIdentifier);
+            
+            
 
             var identity = new ClaimsIdentity(claims, principal != null ? "oauth" : "jwt");
             var user = new ClaimsPrincipal(identity);
@@ -543,12 +545,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             _logger.LogInformation("Attempting to refresh access token");
 
-            // Create a bare HTTP client without authorization header to avoid circular dependency
-            var httpClient = _httpClientFactory.CreateClient();
-            var apiBaseUrl = _configuration["ApiBaseUrl"]
-                ?? throw new InvalidOperationException(
-                    "ApiBaseUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
-            httpClient.BaseAddress = new Uri(apiBaseUrl);
+            // Use the named "api" HttpClient so Aspire service discovery or configuration provides the base address.
+            var httpClient = _httpClientFactory.CreateClient("api");
 
             var request = new BloodThinnerTracker.Shared.Models.Authentication.RefreshTokenRequest
             {

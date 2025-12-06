@@ -290,9 +290,6 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 // Add HttpContextAccessor for OAuth callback handling (T003-001)
 builder.Services.AddHttpContextAccessor();
 
-// Add HttpClient factory for creating bare HTTP clients (for token refresh without auth header)
-builder.Services.AddHttpClient();
-
 // Register services for UI (T003-004, T003-005, T003-005b)
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IINRService, BloodThinnerTracker.Web.Services.INRService>();
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationService, BloodThinnerTracker.Web.Services.MedicationService>();
@@ -302,23 +299,33 @@ builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IMedicationScheduleS
 builder.Services.AddScoped<BloodThinnerTracker.Web.Services.IPageStateService, BloodThinnerTracker.Web.Services.PageStateService>();
 
 // Add HttpClient for API calls with authentication (T003-001)
-builder.Services.AddTransient<AuthorizationMessageHandler>();
+// Register authorization handler as Scoped so the same instance (and its AuthenticationStateProvider)
+// is used throughout the Blazor circuit lifetime. This ensures token lookup uses consistent cache keys.
+builder.Services.AddScoped<AuthorizationMessageHandler>();
+
+// Register a named HttpClient for API calls using IHttpClientFactory for Aspire service discovery.
+// We also register a bare HttpClient factory for cases that need service discovery without auth headers.
+builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("api", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "http://api");
+});
+
+// Register a scoped HttpClient that uses the scoped AuthorizationMessageHandler.
+// This ensures the same handler instance is used for the entire Blazor circuit,
+// maintaining consistent cache key resolution for token lookup.
 builder.Services.AddScoped(sp =>
 {
     var handler = sp.GetRequiredService<AuthorizationMessageHandler>();
     handler.InnerHandler = new HttpClientHandler();
 
     var config = sp.GetRequiredService<IConfiguration>();
-    var apiBaseUrl = config["ApiBaseUrl"]
-        ?? throw new InvalidOperationException(
-            "ApiBaseUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
+    var apiBaseUrl = config["ApiBaseUrl"] ?? "https://localhost:7234";
 
-    var httpClient = new HttpClient(handler)
+    return new HttpClient(handler)
     {
         BaseAddress = new Uri(apiBaseUrl)
     };
-
-    return httpClient;
 });
 
 // Register auth config provider and warmup hosted service so the Web UI reads

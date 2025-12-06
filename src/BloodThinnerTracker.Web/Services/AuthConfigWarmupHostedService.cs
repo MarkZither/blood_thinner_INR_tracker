@@ -28,13 +28,10 @@ namespace BloodThinnerTracker.Web.Services
         {
             try
             {
-                var apiBase = _configuration["ApiBaseUrl"] ?? _configuration["ApiRootUrl"]
-                    ?? throw new InvalidOperationException(
-                        "ApiBaseUrl or ApiRootUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
-                var url = apiBase.TrimEnd('/') + ApiPaths.OAuthConfig;
-                var client = _httpFactory.CreateClient();
-                _logger.LogInformation("AuthConfigWarmup: fetching OAuth config from {Url}", url);
-                var resp = await client.GetAsync(url, cancellationToken);
+                // Use named 'api' client so service discovery or configuration supplies BaseAddress.
+                var client = _httpFactory.CreateClient("api");
+                _logger.LogInformation("AuthConfigWarmup: fetching OAuth config from api service");
+                var resp = await client.GetAsync(ApiPaths.OAuthConfig, cancellationToken);
                 if (!resp.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("AuthConfigWarmup: failed to fetch OAuth config ({Status})", resp.StatusCode);

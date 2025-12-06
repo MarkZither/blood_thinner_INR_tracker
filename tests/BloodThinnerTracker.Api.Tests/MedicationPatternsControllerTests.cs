@@ -1,5 +1,6 @@
 using System.Security.Claims;
-using BloodThinnerTracker.Api.Controllers;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 using BloodThinnerTracker.Api.Validators;
 using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Data.SQLite;
@@ -77,7 +78,7 @@ public class MedicationPatternsControllerTests : IDisposable
         _context.SaveChanges();
 
         // Create controller with validator
-        var controllerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.MedicationPatternsController>.Instance;
+        var controllerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<MedicationPatternsController>.Instance;
         _controller = new MedicationPatternsController(_context, controllerLogger, _mockValidator.Object);
     }
 

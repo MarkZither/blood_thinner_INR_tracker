@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Shared.Models;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 namespace BloodThinnerTracker.Api.Tests
 {
@@ -57,8 +59,8 @@ namespace BloodThinnerTracker.Api.Tests
             _db.MedicationDosagePatterns.Add(pattern);
             await _db.SaveChangesAsync();
 
-            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.MedicationScheduleController>.Instance;
-            var controller = new BloodThinnerTracker.Api.Controllers.MedicationScheduleController(_db, logger);
+            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<MedicationScheduleController>.Instance;
+            var controller = new MedicationScheduleController(_db, logger);
 
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.PublicId.ToString()) }, "test");
             var principal = new ClaimsPrincipal(identity);

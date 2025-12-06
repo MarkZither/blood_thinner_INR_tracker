@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using BloodThinnerTracker.Data.SQLite;
 using BloodThinnerTracker.Shared.Models;
+using BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 namespace BloodThinnerTracker.Api.Tests
 {
@@ -42,8 +44,8 @@ namespace BloodThinnerTracker.Api.Tests
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.UsersController>.Instance;
-            var controller = new BloodThinnerTracker.Api.Controllers.UsersController(_db, logger);
+            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<UsersController>.Instance;
+            var controller = new UsersController(_db, logger);
 
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.PublicId.ToString()) }, "test");
             var principal = new ClaimsPrincipal(identity);
@@ -53,7 +55,7 @@ namespace BloodThinnerTracker.Api.Tests
             Assert.IsType<OkObjectResult>(result.Result);
             var ok = result.Result as OkObjectResult;
             Assert.NotNull(ok?.Value);
-            var profile = ok.Value as BloodThinnerTracker.Api.Controllers.UserProfileResponse;
+            var profile = ok.Value as UserProfileResponse;
             Assert.NotNull(profile);
             Assert.Equal(user.Email, profile.Email);
             Assert.Equal("Sam", profile.FirstName);
@@ -66,14 +68,14 @@ namespace BloodThinnerTracker.Api.Tests
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<BloodThinnerTracker.Api.Controllers.UsersController>.Instance;
-            var controller = new BloodThinnerTracker.Api.Controllers.UsersController(_db, logger);
+            var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<UsersController>.Instance;
+            var controller = new UsersController(_db, logger);
 
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.PublicId.ToString()) }, "test");
             var principal = new ClaimsPrincipal(identity);
             controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = principal } };
 
-            var request = new BloodThinnerTracker.Api.Controllers.UpdateUserProfileRequest
+            var request = new UpdateUserProfileRequest
             {
                 FirstName = "Updated",
                 LastName = "User",
