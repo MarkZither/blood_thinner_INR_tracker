@@ -1,4 +1,5 @@
-namespace BloodThinnerTracker.Api.Controllers;
+namespace BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
@@ -17,7 +18,8 @@ using System.Security.Claims;
 /// </remarks>
 [Authorize]
 [ApiController]
-[Route("api/medications/{medicationPublicId:guid}/schedule")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/medications/{medicationPublicId:guid}/schedule")]
 [Produces("application/json")]
 public class MedicationScheduleController : ControllerBase
 {

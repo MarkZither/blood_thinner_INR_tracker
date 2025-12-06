@@ -308,9 +308,14 @@ builder.Services.AddScoped(sp =>
     var handler = sp.GetRequiredService<AuthorizationMessageHandler>();
     handler.InnerHandler = new HttpClientHandler();
 
+    var config = sp.GetRequiredService<IConfiguration>();
+    var apiBaseUrl = config["ApiBaseUrl"]
+        ?? throw new InvalidOperationException(
+            "ApiBaseUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
+
     var httpClient = new HttpClient(handler)
     {
-        BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7234")
+        BaseAddress = new Uri(apiBaseUrl)
     };
 
     return httpClient;

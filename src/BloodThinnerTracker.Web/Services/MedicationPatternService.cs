@@ -41,7 +41,7 @@ public class MedicationPatternService : IMedicationPatternService
                 medicationPublicId, request.PatternSequence.Count);
 
             var response = await _httpClient.PostAsJsonAsync(
-                $"api/medications/{medicationPublicId}/patterns",
+                $"/api/v1/medications/{medicationPublicId}/patterns",
                 request);
 
             if (response.IsSuccessStatusCode)
@@ -83,7 +83,7 @@ public class MedicationPatternService : IMedicationPatternService
                 medicationPublicId);
 
             var response = await _httpClient.GetAsync(
-                $"api/medications/{medicationPublicId}/patterns/active");
+                $"/api/v1/medications/{medicationPublicId}/patterns/active");
 
             if (response.IsSuccessStatusCode)
             {
@@ -141,7 +141,7 @@ public class MedicationPatternService : IMedicationPatternService
                 medicationPublicId, activeOnly, limit, offset);
 
             var response = await _httpClient.GetAsync(
-                $"api/medications/{medicationPublicId}/patterns?activeOnly={activeOnly}&limit={limit}&offset={offset}");
+                $"/api/v1/medications/{medicationPublicId}/patterns?activeOnly={activeOnly}&limit={limit}&offset={offset}");
 
             if (response.IsSuccessStatusCode)
             {

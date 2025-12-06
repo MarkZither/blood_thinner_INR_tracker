@@ -41,7 +41,7 @@ public class MedicationScheduleService : IMedicationScheduleService
             }
 
             var queryString = string.Join("&", queryParams);
-            var url = $"api/medications/{medicationPublicId}/schedule?{queryString}";
+            var url = $"/api/v1/medications/{medicationPublicId}/schedule?{queryString}";
 
             _logger.LogInformation(
                 "Fetching {Days}-day schedule for medication {MedicationId}",

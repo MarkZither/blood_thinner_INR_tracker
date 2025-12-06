@@ -354,7 +354,7 @@
         try
         {
             // Load all medications from API (including inactive for filtering)
-            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/medications?includeInactive=true");
+            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/v1/medications?includeInactive=true");
 
             if (medications != null)
             {

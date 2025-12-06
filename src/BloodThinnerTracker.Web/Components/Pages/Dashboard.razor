@@ -361,7 +361,7 @@
         try
         {
             // Load medications from API
-            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/medications?includeInactive=false");
+            var medications = await Http.GetFromJsonAsync<List<Medication>>("api/v1/medications?includeInactive=false");
             if (medications != null)
             {
                 activeMedicationsCount = medications.Count;

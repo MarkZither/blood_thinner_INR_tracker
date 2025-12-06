@@ -255,7 +255,7 @@
                 Logger.LogInformation("Calling API token exchange endpoint for provider: {Provider}, id_token length: {Length}",
                     exchangeRequest.Provider, exchangeRequest.IdToken?.Length ?? 0);
 
-                var response = await Http.PostAsJsonAsync("api/auth/exchange", exchangeRequest);
+                var response = await Http.PostAsJsonAsync("api/v1/auth/exchange", exchangeRequest);
 
                 if (response.IsSuccessStatusCode)
                 {

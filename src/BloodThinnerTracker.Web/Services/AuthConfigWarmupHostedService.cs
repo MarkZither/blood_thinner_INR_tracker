@@ -28,7 +28,9 @@ namespace BloodThinnerTracker.Web.Services
         {
             try
             {
-                var apiBase = _configuration["ApiBaseUrl"] ?? _configuration["ApiRootUrl"] ?? "https://localhost:7234";
+                var apiBase = _configuration["ApiBaseUrl"] ?? _configuration["ApiRootUrl"]
+                    ?? throw new InvalidOperationException(
+                        "ApiBaseUrl or ApiRootUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
                 var url = apiBase.TrimEnd('/') + ApiPaths.OAuthConfig;
                 var client = _httpFactory.CreateClient();
                 _logger.LogInformation("AuthConfigWarmup: fetching OAuth config from {Url}", url);

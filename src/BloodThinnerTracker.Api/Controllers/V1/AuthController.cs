@@ -11,7 +11,8 @@ using System.Web;
 using BloodThinnerTracker.Shared.Models.Authentication;
 using BloodThinnerTracker.Api.Services.Authentication;
 
-namespace BloodThinnerTracker.Api.Controllers;
+namespace BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 /// <summary>
 /// Authentication controller for medical application security
@@ -21,7 +22,8 @@ namespace BloodThinnerTracker.Api.Controllers;
 /// Always consult healthcare professionals for medical decisions.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Produces("application/json")]
 public class AuthController : ControllerBase
 {

@@ -1,4 +1,5 @@
-namespace BloodThinnerTracker.Api.Controllers;
+namespace BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 using BloodThinnerTracker.Api.Validators;
 using BloodThinnerTracker.Data.Shared;
@@ -19,7 +20,8 @@ using System.Security.Claims;
 /// </remarks>
 [Authorize]
 [ApiController]
-[Route("api/medications/{medicationPublicId}/patterns")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/medications/{medicationPublicId}/patterns")]
 [Produces("application/json")]
 public class MedicationPatternsController : ControllerBase
 {
@@ -354,14 +356,4 @@ public class MedicationPatternsController : ControllerBase
     }
 }
 
-/// <summary>
-/// Response containing pattern history with pagination metadata.
-/// </summary>
-public class PatternHistoryResponse
-{
-    public int MedicationId { get; set; }
-    public int TotalCount { get; set; }
-    public int Limit { get; set; }
-    public int Offset { get; set; }
-    public List<DosagePatternResponse> Patterns { get; set; } = new();
-}
+ 

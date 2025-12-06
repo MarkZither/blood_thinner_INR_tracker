@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Scalar.AspNetCore;
 using System.Text;
 
@@ -177,6 +180,24 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Add API services
 builder.Services.AddControllers();
+
+// Note: Do NOT manually register the 'apiVersion' route constraint here.
+// ApiVersioning's own configuration will register the constraint during service setup.
+// Keeping this commented prevents duplicate-key exceptions at startup.
+
+// Configure API versioning and API explorer so OpenAPI can be grouped by version
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
+
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV"; // e.g. v1, v1.0
+    options.SubstituteApiVersionInUrl = true;
+});
 
 // Add OpenAPI generation with custom documentation
 builder.Services.AddOpenApi(options =>

@@ -1,7 +1,7 @@
 /*
  * BloodThinnerTracker.Web - Medication Log Service Implementation
  * Licensed under MIT License. See LICENSE file in the project root.
- * 
+ *
  * Service implementation for medication dose logging and adherence tracking operations.
  * Handles API communication for recording medication intake and viewing history.
  */
@@ -23,7 +23,7 @@ public sealed class MedicationLogService : IMedicationLogService
     private readonly HttpClient _httpClient;
     private readonly ISnackbar _snackbar;
     private readonly ILogger<MedicationLogService> _logger;
-    private const string BaseUrl = "api/medicationlogs";
+    private const string BaseUrl = "/api/v1/medicationlogs";
 
     /// <summary>
     /// Initializes a new instance of the MedicationLogService.
@@ -186,7 +186,7 @@ public sealed class MedicationLogService : IMedicationLogService
             }
 
             _logger.LogInformation("Logging medication dose for medication: {MedicationId}", medicationLog.MedicationId);
-            
+
             var json = JsonSerializer.Serialize(medicationLog);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(BaseUrl, content);
@@ -203,13 +203,13 @@ public sealed class MedicationLogService : IMedicationLogService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Validation error logging medication dose: {Error}", errorContent);
-                
+
                 // Try to parse error messages
                 try
                 {
-                    var options = new JsonSerializerOptions 
-                    { 
-                        PropertyNameCaseInsensitive = true 
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
                     };
                     var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(errorContent, options);
                     if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
@@ -286,7 +286,7 @@ public sealed class MedicationLogService : IMedicationLogService
             }
 
             _logger.LogInformation("Updating medication log: {Id}", id);
-            
+
             var json = JsonSerializer.Serialize(medicationLog);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PutAsync($"{BaseUrl}/{id}", content);
@@ -398,11 +398,11 @@ public sealed class MedicationLogService : IMedicationLogService
             var tomorrow = today.AddDays(1);
 
             _logger.LogInformation("Fetching today's medication logs");
-            
+
             // We'll need to fetch all medications and their logs for today
             // This is a placeholder - you may want to add a specific API endpoint for this
             var logs = new List<MedicationLogDto>();
-            
+
             _logger.LogInformation("Successfully retrieved today's medication logs");
             return logs;
         }
@@ -426,7 +426,7 @@ public sealed class MedicationLogService : IMedicationLogService
             }
 
             _logger.LogInformation("Calculating adherence rate for medication: {MedicationId}", medicationId);
-            
+
             var logs = await GetMedicationLogsAsync(medicationId, fromDate, toDate);
             if (logs == null || logs.Count == 0)
             {
@@ -435,7 +435,7 @@ public sealed class MedicationLogService : IMedicationLogService
             }
 
             var scheduledCount = logs.Count(l => l.Status != MedicationLogStatus.Scheduled);
-            var takenCount = logs.Count(l => l.Status == MedicationLogStatus.Taken && 
+            var takenCount = logs.Count(l => l.Status == MedicationLogStatus.Taken &&
                                              Math.Abs(l.TimeVarianceMinutes) <= 120); // Within 2 hours
 
             if (scheduledCount == 0)
@@ -447,7 +447,7 @@ public sealed class MedicationLogService : IMedicationLogService
             var adherenceRate = (decimal)takenCount / scheduledCount * 100;
             _logger.LogInformation("Adherence rate calculated: {Rate}% ({Taken}/{Scheduled})",
                 adherenceRate, takenCount, scheduledCount);
-            
+
             return Math.Round(adherenceRate, 1);
         }
         catch (Exception ex)

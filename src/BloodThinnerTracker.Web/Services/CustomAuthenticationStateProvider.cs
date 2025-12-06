@@ -160,7 +160,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             {
                 var expiryTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expiryClaim.Value));
                 var now = DateTimeOffset.UtcNow;
-                
+
                 // If token has already expired
                 if (expiryTime <= now)
                 {
@@ -172,14 +172,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                         await ClearAuthenticationAsync();
                         return CreateAnonymousState();
                     }
-                    
+
                     // Get refreshed token and claims
                     token = await GetTokenAsync();
                     if (string.IsNullOrEmpty(token))
                     {
                         return CreateAnonymousState();
                     }
-                    
+
                     claimsJson = await GetItemAsync(ClaimsKey);
                     if (!string.IsNullOrEmpty(claimsJson))
                     {
@@ -545,7 +545,10 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             // Create a bare HTTP client without authorization header to avoid circular dependency
             var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_configuration["ApiBaseUrl"] ?? "https://localhost:7234");
+            var apiBaseUrl = _configuration["ApiBaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "ApiBaseUrl configuration is required. Set it via environment variable, appsettings.json, or launch profile.");
+            httpClient.BaseAddress = new Uri(apiBaseUrl);
 
             var request = new BloodThinnerTracker.Shared.Models.Authentication.RefreshTokenRequest
             {
@@ -553,7 +556,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 DeviceId = "web-app"
             };
 
-            var response = await httpClient.PostAsJsonAsync("api/auth/refresh", request);
+            var response = await httpClient.PostAsJsonAsync("api/v1/auth/refresh", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -570,7 +573,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                     var userIdentifier = email ?? sub ?? "anonymous";
 
                     await SetItemAsync(TokenKey, authResponse.AccessToken, userIdentifier);
-                    
+
                     if (!string.IsNullOrEmpty(authResponse.RefreshToken))
                     {
                         await SetRefreshTokenAsync(authResponse.RefreshToken, userIdentifier);

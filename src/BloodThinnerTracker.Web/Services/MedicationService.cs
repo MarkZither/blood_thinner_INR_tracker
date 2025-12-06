@@ -20,7 +20,7 @@ public class MedicationService : IMedicationService
     private readonly HttpClient _httpClient;
     private readonly ISnackbar _snackbar;
     private readonly ILogger<MedicationService> _logger;
-    private const string BaseUrl = "api/medications";
+    private const string BaseUrl = "/api/v1/Medications";
 
     public MedicationService(
         HttpClient httpClient,
@@ -106,13 +106,13 @@ public class MedicationService : IMedicationService
                 // Parse validation errors from API response
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Medication validation failed: {Error}", errorContent);
-                
+
                 try
                 {
                     // Try to parse the error response which contains validation errors
                     var errorResponse = JsonSerializer.Deserialize<ValidationErrorResponse>(errorContent,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
+
                     if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
                     {
                         // Show each validation error to the user
@@ -138,7 +138,7 @@ public class MedicationService : IMedicationService
                     // Fallback if we can't parse the error response
                     _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
                 }
-                
+
                 return null;
             }
             else
@@ -192,12 +192,12 @@ public class MedicationService : IMedicationService
                 // Parse validation errors from API response
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("Medication update validation failed: {Error}", errorContent);
-                
+
                 try
                 {
                     var errorResponse = JsonSerializer.Deserialize<ValidationErrorResponse>(errorContent,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
+
                     if (errorResponse?.Errors != null && errorResponse.Errors.Count > 0)
                     {
                         foreach (var errorList in errorResponse.Errors.Values)
@@ -221,7 +221,7 @@ public class MedicationService : IMedicationService
                 {
                     _snackbar.Add("Medication validation failed. Please check your input.", Severity.Warning);
                 }
-                
+
                 return false;
             }
             else
@@ -313,7 +313,7 @@ public class MedicationService : IMedicationService
             {
                 excludeIdInt = parsedId;
             }
-            
+
             return medications.Any(m =>
                 m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
                 (!excludeIdInt.HasValue || m.Id != excludeIdInt.Value));

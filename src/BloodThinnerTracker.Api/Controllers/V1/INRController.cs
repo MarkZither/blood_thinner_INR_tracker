@@ -24,14 +24,16 @@ using System.Security.Claims;
 using BloodThinnerTracker.Data.Shared;
 using BloodThinnerTracker.Shared.Models;
 
-namespace BloodThinnerTracker.Api.Controllers;
+namespace BloodThinnerTracker.Api.Controllers.V1;
+using BloodThinnerTracker.Api.Models.V1;
 
 /// <summary>
 /// REST API controller for INR test management.
 /// Handles INR test logging, history retrieval, and trend analysis.
 /// </summary>
 [ApiController]
-[Route("api/v1/inr/tests")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/inr/tests")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Produces("application/json")]
 public sealed class INRController : ControllerBase
