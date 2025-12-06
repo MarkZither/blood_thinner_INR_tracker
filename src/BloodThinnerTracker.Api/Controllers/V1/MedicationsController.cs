@@ -24,8 +24,8 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-/*
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BloodThinnerTracker.Data.Shared;
@@ -48,7 +48,8 @@ public sealed class MedicationsController : ControllerBase
     private readonly IApplicationDbContext _context;
     private readonly ILogger<MedicationsController> _logger;
 
- 
+
+    /// <summary>
     /// Initializes a new instance of the MedicationsController.
     /// </summary>
     /// <param name="context">Database context for medication data access.</param>
@@ -229,5 +230,7 @@ public sealed class MedicationsController : ControllerBase
 
         return Guid.TryParse(userIdStr, out var guid) ? guid : null;
     }
+
+}
 
 
