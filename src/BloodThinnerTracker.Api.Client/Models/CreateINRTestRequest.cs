@@ -7,14 +7,11 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Request model for creating a new INR test.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class CreateINRTestRequest : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class CreateINRTestRequest : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The foodsConsumed property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -32,13 +29,7 @@ namespace ApiSdk.Models
         public string HealthConditions { get; set; }
 #endif
         /// <summary>The inrValue property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? InrValue { get; set; }
-#nullable restore
-#else
-        public UntypedNode InrValue { get; set; }
-#endif
+        public decimal? InrValue { get; set; }
         /// <summary>The isPointOfCare property</summary>
         public bool? IsPointOfCare { get; set; }
         /// <summary>The laboratory property</summary>
@@ -76,37 +67,13 @@ namespace ApiSdk.Models
         public string OrderedBy { get; set; }
 #endif
         /// <summary>The partialThromboplastinTime property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PartialThromboplastinTime { get; set; }
-#nullable restore
-#else
-        public UntypedNode PartialThromboplastinTime { get; set; }
-#endif
+        public decimal? PartialThromboplastinTime { get; set; }
         /// <summary>The prothrombinTime property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ProthrombinTime { get; set; }
-#nullable restore
-#else
-        public UntypedNode ProthrombinTime { get; set; }
-#endif
+        public decimal? ProthrombinTime { get; set; }
         /// <summary>The targetINRMax property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TargetINRMax { get; set; }
-#nullable restore
-#else
-        public UntypedNode TargetINRMax { get; set; }
-#endif
+        public decimal? TargetINRMax { get; set; }
         /// <summary>The targetINRMin property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TargetINRMin { get; set; }
-#nullable restore
-#else
-        public UntypedNode TargetINRMin { get; set; }
-#endif
+        public decimal? TargetINRMin { get; set; }
         /// <summary>The testDate property</summary>
         public DateTimeOffset? TestDate { get; set; }
         /// <summary>The testMethod property</summary>
@@ -119,13 +86,6 @@ namespace ApiSdk.Models
 #endif
         /// <summary>The wasFasting property</summary>
         public bool? WasFasting { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.CreateINRTestRequest"/> and sets the default values.
-        /// </summary>
-        public CreateINRTestRequest()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -146,17 +106,17 @@ namespace ApiSdk.Models
             {
                 { "foodsConsumed", n => { FoodsConsumed = n.GetStringValue(); } },
                 { "healthConditions", n => { HealthConditions = n.GetStringValue(); } },
-                { "inrValue", n => { InrValue = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "inrValue", n => { InrValue = n.GetDecimalValue(); } },
                 { "isPointOfCare", n => { IsPointOfCare = n.GetBoolValue(); } },
                 { "laboratory", n => { Laboratory = n.GetStringValue(); } },
                 { "lastMedicationTime", n => { LastMedicationTime = n.GetDateTimeOffsetValue(); } },
                 { "medicationsTaken", n => { MedicationsTaken = n.GetStringValue(); } },
                 { "notes", n => { Notes = n.GetStringValue(); } },
                 { "orderedBy", n => { OrderedBy = n.GetStringValue(); } },
-                { "partialThromboplastinTime", n => { PartialThromboplastinTime = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "prothrombinTime", n => { ProthrombinTime = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "targetINRMax", n => { TargetINRMax = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "targetINRMin", n => { TargetINRMin = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "partialThromboplastinTime", n => { PartialThromboplastinTime = n.GetDecimalValue(); } },
+                { "prothrombinTime", n => { ProthrombinTime = n.GetDecimalValue(); } },
+                { "targetINRMax", n => { TargetINRMax = n.GetDecimalValue(); } },
+                { "targetINRMin", n => { TargetINRMin = n.GetDecimalValue(); } },
                 { "testDate", n => { TestDate = n.GetDateTimeOffsetValue(); } },
                 { "testMethod", n => { TestMethod = n.GetStringValue(); } },
                 { "wasFasting", n => { WasFasting = n.GetBoolValue(); } },
@@ -171,21 +131,20 @@ namespace ApiSdk.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("foodsConsumed", FoodsConsumed);
             writer.WriteStringValue("healthConditions", HealthConditions);
-            writer.WriteObjectValue<UntypedNode>("inrValue", InrValue);
+            writer.WriteDecimalValue("inrValue", InrValue);
             writer.WriteBoolValue("isPointOfCare", IsPointOfCare);
             writer.WriteStringValue("laboratory", Laboratory);
             writer.WriteDateTimeOffsetValue("lastMedicationTime", LastMedicationTime);
             writer.WriteStringValue("medicationsTaken", MedicationsTaken);
             writer.WriteStringValue("notes", Notes);
             writer.WriteStringValue("orderedBy", OrderedBy);
-            writer.WriteObjectValue<UntypedNode>("partialThromboplastinTime", PartialThromboplastinTime);
-            writer.WriteObjectValue<UntypedNode>("prothrombinTime", ProthrombinTime);
-            writer.WriteObjectValue<UntypedNode>("targetINRMax", TargetINRMax);
-            writer.WriteObjectValue<UntypedNode>("targetINRMin", TargetINRMin);
+            writer.WriteDecimalValue("partialThromboplastinTime", PartialThromboplastinTime);
+            writer.WriteDecimalValue("prothrombinTime", ProthrombinTime);
+            writer.WriteDecimalValue("targetINRMax", TargetINRMax);
+            writer.WriteDecimalValue("targetINRMin", TargetINRMin);
             writer.WriteDateTimeOffsetValue("testDate", TestDate);
             writer.WriteStringValue("testMethod", TestMethod);
             writer.WriteBoolValue("wasFasting", WasFasting);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

@@ -68,7 +68,7 @@ namespace ApiSdk.Api.V1.Medications.Item.Patterns
         /// Creates a new dosage pattern for a medication.Optionally closes the previous active pattern by setting its EndDate.
         /// </summary>
         /// <returns>A <see cref="global::ApiSdk.Models.DosagePatternResponse"/></returns>
-        /// <param name="body">Request DTO for creating a new medication dosage pattern.Used by POST /api/medications/{medicationId}/patterns endpoint.</param>
+        /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::ApiSdk.Models.ProblemDetails">When receiving a 400 status code</exception>
@@ -116,7 +116,7 @@ namespace ApiSdk.Api.V1.Medications.Item.Patterns
         /// Creates a new dosage pattern for a medication.Optionally closes the previous active pattern by setting its EndDate.
         /// </summary>
         /// <returns>A <see cref="RequestInformation"/></returns>
-        /// <param name="body">Request DTO for creating a new medication dosage pattern.Used by POST /api/medications/{medicationId}/patterns endpoint.</param>
+        /// <param name="body">The request body</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -153,25 +153,11 @@ namespace ApiSdk.Api.V1.Medications.Item.Patterns
             [QueryParameter("activeOnly")]
             public bool? ActiveOnly { get; set; }
             /// <summary>Number of patterns to return (default: 10, max: 100)</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("limit")]
-            public string? Limit { get; set; }
-#nullable restore
-#else
-            [QueryParameter("limit")]
-            public string Limit { get; set; }
-#endif
+            public int? Limit { get; set; }
             /// <summary>Pagination offset (default: 0)</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("offset")]
-            public string? Offset { get; set; }
-#nullable restore
-#else
-            [QueryParameter("offset")]
-            public string Offset { get; set; }
-#endif
+            public int? Offset { get; set; }
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.

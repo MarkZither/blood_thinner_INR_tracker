@@ -11,16 +11,10 @@ namespace ApiSdk.Models
     /// Request model for logging a medication dose.
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class LogMedicationRequest : IAdditionalDataHolder, IParsable
+    public partial class LogMedicationRequest : IParsable
     {
         /// <summary>The actualDosage property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ActualDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode ActualDosage { get; set; }
-#endif
+        public decimal? ActualDosage { get; set; }
         /// <summary>The actualDosageUnit property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -31,8 +25,6 @@ namespace ApiSdk.Models
 #endif
         /// <summary>The actualTime property</summary>
         public DateTimeOffset? ActualTime { get; set; }
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The foodDetails property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -70,22 +62,9 @@ namespace ApiSdk.Models
         public string SideEffects { get; set; }
 #endif
         /// <summary>The status property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status? Status { get; set; }
-#nullable restore
-#else
-        public global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status Status { get; set; }
-#endif
+        public int? Status { get; set; }
         /// <summary>The takenWithFood property</summary>
         public bool? TakenWithFood { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.LogMedicationRequest"/> and sets the default values.
-        /// </summary>
-        public LogMedicationRequest()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -104,7 +83,7 @@ namespace ApiSdk.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "actualDosage", n => { ActualDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "actualDosage", n => { ActualDosage = n.GetDecimalValue(); } },
                 { "actualDosageUnit", n => { ActualDosageUnit = n.GetStringValue(); } },
                 { "actualTime", n => { ActualTime = n.GetDateTimeOffsetValue(); } },
                 { "foodDetails", n => { FoodDetails = n.GetStringValue(); } },
@@ -113,7 +92,7 @@ namespace ApiSdk.Models
                 { "reason", n => { Reason = n.GetStringValue(); } },
                 { "scheduledTime", n => { ScheduledTime = n.GetDateTimeOffsetValue(); } },
                 { "sideEffects", n => { SideEffects = n.GetStringValue(); } },
-                { "status", n => { Status = n.GetObjectValue<global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status>(global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status.CreateFromDiscriminatorValue); } },
+                { "status", n => { Status = n.GetIntValue(); } },
                 { "takenWithFood", n => { TakenWithFood = n.GetBoolValue(); } },
             };
         }
@@ -124,7 +103,7 @@ namespace ApiSdk.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("actualDosage", ActualDosage);
+            writer.WriteDecimalValue("actualDosage", ActualDosage);
             writer.WriteStringValue("actualDosageUnit", ActualDosageUnit);
             writer.WriteDateTimeOffsetValue("actualTime", ActualTime);
             writer.WriteStringValue("foodDetails", FoodDetails);
@@ -133,84 +112,8 @@ namespace ApiSdk.Models
             writer.WriteStringValue("reason", Reason);
             writer.WriteDateTimeOffsetValue("scheduledTime", ScheduledTime);
             writer.WriteStringValue("sideEffects", SideEffects);
-            writer.WriteObjectValue<global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status>("status", Status);
+            writer.WriteIntValue("status", Status);
             writer.WriteBoolValue("takenWithFood", TakenWithFood);
-            writer.WriteAdditionalData(AdditionalData);
-        }
-        /// <summary>
-        /// Composed type wrapper for classes <see cref="global::ApiSdk.Models.LogMedicationRequest_statusMember1"/>, <see cref="global::ApiSdk.Models.MedicationLogStatus"/>
-        /// </summary>
-        [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class LogMedicationRequest_status : IComposedTypeWrapper, IParsable
-        {
-            /// <summary>Composed type representation for type <see cref="global::ApiSdk.Models.LogMedicationRequest_statusMember1"/></summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-            public global::ApiSdk.Models.LogMedicationRequest_statusMember1? LogMedicationRequestStatusMember1 { get; set; }
-#nullable restore
-#else
-            public global::ApiSdk.Models.LogMedicationRequest_statusMember1 LogMedicationRequestStatusMember1 { get; set; }
-#endif
-            /// <summary>Composed type representation for type <see cref="global::ApiSdk.Models.MedicationLogStatus"/></summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-            public global::ApiSdk.Models.MedicationLogStatus? MedicationLogStatus { get; set; }
-#nullable restore
-#else
-            public global::ApiSdk.Models.MedicationLogStatus MedicationLogStatus { get; set; }
-#endif
-            /// <summary>
-            /// Creates a new instance of the appropriate class based on discriminator value
-            /// </summary>
-            /// <returns>A <see cref="global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status"/></returns>
-            /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-            public static global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status CreateFromDiscriminatorValue(IParseNode parseNode)
-            {
-                if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-                var mappingValue = parseNode.GetChildNode("")?.GetStringValue();
-                var result = new global::ApiSdk.Models.LogMedicationRequest.LogMedicationRequest_status();
-                if("".Equals(mappingValue, StringComparison.OrdinalIgnoreCase))
-                {
-                    result.LogMedicationRequestStatusMember1 = new global::ApiSdk.Models.LogMedicationRequest_statusMember1();
-                }
-                else if("".Equals(mappingValue, StringComparison.OrdinalIgnoreCase))
-                {
-                    result.MedicationLogStatus = new global::ApiSdk.Models.MedicationLogStatus();
-                }
-                return result;
-            }
-            /// <summary>
-            /// The deserialization information for the current model
-            /// </summary>
-            /// <returns>A IDictionary&lt;string, Action&lt;IParseNode&gt;&gt;</returns>
-            public virtual IDictionary<string, Action<IParseNode>> GetFieldDeserializers()
-            {
-                if(LogMedicationRequestStatusMember1 != null)
-                {
-                    return LogMedicationRequestStatusMember1.GetFieldDeserializers();
-                }
-                else if(MedicationLogStatus != null)
-                {
-                    return MedicationLogStatus.GetFieldDeserializers();
-                }
-                return new Dictionary<string, Action<IParseNode>>();
-            }
-            /// <summary>
-            /// Serializes information the current object
-            /// </summary>
-            /// <param name="writer">Serialization writer to use to serialize this model</param>
-            public virtual void Serialize(ISerializationWriter writer)
-            {
-                if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-                if(LogMedicationRequestStatusMember1 != null)
-                {
-                    writer.WriteObjectValue<global::ApiSdk.Models.LogMedicationRequest_statusMember1>(null, LogMedicationRequestStatusMember1);
-                }
-                else if(MedicationLogStatus != null)
-                {
-                    writer.WriteObjectValue<global::ApiSdk.Models.MedicationLogStatus>(null, MedicationLogStatus);
-                }
-            }
         }
     }
 }

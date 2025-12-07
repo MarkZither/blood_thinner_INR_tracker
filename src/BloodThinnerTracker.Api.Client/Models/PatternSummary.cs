@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// The active dosage pattern used to generate this schedule.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class PatternSummary : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class PatternSummary : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Human-readable pattern display.</summary>
+        /// <summary>The displayPattern property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DisplayPattern { get; set; }
@@ -23,39 +20,20 @@ namespace ApiSdk.Models
 #else
         public string DisplayPattern { get; set; }
 #endif
-        /// <summary>Pattern ID.</summary>
+        /// <summary>The id property</summary>
+        public int? Id { get; set; }
+        /// <summary>The patternLength property</summary>
+        public int? PatternLength { get; set; }
+        /// <summary>The patternSequence property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public UntypedNode? Id { get; set; }
+        public List<decimal?>? PatternSequence { get; set; }
 #nullable restore
 #else
-        public UntypedNode Id { get; set; }
+        public List<decimal?> PatternSequence { get; set; }
 #endif
-        /// <summary>Number of days in the pattern cycle.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PatternLength { get; set; }
-#nullable restore
-#else
-        public UntypedNode PatternLength { get; set; }
-#endif
-        /// <summary>Pattern sequence array.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public List<UntypedNode>? PatternSequence { get; set; }
-#nullable restore
-#else
-        public List<UntypedNode> PatternSequence { get; set; }
-#endif
-        /// <summary>Pattern start date.</summary>
+        /// <summary>The startDate property</summary>
         public DateTimeOffset? StartDate { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.PatternSummary"/> and sets the default values.
-        /// </summary>
-        public PatternSummary()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -75,9 +53,9 @@ namespace ApiSdk.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "displayPattern", n => { DisplayPattern = n.GetStringValue(); } },
-                { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "patternLength", n => { PatternLength = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<UntypedNode>()?.AsList(); } },
+                { "id", n => { Id = n.GetIntValue(); } },
+                { "patternLength", n => { PatternLength = n.GetIntValue(); } },
+                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<decimal?>()?.AsList(); } },
                 { "startDate", n => { StartDate = n.GetDateTimeOffsetValue(); } },
             };
         }
@@ -89,11 +67,10 @@ namespace ApiSdk.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("displayPattern", DisplayPattern);
-            writer.WriteObjectValue<UntypedNode>("id", Id);
-            writer.WriteObjectValue<UntypedNode>("patternLength", PatternLength);
-            writer.WriteCollectionOfPrimitiveValues<UntypedNode>("patternSequence", PatternSequence);
+            writer.WriteIntValue("id", Id);
+            writer.WriteIntValue("patternLength", PatternLength);
+            writer.WriteCollectionOfPrimitiveValues<decimal?>("patternSequence", PatternSequence);
             writer.WriteDateTimeOffsetValue("startDate", StartDate);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

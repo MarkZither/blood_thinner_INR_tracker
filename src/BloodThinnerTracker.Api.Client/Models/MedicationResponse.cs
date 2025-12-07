@@ -9,11 +9,9 @@ namespace ApiSdk.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class MedicationResponse : IAdditionalDataHolder, IParsable
+    public partial class MedicationResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The brandName property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -49,13 +47,7 @@ namespace ApiSdk.Models
         public string CustomFrequency { get; set; }
 #endif
         /// <summary>The dosage property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Dosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode Dosage { get; set; }
-#endif
+        public decimal? Dosage { get; set; }
         /// <summary>The dosageUnit property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -90,7 +82,7 @@ namespace ApiSdk.Models
 #else
         public string Form { get; set; }
 #endif
-        /// <summary>Medication frequency options.</summary>
+        /// <summary>The frequency property</summary>
         public int? Frequency { get; set; }
         /// <summary>The genericName property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -109,21 +101,9 @@ namespace ApiSdk.Models
         public string Imprint { get; set; }
 #endif
         /// <summary>The inrTargetMax property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? InrTargetMax { get; set; }
-#nullable restore
-#else
-        public UntypedNode InrTargetMax { get; set; }
-#endif
+        public decimal? InrTargetMax { get; set; }
         /// <summary>The inrTargetMin property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? InrTargetMin { get; set; }
-#nullable restore
-#else
-        public UntypedNode InrTargetMin { get; set; }
-#endif
+        public decimal? InrTargetMin { get; set; }
         /// <summary>The instructions property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -137,21 +117,9 @@ namespace ApiSdk.Models
         /// <summary>The isBloodThinner property</summary>
         public bool? IsBloodThinner { get; set; }
         /// <summary>The maxDailyDose property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MaxDailyDose { get; set; }
-#nullable restore
-#else
-        public UntypedNode MaxDailyDose { get; set; }
-#endif
+        public decimal? MaxDailyDose { get; set; }
         /// <summary>The minHoursBetweenDoses property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MinHoursBetweenDoses { get; set; }
-#nullable restore
-#else
-        public UntypedNode MinHoursBetweenDoses { get; set; }
-#endif
+        public int? MinHoursBetweenDoses { get; set; }
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -197,13 +165,7 @@ namespace ApiSdk.Models
         /// <summary>The publicId property</summary>
         public Guid? PublicId { get; set; }
         /// <summary>The reminderMinutes property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ReminderMinutes { get; set; }
-#nullable restore
-#else
-        public UntypedNode ReminderMinutes { get; set; }
-#endif
+        public int? ReminderMinutes { get; set; }
         /// <summary>The remindersEnabled property</summary>
         public bool? RemindersEnabled { get; set; }
         /// <summary>The requiresINRMonitoring property</summary>
@@ -242,17 +204,10 @@ namespace ApiSdk.Models
 #else
         public string StorageInstructions { get; set; }
 #endif
-        /// <summary>Types of medications tracked in the system.Includes blood thinners and cardiovascular medications.</summary>
+        /// <summary>The type property</summary>
         public int? Type { get; set; }
         /// <summary>The updatedAt property</summary>
         public DateTimeOffset? UpdatedAt { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.MedicationResponse"/> and sets the default values.
-        /// </summary>
-        public MedicationResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -276,7 +231,7 @@ namespace ApiSdk.Models
                 { "contraindications", n => { Contraindications = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "customFrequency", n => { CustomFrequency = n.GetStringValue(); } },
-                { "dosage", n => { Dosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "dosage", n => { Dosage = n.GetDecimalValue(); } },
                 { "dosageUnit", n => { DosageUnit = n.GetStringValue(); } },
                 { "drugInteractions", n => { DrugInteractions = n.GetStringValue(); } },
                 { "endDate", n => { EndDate = n.GetDateTimeOffsetValue(); } },
@@ -285,13 +240,13 @@ namespace ApiSdk.Models
                 { "frequency", n => { Frequency = n.GetIntValue(); } },
                 { "genericName", n => { GenericName = n.GetStringValue(); } },
                 { "imprint", n => { Imprint = n.GetStringValue(); } },
-                { "inrTargetMax", n => { InrTargetMax = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "inrTargetMin", n => { InrTargetMin = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "inrTargetMax", n => { InrTargetMax = n.GetDecimalValue(); } },
+                { "inrTargetMin", n => { InrTargetMin = n.GetDecimalValue(); } },
                 { "instructions", n => { Instructions = n.GetStringValue(); } },
                 { "isActive", n => { IsActive = n.GetBoolValue(); } },
                 { "isBloodThinner", n => { IsBloodThinner = n.GetBoolValue(); } },
-                { "maxDailyDose", n => { MaxDailyDose = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "minHoursBetweenDoses", n => { MinHoursBetweenDoses = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "maxDailyDose", n => { MaxDailyDose = n.GetDecimalValue(); } },
+                { "minHoursBetweenDoses", n => { MinHoursBetweenDoses = n.GetIntValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "notes", n => { Notes = n.GetStringValue(); } },
                 { "pharmacy", n => { Pharmacy = n.GetStringValue(); } },
@@ -299,7 +254,7 @@ namespace ApiSdk.Models
                 { "prescriptionDate", n => { PrescriptionDate = n.GetDateTimeOffsetValue(); } },
                 { "prescriptionNumber", n => { PrescriptionNumber = n.GetStringValue(); } },
                 { "publicId", n => { PublicId = n.GetGuidValue(); } },
-                { "reminderMinutes", n => { ReminderMinutes = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "reminderMinutes", n => { ReminderMinutes = n.GetIntValue(); } },
                 { "remindersEnabled", n => { RemindersEnabled = n.GetBoolValue(); } },
                 { "requiresINRMonitoring", n => { RequiresINRMonitoring = n.GetBoolValue(); } },
                 { "scheduledTimes", n => { ScheduledTimes = n.GetStringValue(); } },
@@ -323,7 +278,7 @@ namespace ApiSdk.Models
             writer.WriteStringValue("contraindications", Contraindications);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("customFrequency", CustomFrequency);
-            writer.WriteObjectValue<UntypedNode>("dosage", Dosage);
+            writer.WriteDecimalValue("dosage", Dosage);
             writer.WriteStringValue("dosageUnit", DosageUnit);
             writer.WriteStringValue("drugInteractions", DrugInteractions);
             writer.WriteDateTimeOffsetValue("endDate", EndDate);
@@ -332,13 +287,13 @@ namespace ApiSdk.Models
             writer.WriteIntValue("frequency", Frequency);
             writer.WriteStringValue("genericName", GenericName);
             writer.WriteStringValue("imprint", Imprint);
-            writer.WriteObjectValue<UntypedNode>("inrTargetMax", InrTargetMax);
-            writer.WriteObjectValue<UntypedNode>("inrTargetMin", InrTargetMin);
+            writer.WriteDecimalValue("inrTargetMax", InrTargetMax);
+            writer.WriteDecimalValue("inrTargetMin", InrTargetMin);
             writer.WriteStringValue("instructions", Instructions);
             writer.WriteBoolValue("isActive", IsActive);
             writer.WriteBoolValue("isBloodThinner", IsBloodThinner);
-            writer.WriteObjectValue<UntypedNode>("maxDailyDose", MaxDailyDose);
-            writer.WriteObjectValue<UntypedNode>("minHoursBetweenDoses", MinHoursBetweenDoses);
+            writer.WriteDecimalValue("maxDailyDose", MaxDailyDose);
+            writer.WriteIntValue("minHoursBetweenDoses", MinHoursBetweenDoses);
             writer.WriteStringValue("name", Name);
             writer.WriteStringValue("notes", Notes);
             writer.WriteStringValue("pharmacy", Pharmacy);
@@ -346,7 +301,7 @@ namespace ApiSdk.Models
             writer.WriteDateTimeOffsetValue("prescriptionDate", PrescriptionDate);
             writer.WriteStringValue("prescriptionNumber", PrescriptionNumber);
             writer.WriteGuidValue("publicId", PublicId);
-            writer.WriteObjectValue<UntypedNode>("reminderMinutes", ReminderMinutes);
+            writer.WriteIntValue("reminderMinutes", ReminderMinutes);
             writer.WriteBoolValue("remindersEnabled", RemindersEnabled);
             writer.WriteBoolValue("requiresINRMonitoring", RequiresINRMonitoring);
             writer.WriteStringValue("scheduledTimes", ScheduledTimes);
@@ -356,7 +311,6 @@ namespace ApiSdk.Models
             writer.WriteStringValue("storageInstructions", StorageInstructions);
             writer.WriteIntValue("type", Type);
             writer.WriteDateTimeOffsetValue("updatedAt", UpdatedAt);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

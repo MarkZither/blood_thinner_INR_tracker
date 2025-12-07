@@ -7,19 +7,16 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Request DTO for creating a new medication dosage pattern.Used by POST /api/medications/{medicationId}/patterns endpoint.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class CreateDosagePatternRequest : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class CreateDosagePatternRequest : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Gets or sets whether to automatically close the previous active pattern.If true, sets the EndDate of the current active pattern to StartDate - 1 day.Default: true</summary>
+        /// <summary>The closePreviousPattern property</summary>
         public bool? ClosePreviousPattern { get; set; }
-        /// <summary>Gets or sets the optional end date for this pattern (inclusive).Leave null for ongoing pattern.</summary>
+        /// <summary>The endDate property</summary>
         public DateTimeOffset? EndDate { get; set; }
-        /// <summary>Gets or sets optional user notes about this pattern change.Example: &quot;Adjusted based on INR 3.2&quot;, &quot;Reduced winter dosing&quot;</summary>
+        /// <summary>The notes property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Notes { get; set; }
@@ -27,23 +24,16 @@ namespace ApiSdk.Models
 #else
         public string Notes { get; set; }
 #endif
-        /// <summary>Gets or sets the array of dosages forming the repeating pattern.Example: [4.0, 4.0, 3.0] for 3-day cycle.</summary>
+        /// <summary>The patternSequence property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public List<UntypedNode>? PatternSequence { get; set; }
+        public List<decimal?>? PatternSequence { get; set; }
 #nullable restore
 #else
-        public List<UntypedNode> PatternSequence { get; set; }
+        public List<decimal?> PatternSequence { get; set; }
 #endif
-        /// <summary>Gets or sets the date when this pattern becomes active (inclusive).</summary>
+        /// <summary>The startDate property</summary>
         public DateTimeOffset? StartDate { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.CreateDosagePatternRequest"/> and sets the default values.
-        /// </summary>
-        public CreateDosagePatternRequest()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -65,7 +55,7 @@ namespace ApiSdk.Models
                 { "closePreviousPattern", n => { ClosePreviousPattern = n.GetBoolValue(); } },
                 { "endDate", n => { EndDate = n.GetDateTimeOffsetValue(); } },
                 { "notes", n => { Notes = n.GetStringValue(); } },
-                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<UntypedNode>()?.AsList(); } },
+                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<decimal?>()?.AsList(); } },
                 { "startDate", n => { StartDate = n.GetDateTimeOffsetValue(); } },
             };
         }
@@ -79,9 +69,8 @@ namespace ApiSdk.Models
             writer.WriteBoolValue("closePreviousPattern", ClosePreviousPattern);
             writer.WriteDateTimeOffsetValue("endDate", EndDate);
             writer.WriteStringValue("notes", Notes);
-            writer.WriteCollectionOfPrimitiveValues<UntypedNode>("patternSequence", PatternSequence);
+            writer.WriteCollectionOfPrimitiveValues<decimal?>("patternSequence", PatternSequence);
             writer.WriteDateTimeOffsetValue("startDate", StartDate);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

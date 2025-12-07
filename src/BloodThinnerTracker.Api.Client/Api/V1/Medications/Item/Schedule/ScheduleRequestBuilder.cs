@@ -95,15 +95,8 @@ namespace ApiSdk.Api.V1.Medications.Item.Schedule
         public partial class ScheduleRequestBuilderGetQueryParameters 
         {
             /// <summary>Number of days to calculate (default: 14, max: 365)</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("days")]
-            public string? Days { get; set; }
-#nullable restore
-#else
-            [QueryParameter("days")]
-            public string Days { get; set; }
-#endif
+            public int? Days { get; set; }
             /// <summary>Include pattern transition detection (default: true)</summary>
             [QueryParameter("includePatternChanges")]
             public bool? IncludePatternChanges { get; set; }

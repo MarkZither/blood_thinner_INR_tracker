@@ -14,7 +14,7 @@ using System;
 namespace ApiSdk.Api.V1.Medications
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\v1\Medications
+    /// Builds and executes requests for operations under \api\v1\medications
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class MedicationsRequestBuilder : BaseRequestBuilder
@@ -86,9 +86,9 @@ namespace ApiSdk.Api.V1.Medications
         public global::ApiSdk.Api.V1.MedicationLogs.Medication.Item.WithMedicationPublicItemRequestBuilder WithMedicationPublicId(Guid? medicationPublicId)
         {
             if(ReferenceEquals(medicationPublicId, null)) throw new ArgumentNullException(nameof(medicationPublicId));
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            var urlTplParams = new Dictionary<string, object>(PathParameters);
+            urlTplParams.Add("medicationPublicId", medicationPublicId.Value);
+            return new global::ApiSdk.Api.V1.MedicationLogs.Medication.Item.WithMedicationPublicItemRequestBuilder(urlTplParams, RequestAdapter);
         }
         /// <summary>
         /// Gets an item from the ApiSdk.api.v1.Medications.item collection
@@ -97,10 +97,9 @@ namespace ApiSdk.Api.V1.Medications
         /// <param name="publicId">Medication public ID.</param>
         public global::ApiSdk.Api.V1.Inr.Tests.Item.WithPublicItemRequestBuilder WithPublicId(Guid publicId)
         {
-            if(ReferenceEquals(publicId, null)) throw new ArgumentNullException(nameof(publicId));
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            var urlTplParams = new Dictionary<string, object>(PathParameters);
+            urlTplParams.Add("publicId", publicId);
+            return new global::ApiSdk.Api.V1.Inr.Tests.Item.WithPublicItemRequestBuilder(urlTplParams, RequestAdapter);
         }
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.

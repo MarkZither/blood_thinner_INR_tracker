@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Token refresh request model.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class RefreshTokenRequest : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class RefreshTokenRequest : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Gets or sets the device identifier for security validation.</summary>
+        /// <summary>The deviceId property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DeviceId { get; set; }
@@ -23,7 +20,7 @@ namespace ApiSdk.Models
 #else
         public string DeviceId { get; set; }
 #endif
-        /// <summary>Gets or sets the refresh token to exchange for new access token.</summary>
+        /// <summary>The refreshToken property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? RefreshToken { get; set; }
@@ -31,13 +28,6 @@ namespace ApiSdk.Models
 #else
         public string RefreshToken { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.RefreshTokenRequest"/> and sets the default values.
-        /// </summary>
-        public RefreshTokenRequest()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -69,7 +59,6 @@ namespace ApiSdk.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("deviceId", DeviceId);
             writer.WriteStringValue("refreshToken", RefreshToken);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

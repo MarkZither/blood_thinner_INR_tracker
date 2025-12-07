@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Gets or sets the user information.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class UserInfo : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class UserInfo : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Gets or sets the user email address.</summary>
+        /// <summary>The email property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Email { get; set; }
@@ -23,9 +20,9 @@ namespace ApiSdk.Models
 #else
         public string Email { get; set; }
 #endif
-        /// <summary>Gets or sets the last login timestamp for security tracking.</summary>
+        /// <summary>The lastLogin property</summary>
         public DateTimeOffset? LastLogin { get; set; }
-        /// <summary>Gets or sets the user display name.</summary>
+        /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Name { get; set; }
@@ -33,7 +30,7 @@ namespace ApiSdk.Models
 #else
         public string Name { get; set; }
 #endif
-        /// <summary>Gets or sets the authentication provider (Azure AD, Google, Local).</summary>
+        /// <summary>The provider property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Provider { get; set; }
@@ -41,9 +38,9 @@ namespace ApiSdk.Models
 #else
         public string Provider { get; set; }
 #endif
-        /// <summary>Gets or sets the unique user identifier.</summary>
+        /// <summary>The publicId property</summary>
         public Guid? PublicId { get; set; }
-        /// <summary>Gets or sets the user role for medical data access.</summary>
+        /// <summary>The role property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Role { get; set; }
@@ -51,7 +48,7 @@ namespace ApiSdk.Models
 #else
         public string Role { get; set; }
 #endif
-        /// <summary>Gets or sets the user&apos;s timezone for medication scheduling.</summary>
+        /// <summary>The timeZone property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? TimeZone { get; set; }
@@ -59,13 +56,6 @@ namespace ApiSdk.Models
 #else
         public string TimeZone { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.UserInfo"/> and sets the default values.
-        /// </summary>
-        public UserInfo()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -107,7 +97,6 @@ namespace ApiSdk.Models
             writer.WriteGuidValue("publicId", PublicId);
             writer.WriteStringValue("role", Role);
             writer.WriteStringValue("timeZone", TimeZone);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

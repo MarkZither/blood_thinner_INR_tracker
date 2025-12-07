@@ -11,34 +11,14 @@ namespace ApiSdk.Models
     /// Response containing pattern history with pagination metadata.
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class PatternHistoryResponse : IAdditionalDataHolder, IParsable
+    public partial class PatternHistoryResponse : IParsable
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The limit property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Limit { get; set; }
-#nullable restore
-#else
-        public UntypedNode Limit { get; set; }
-#endif
+        public int? Limit { get; set; }
         /// <summary>The medicationId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MedicationId { get; set; }
-#nullable restore
-#else
-        public UntypedNode MedicationId { get; set; }
-#endif
+        public int? MedicationId { get; set; }
         /// <summary>The offset property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Offset { get; set; }
-#nullable restore
-#else
-        public UntypedNode Offset { get; set; }
-#endif
+        public int? Offset { get; set; }
         /// <summary>The patterns property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -48,20 +28,7 @@ namespace ApiSdk.Models
         public List<global::ApiSdk.Models.DosagePatternResponse> Patterns { get; set; }
 #endif
         /// <summary>The totalCount property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TotalCount { get; set; }
-#nullable restore
-#else
-        public UntypedNode TotalCount { get; set; }
-#endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.PatternHistoryResponse"/> and sets the default values.
-        /// </summary>
-        public PatternHistoryResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        public int? TotalCount { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -80,11 +47,11 @@ namespace ApiSdk.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "limit", n => { Limit = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "medicationId", n => { MedicationId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "offset", n => { Offset = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "limit", n => { Limit = n.GetIntValue(); } },
+                { "medicationId", n => { MedicationId = n.GetIntValue(); } },
+                { "offset", n => { Offset = n.GetIntValue(); } },
                 { "patterns", n => { Patterns = n.GetCollectionOfObjectValues<global::ApiSdk.Models.DosagePatternResponse>(global::ApiSdk.Models.DosagePatternResponse.CreateFromDiscriminatorValue)?.AsList(); } },
-                { "totalCount", n => { TotalCount = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "totalCount", n => { TotalCount = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -94,12 +61,11 @@ namespace ApiSdk.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("limit", Limit);
-            writer.WriteObjectValue<UntypedNode>("medicationId", MedicationId);
-            writer.WriteObjectValue<UntypedNode>("offset", Offset);
+            writer.WriteIntValue("limit", Limit);
+            writer.WriteIntValue("medicationId", MedicationId);
+            writer.WriteIntValue("offset", Offset);
             writer.WriteCollectionOfObjectValues<global::ApiSdk.Models.DosagePatternResponse>("patterns", Patterns);
-            writer.WriteObjectValue<UntypedNode>("totalCount", TotalCount);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteIntValue("totalCount", TotalCount);
         }
     }
 }

@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Response DTO for medication dosage schedule calculation.Returns a day-by-day dosage plan for 1-365 days based on active pattern.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class MedicationScheduleResponse : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class MedicationScheduleResponse : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>The active dosage pattern used to generate this schedule.</summary>
+        /// <summary>The currentPattern property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public global::ApiSdk.Models.PatternSummary? CurrentPattern { get; set; }
@@ -23,7 +20,7 @@ namespace ApiSdk.Models
 #else
         public global::ApiSdk.Models.PatternSummary CurrentPattern { get; set; }
 #endif
-        /// <summary>Dosage unit for all values in the schedule.</summary>
+        /// <summary>The dosageUnit property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DosageUnit { get; set; }
@@ -31,17 +28,11 @@ namespace ApiSdk.Models
 #else
         public string DosageUnit { get; set; }
 #endif
-        /// <summary>End date of the schedule (inclusive).</summary>
+        /// <summary>The endDate property</summary>
         public DateTimeOffset? EndDate { get; set; }
-        /// <summary>ID of the medication being scheduled.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MedicationId { get; set; }
-#nullable restore
-#else
-        public UntypedNode MedicationId { get; set; }
-#endif
-        /// <summary>Display name of the medication.</summary>
+        /// <summary>The medicationId property</summary>
+        public int? MedicationId { get; set; }
+        /// <summary>The medicationName property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? MedicationName { get; set; }
@@ -49,7 +40,7 @@ namespace ApiSdk.Models
 #else
         public string MedicationName { get; set; }
 #endif
-        /// <summary>Day-by-day dosage schedule entries.</summary>
+        /// <summary>The schedule property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public List<global::ApiSdk.Models.ScheduleEntry>? Schedule { get; set; }
@@ -57,9 +48,9 @@ namespace ApiSdk.Models
 #else
         public List<global::ApiSdk.Models.ScheduleEntry> Schedule { get; set; }
 #endif
-        /// <summary>Start date of the schedule (inclusive).</summary>
+        /// <summary>The startDate property</summary>
         public DateTimeOffset? StartDate { get; set; }
-        /// <summary>Statistical summary of the dosage schedule.</summary>
+        /// <summary>The summary property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public global::ApiSdk.Models.ScheduleSummary? Summary { get; set; }
@@ -67,21 +58,8 @@ namespace ApiSdk.Models
 #else
         public global::ApiSdk.Models.ScheduleSummary Summary { get; set; }
 #endif
-        /// <summary>Number of days in the schedule.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TotalDays { get; set; }
-#nullable restore
-#else
-        public UntypedNode TotalDays { get; set; }
-#endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.MedicationScheduleResponse"/> and sets the default values.
-        /// </summary>
-        public MedicationScheduleResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        /// <summary>The totalDays property</summary>
+        public int? TotalDays { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -103,12 +81,12 @@ namespace ApiSdk.Models
                 { "currentPattern", n => { CurrentPattern = n.GetObjectValue<global::ApiSdk.Models.PatternSummary>(global::ApiSdk.Models.PatternSummary.CreateFromDiscriminatorValue); } },
                 { "dosageUnit", n => { DosageUnit = n.GetStringValue(); } },
                 { "endDate", n => { EndDate = n.GetDateTimeOffsetValue(); } },
-                { "medicationId", n => { MedicationId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "medicationId", n => { MedicationId = n.GetIntValue(); } },
                 { "medicationName", n => { MedicationName = n.GetStringValue(); } },
                 { "schedule", n => { Schedule = n.GetCollectionOfObjectValues<global::ApiSdk.Models.ScheduleEntry>(global::ApiSdk.Models.ScheduleEntry.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "startDate", n => { StartDate = n.GetDateTimeOffsetValue(); } },
                 { "summary", n => { Summary = n.GetObjectValue<global::ApiSdk.Models.ScheduleSummary>(global::ApiSdk.Models.ScheduleSummary.CreateFromDiscriminatorValue); } },
-                { "totalDays", n => { TotalDays = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "totalDays", n => { TotalDays = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -121,13 +99,12 @@ namespace ApiSdk.Models
             writer.WriteObjectValue<global::ApiSdk.Models.PatternSummary>("currentPattern", CurrentPattern);
             writer.WriteStringValue("dosageUnit", DosageUnit);
             writer.WriteDateTimeOffsetValue("endDate", EndDate);
-            writer.WriteObjectValue<UntypedNode>("medicationId", MedicationId);
+            writer.WriteIntValue("medicationId", MedicationId);
             writer.WriteStringValue("medicationName", MedicationName);
             writer.WriteCollectionOfObjectValues<global::ApiSdk.Models.ScheduleEntry>("schedule", Schedule);
             writer.WriteDateTimeOffsetValue("startDate", StartDate);
             writer.WriteObjectValue<global::ApiSdk.Models.ScheduleSummary>("summary", Summary);
-            writer.WriteObjectValue<UntypedNode>("totalDays", TotalDays);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteIntValue("totalDays", TotalDays);
         }
     }
 }

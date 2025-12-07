@@ -7,17 +7,14 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Single day&apos;s dosage information in the schedule.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class ScheduleEntry : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class ScheduleEntry : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Date for this schedule entry.</summary>
+        /// <summary>The date property</summary>
         public DateTimeOffset? Date { get; set; }
-        /// <summary>Day of week for user-friendly display.</summary>
+        /// <summary>The dayOfWeek property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DayOfWeek { get; set; }
@@ -25,17 +22,11 @@ namespace ApiSdk.Models
 #else
         public string DayOfWeek { get; set; }
 #endif
-        /// <summary>Dosage for this day.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Dosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode Dosage { get; set; }
-#endif
-        /// <summary>Indicates if a new dosage pattern starts on this day.</summary>
+        /// <summary>The dosage property</summary>
+        public decimal? Dosage { get; set; }
+        /// <summary>The isPatternChange property</summary>
         public bool? IsPatternChange { get; set; }
-        /// <summary>Description of pattern change (only present when IsPatternChange = true).</summary>
+        /// <summary>The patternChangeNote property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? PatternChangeNote { get; set; }
@@ -43,29 +34,10 @@ namespace ApiSdk.Models
 #else
         public string PatternChangeNote { get; set; }
 #endif
-        /// <summary>Position in the pattern cycle (1-based).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PatternDay { get; set; }
-#nullable restore
-#else
-        public UntypedNode PatternDay { get; set; }
-#endif
-        /// <summary>Total length of the pattern cycle.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PatternLength { get; set; }
-#nullable restore
-#else
-        public UntypedNode PatternLength { get; set; }
-#endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.ScheduleEntry"/> and sets the default values.
-        /// </summary>
-        public ScheduleEntry()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        /// <summary>The patternDay property</summary>
+        public int? PatternDay { get; set; }
+        /// <summary>The patternLength property</summary>
+        public int? PatternLength { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -86,11 +58,11 @@ namespace ApiSdk.Models
             {
                 { "date", n => { Date = n.GetDateTimeOffsetValue(); } },
                 { "dayOfWeek", n => { DayOfWeek = n.GetStringValue(); } },
-                { "dosage", n => { Dosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "dosage", n => { Dosage = n.GetDecimalValue(); } },
                 { "isPatternChange", n => { IsPatternChange = n.GetBoolValue(); } },
                 { "patternChangeNote", n => { PatternChangeNote = n.GetStringValue(); } },
-                { "patternDay", n => { PatternDay = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "patternLength", n => { PatternLength = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "patternDay", n => { PatternDay = n.GetIntValue(); } },
+                { "patternLength", n => { PatternLength = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -102,12 +74,11 @@ namespace ApiSdk.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteDateTimeOffsetValue("date", Date);
             writer.WriteStringValue("dayOfWeek", DayOfWeek);
-            writer.WriteObjectValue<UntypedNode>("dosage", Dosage);
+            writer.WriteDecimalValue("dosage", Dosage);
             writer.WriteBoolValue("isPatternChange", IsPatternChange);
             writer.WriteStringValue("patternChangeNote", PatternChangeNote);
-            writer.WriteObjectValue<UntypedNode>("patternDay", PatternDay);
-            writer.WriteObjectValue<UntypedNode>("patternLength", PatternLength);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteIntValue("patternDay", PatternDay);
+            writer.WriteIntValue("patternLength", PatternLength);
         }
     }
 }

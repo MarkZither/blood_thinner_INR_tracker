@@ -9,11 +9,9 @@ namespace ApiSdk.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class UserProfileResponse : IAdditionalDataHolder, IParsable
+    public partial class UserProfileResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The createdAt property</summary>
         public DateTimeOffset? CreatedAt { get; set; }
         /// <summary>The dateOfBirth property</summary>
@@ -87,13 +85,7 @@ namespace ApiSdk.Models
         /// <summary>The profileCompletedAt property</summary>
         public DateTimeOffset? ProfileCompletedAt { get; set; }
         /// <summary>The reminderAdvanceMinutes property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ReminderAdvanceMinutes { get; set; }
-#nullable restore
-#else
-        public UntypedNode ReminderAdvanceMinutes { get; set; }
-#endif
+        public int? ReminderAdvanceMinutes { get; set; }
         /// <summary>The timeZone property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -104,13 +96,6 @@ namespace ApiSdk.Models
 #endif
         /// <summary>The updatedAt property</summary>
         public DateTimeOffset? UpdatedAt { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.UserProfileResponse"/> and sets the default values.
-        /// </summary>
-        public UserProfileResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -144,7 +129,7 @@ namespace ApiSdk.Models
                 { "phoneNumber", n => { PhoneNumber = n.GetStringValue(); } },
                 { "preferredLanguage", n => { PreferredLanguage = n.GetStringValue(); } },
                 { "profileCompletedAt", n => { ProfileCompletedAt = n.GetDateTimeOffsetValue(); } },
-                { "reminderAdvanceMinutes", n => { ReminderAdvanceMinutes = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "reminderAdvanceMinutes", n => { ReminderAdvanceMinutes = n.GetIntValue(); } },
                 { "timeZone", n => { TimeZone = n.GetStringValue(); } },
                 { "updatedAt", n => { UpdatedAt = n.GetDateTimeOffsetValue(); } },
             };
@@ -171,10 +156,9 @@ namespace ApiSdk.Models
             writer.WriteStringValue("phoneNumber", PhoneNumber);
             writer.WriteStringValue("preferredLanguage", PreferredLanguage);
             writer.WriteDateTimeOffsetValue("profileCompletedAt", ProfileCompletedAt);
-            writer.WriteObjectValue<UntypedNode>("reminderAdvanceMinutes", ReminderAdvanceMinutes);
+            writer.WriteIntValue("reminderAdvanceMinutes", ReminderAdvanceMinutes);
             writer.WriteStringValue("timeZone", TimeZone);
             writer.WriteDateTimeOffsetValue("updatedAt", UpdatedAt);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

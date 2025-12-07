@@ -87,7 +87,7 @@ namespace ApiSdk.Api.V1.Inr.Tests
         /// Creates a new INR test.
         /// </summary>
         /// <returns>A <see cref="global::ApiSdk.Models.INRTestResponse"/></returns>
-        /// <param name="body">Request model for creating a new INR test.</param>
+        /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::ApiSdk.Models.ProblemDetails">When receiving a 400 status code</exception>
@@ -133,7 +133,7 @@ namespace ApiSdk.Api.V1.Inr.Tests
         /// Creates a new INR test.
         /// </summary>
         /// <returns>A <see cref="RequestInformation"/></returns>
-        /// <param name="body">Request model for creating a new INR test.</param>
+        /// <param name="body">The request body</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -170,25 +170,11 @@ namespace ApiSdk.Api.V1.Inr.Tests
             [QueryParameter("fromDate")]
             public DateTimeOffset? FromDate { get; set; }
             /// <summary>Number of records to skip (for pagination).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("skip")]
-            public string? Skip { get; set; }
-#nullable restore
-#else
-            [QueryParameter("skip")]
-            public string Skip { get; set; }
-#endif
+            public int? Skip { get; set; }
             /// <summary>Number of records to return (max 100).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("take")]
-            public string? Take { get; set; }
-#nullable restore
-#else
-            [QueryParameter("take")]
-            public string Take { get; set; }
-#endif
+            public int? Take { get; set; }
             /// <summary>Optional end date for filtering.</summary>
             [QueryParameter("toDate")]
             public DateTimeOffset? ToDate { get; set; }

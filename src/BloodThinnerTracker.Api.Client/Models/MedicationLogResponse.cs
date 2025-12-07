@@ -11,16 +11,10 @@ namespace ApiSdk.Models
     /// Response model for medication log data.
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class MedicationLogResponse : IAdditionalDataHolder, IParsable
+    public partial class MedicationLogResponse : IParsable
     {
         /// <summary>The actualDosage property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ActualDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode ActualDosage { get; set; }
-#endif
+        public decimal? ActualDosage { get; set; }
         /// <summary>The actualDosageUnit property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -31,18 +25,10 @@ namespace ApiSdk.Models
 #endif
         /// <summary>The actualTime property</summary>
         public DateTimeOffset? ActualTime { get; set; }
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The createdAt property</summary>
         public DateTimeOffset? CreatedAt { get; set; }
         /// <summary>Expected dosage from the active pattern on ScheduledTime date.NULL if no pattern was active.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ExpectedDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode ExpectedDosage { get; set; }
-#endif
+        public decimal? ExpectedDosage { get; set; }
         /// <summary>The foodDetails property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -51,7 +37,7 @@ namespace ApiSdk.Models
 #else
         public string FoodDetails { get; set; }
 #endif
-        /// <summary>Indicates whether actual dosage differs from expected dosage (variance &amp;gt; 0.01mg).</summary>
+        /// <summary>Indicates whether actual dosage differs from expected dosage (variance &gt; 0.01mg).</summary>
         public bool? HasVariance { get; set; }
         /// <summary>The medicationName property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -72,13 +58,7 @@ namespace ApiSdk.Models
         public string Notes { get; set; }
 #endif
         /// <summary>Position in the dosage pattern cycle (1-based).Example: Day 3 of a 6-day pattern.NULL if no pattern was active.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PatternDayNumber { get; set; }
-#nullable restore
-#else
-        public UntypedNode PatternDayNumber { get; set; }
-#endif
+        public int? PatternDayNumber { get; set; }
         /// <summary>The publicId property</summary>
         public Guid? PublicId { get; set; }
         /// <summary>The reason property</summary>
@@ -104,36 +84,11 @@ namespace ApiSdk.Models
         /// <summary>The takenWithFood property</summary>
         public bool? TakenWithFood { get; set; }
         /// <summary>The timeVarianceMinutes property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TimeVarianceMinutes { get; set; }
-#nullable restore
-#else
-        public UntypedNode TimeVarianceMinutes { get; set; }
-#endif
+        public int? TimeVarianceMinutes { get; set; }
         /// <summary>Variance amount (actual - expected).Positive = took more than expected, negative = took less.NULL if no expected dosage is set.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? VarianceAmount { get; set; }
-#nullable restore
-#else
-        public UntypedNode VarianceAmount { get; set; }
-#endif
+        public decimal? VarianceAmount { get; set; }
         /// <summary>Variance percentage ((actual - expected) / expected * 100).Example: -25% means took 25% less than expected.NULL if no expected dosage or expected dosage is 0.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? VariancePercentage { get; set; }
-#nullable restore
-#else
-        public UntypedNode VariancePercentage { get; set; }
-#endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.MedicationLogResponse"/> and sets the default values.
-        /// </summary>
-        public MedicationLogResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        public decimal? VariancePercentage { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -152,26 +107,26 @@ namespace ApiSdk.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "actualDosage", n => { ActualDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "actualDosage", n => { ActualDosage = n.GetDecimalValue(); } },
                 { "actualDosageUnit", n => { ActualDosageUnit = n.GetStringValue(); } },
                 { "actualTime", n => { ActualTime = n.GetDateTimeOffsetValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
-                { "expectedDosage", n => { ExpectedDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "expectedDosage", n => { ExpectedDosage = n.GetDecimalValue(); } },
                 { "foodDetails", n => { FoodDetails = n.GetStringValue(); } },
                 { "hasVariance", n => { HasVariance = n.GetBoolValue(); } },
                 { "medicationName", n => { MedicationName = n.GetStringValue(); } },
                 { "medicationPublicId", n => { MedicationPublicId = n.GetGuidValue(); } },
                 { "notes", n => { Notes = n.GetStringValue(); } },
-                { "patternDayNumber", n => { PatternDayNumber = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "patternDayNumber", n => { PatternDayNumber = n.GetIntValue(); } },
                 { "publicId", n => { PublicId = n.GetGuidValue(); } },
                 { "reason", n => { Reason = n.GetStringValue(); } },
                 { "scheduledTime", n => { ScheduledTime = n.GetDateTimeOffsetValue(); } },
                 { "sideEffects", n => { SideEffects = n.GetStringValue(); } },
                 { "status", n => { Status = n.GetIntValue(); } },
                 { "takenWithFood", n => { TakenWithFood = n.GetBoolValue(); } },
-                { "timeVarianceMinutes", n => { TimeVarianceMinutes = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "varianceAmount", n => { VarianceAmount = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "variancePercentage", n => { VariancePercentage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "timeVarianceMinutes", n => { TimeVarianceMinutes = n.GetIntValue(); } },
+                { "varianceAmount", n => { VarianceAmount = n.GetDecimalValue(); } },
+                { "variancePercentage", n => { VariancePercentage = n.GetDecimalValue(); } },
             };
         }
         /// <summary>
@@ -181,27 +136,26 @@ namespace ApiSdk.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("actualDosage", ActualDosage);
+            writer.WriteDecimalValue("actualDosage", ActualDosage);
             writer.WriteStringValue("actualDosageUnit", ActualDosageUnit);
             writer.WriteDateTimeOffsetValue("actualTime", ActualTime);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
-            writer.WriteObjectValue<UntypedNode>("expectedDosage", ExpectedDosage);
+            writer.WriteDecimalValue("expectedDosage", ExpectedDosage);
             writer.WriteStringValue("foodDetails", FoodDetails);
             writer.WriteBoolValue("hasVariance", HasVariance);
             writer.WriteStringValue("medicationName", MedicationName);
             writer.WriteGuidValue("medicationPublicId", MedicationPublicId);
             writer.WriteStringValue("notes", Notes);
-            writer.WriteObjectValue<UntypedNode>("patternDayNumber", PatternDayNumber);
+            writer.WriteIntValue("patternDayNumber", PatternDayNumber);
             writer.WriteGuidValue("publicId", PublicId);
             writer.WriteStringValue("reason", Reason);
             writer.WriteDateTimeOffsetValue("scheduledTime", ScheduledTime);
             writer.WriteStringValue("sideEffects", SideEffects);
             writer.WriteIntValue("status", Status);
             writer.WriteBoolValue("takenWithFood", TakenWithFood);
-            writer.WriteObjectValue<UntypedNode>("timeVarianceMinutes", TimeVarianceMinutes);
-            writer.WriteObjectValue<UntypedNode>("varianceAmount", VarianceAmount);
-            writer.WriteObjectValue<UntypedNode>("variancePercentage", VariancePercentage);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteIntValue("timeVarianceMinutes", TimeVarianceMinutes);
+            writer.WriteDecimalValue("varianceAmount", VarianceAmount);
+            writer.WriteDecimalValue("variancePercentage", VariancePercentage);
         }
     }
 }

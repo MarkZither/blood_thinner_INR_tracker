@@ -9,11 +9,9 @@ namespace ApiSdk.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class ApiResponse : IAdditionalDataHolder, IParsable
+    public partial class ApiResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The data property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -40,13 +38,6 @@ namespace ApiSdk.Models
 #endif
         /// <summary>The success property</summary>
         public bool? Success { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.ApiResponse"/> and sets the default values.
-        /// </summary>
-        public ApiResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -82,7 +73,6 @@ namespace ApiSdk.Models
             writer.WriteCollectionOfPrimitiveValues<string>("errors", Errors);
             writer.WriteStringValue("message", Message);
             writer.WriteBoolValue("success", Success);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

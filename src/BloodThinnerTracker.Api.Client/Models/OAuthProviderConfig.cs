@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// OAuth provider configuration sent to mobile clients.Contains client IDs, redirect URIs, and scopes for each provider.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class OAuthProviderConfig : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class OAuthProviderConfig : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>OAuth authority endpoint (server where user authenticates).For Azure: https://login.microsoftonline.com/commonFor Google: https://accounts.google.com</summary>
+        /// <summary>The authority property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Authority { get; set; }
@@ -23,7 +20,7 @@ namespace ApiSdk.Models
 #else
         public string Authority { get; set; }
 #endif
-        /// <summary>OAuth 2.0 client ID for this provider.</summary>
+        /// <summary>The clientId property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? ClientId { get; set; }
@@ -31,7 +28,7 @@ namespace ApiSdk.Models
 #else
         public string ClientId { get; set; }
 #endif
-        /// <summary>Provider identifier (e.g., &quot;azure&quot;, &quot;google&quot;).</summary>
+        /// <summary>The provider property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Provider { get; set; }
@@ -39,7 +36,7 @@ namespace ApiSdk.Models
 #else
         public string Provider { get; set; }
 #endif
-        /// <summary>OAuth 2.0 redirect URI (callback endpoint).For mobile: platform-specific redirect scheme or localhost.</summary>
+        /// <summary>The redirectUri property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? RedirectUri { get; set; }
@@ -47,7 +44,7 @@ namespace ApiSdk.Models
 #else
         public string RedirectUri { get; set; }
 #endif
-        /// <summary>OAuth 2.0 scopes to request (space-separated).Default: &quot;openid profile email&quot;</summary>
+        /// <summary>The scopes property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Scopes { get; set; }
@@ -55,13 +52,6 @@ namespace ApiSdk.Models
 #else
         public string Scopes { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.OAuthProviderConfig"/> and sets the default values.
-        /// </summary>
-        public OAuthProviderConfig()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -99,7 +89,6 @@ namespace ApiSdk.Models
             writer.WriteStringValue("provider", Provider);
             writer.WriteStringValue("redirectUri", RedirectUri);
             writer.WriteStringValue("scopes", Scopes);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

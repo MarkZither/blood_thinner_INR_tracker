@@ -7,61 +7,21 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Statistical summary of the dosage schedule.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class ScheduleSummary : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class ScheduleSummary : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Average daily dosage across the schedule period.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? AverageDailyDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode AverageDailyDosage { get; set; }
-#endif
-        /// <summary>Highest dosage in the schedule period.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MaxDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode MaxDosage { get; set; }
-#endif
-        /// <summary>Lowest dosage in the schedule period.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MinDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode MinDosage { get; set; }
-#endif
-        /// <summary>Number of complete + partial pattern cycles in the period.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PatternCycles { get; set; }
-#nullable restore
-#else
-        public UntypedNode PatternCycles { get; set; }
-#endif
-        /// <summary>Sum of all dosages in the schedule period.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TotalDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode TotalDosage { get; set; }
-#endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.ScheduleSummary"/> and sets the default values.
-        /// </summary>
-        public ScheduleSummary()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        /// <summary>The averageDailyDosage property</summary>
+        public decimal? AverageDailyDosage { get; set; }
+        /// <summary>The maxDosage property</summary>
+        public decimal? MaxDosage { get; set; }
+        /// <summary>The minDosage property</summary>
+        public decimal? MinDosage { get; set; }
+        /// <summary>The patternCycles property</summary>
+        public decimal? PatternCycles { get; set; }
+        /// <summary>The totalDosage property</summary>
+        public decimal? TotalDosage { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -80,11 +40,11 @@ namespace ApiSdk.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "averageDailyDosage", n => { AverageDailyDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "maxDosage", n => { MaxDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "minDosage", n => { MinDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "patternCycles", n => { PatternCycles = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "totalDosage", n => { TotalDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "averageDailyDosage", n => { AverageDailyDosage = n.GetDecimalValue(); } },
+                { "maxDosage", n => { MaxDosage = n.GetDecimalValue(); } },
+                { "minDosage", n => { MinDosage = n.GetDecimalValue(); } },
+                { "patternCycles", n => { PatternCycles = n.GetDecimalValue(); } },
+                { "totalDosage", n => { TotalDosage = n.GetDecimalValue(); } },
             };
         }
         /// <summary>
@@ -94,12 +54,11 @@ namespace ApiSdk.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("averageDailyDosage", AverageDailyDosage);
-            writer.WriteObjectValue<UntypedNode>("maxDosage", MaxDosage);
-            writer.WriteObjectValue<UntypedNode>("minDosage", MinDosage);
-            writer.WriteObjectValue<UntypedNode>("patternCycles", PatternCycles);
-            writer.WriteObjectValue<UntypedNode>("totalDosage", TotalDosage);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteDecimalValue("averageDailyDosage", AverageDailyDosage);
+            writer.WriteDecimalValue("maxDosage", MaxDosage);
+            writer.WriteDecimalValue("minDosage", MinDosage);
+            writer.WriteDecimalValue("patternCycles", PatternCycles);
+            writer.WriteDecimalValue("totalDosage", TotalDosage);
         }
     }
 }

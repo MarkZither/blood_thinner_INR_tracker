@@ -7,25 +7,16 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Response DTO for dosage pattern data returned from GET endpoints.Provides comprehensive pattern information including computed fields for display.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class DosagePatternResponse : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class DosagePatternResponse : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Average dosage across the entire pattern cycle.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? AverageDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode AverageDosage { get; set; }
-#endif
-        /// <summary>Timestamp when this pattern was created (UTC).</summary>
+        /// <summary>The averageDosage property</summary>
+        public decimal? AverageDosage { get; set; }
+        /// <summary>The createdAt property</summary>
         public DateTimeOffset? CreatedAt { get; set; }
-        /// <summary>Human-readable formatted pattern with dosage unit and cycle indicator.</summary>
+        /// <summary>The displayPattern property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DisplayPattern { get; set; }
@@ -33,27 +24,15 @@ namespace ApiSdk.Models
 #else
         public string DisplayPattern { get; set; }
 #endif
-        /// <summary>Date when this pattern ends (inclusive), or null if still active.</summary>
+        /// <summary>The endDate property</summary>
         public DateTimeOffset? EndDate { get; set; }
-        /// <summary>Unique identifier for the dosage pattern.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Id { get; set; }
-#nullable restore
-#else
-        public UntypedNode Id { get; set; }
-#endif
-        /// <summary>Indicates if this pattern is currently active (EndDate is null).</summary>
+        /// <summary>The id property</summary>
+        public int? Id { get; set; }
+        /// <summary>The isActive property</summary>
         public bool? IsActive { get; set; }
-        /// <summary>ID of the medication this pattern belongs to.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? MedicationId { get; set; }
-#nullable restore
-#else
-        public UntypedNode MedicationId { get; set; }
-#endif
-        /// <summary>Optional medical notes about why this pattern was prescribed.</summary>
+        /// <summary>The medicationId property</summary>
+        public int? MedicationId { get; set; }
+        /// <summary>The notes property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Notes { get; set; }
@@ -61,49 +40,24 @@ namespace ApiSdk.Models
 #else
         public string Notes { get; set; }
 #endif
-        /// <summary>Number of days in the pattern cycle.</summary>
+        /// <summary>The patternLength property</summary>
+        public int? PatternLength { get; set; }
+        /// <summary>The patternSequence property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public UntypedNode? PatternLength { get; set; }
+        public List<decimal?>? PatternSequence { get; set; }
 #nullable restore
 #else
-        public UntypedNode PatternLength { get; set; }
+        public List<decimal?> PatternSequence { get; set; }
 #endif
-        /// <summary>Array of dosages forming the repeating pattern.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public List<UntypedNode>? PatternSequence { get; set; }
-#nullable restore
-#else
-        public List<UntypedNode> PatternSequence { get; set; }
-#endif
-        /// <summary>Date when this pattern becomes effective (inclusive).</summary>
+        /// <summary>The startDate property</summary>
         public DateTimeOffset? StartDate { get; set; }
-        /// <summary>Today&apos;s calculated dosage (only included in GET /patterns/active endpoint).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TodaysDosage { get; set; }
-#nullable restore
-#else
-        public UntypedNode TodaysDosage { get; set; }
-#endif
-        /// <summary>Today&apos;s position in the pattern cycle (1-based, only in active endpoint).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TodaysPatternDay { get; set; }
-#nullable restore
-#else
-        public UntypedNode TodaysPatternDay { get; set; }
-#endif
-        /// <summary>Timestamp when this pattern was last modified (UTC).</summary>
+        /// <summary>The todaysDosage property</summary>
+        public decimal? TodaysDosage { get; set; }
+        /// <summary>The todaysPatternDay property</summary>
+        public int? TodaysPatternDay { get; set; }
+        /// <summary>The updatedAt property</summary>
         public DateTimeOffset? UpdatedAt { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.DosagePatternResponse"/> and sets the default values.
-        /// </summary>
-        public DosagePatternResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -122,19 +76,19 @@ namespace ApiSdk.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "averageDosage", n => { AverageDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "averageDosage", n => { AverageDosage = n.GetDecimalValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "displayPattern", n => { DisplayPattern = n.GetStringValue(); } },
                 { "endDate", n => { EndDate = n.GetDateTimeOffsetValue(); } },
-                { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "id", n => { Id = n.GetIntValue(); } },
                 { "isActive", n => { IsActive = n.GetBoolValue(); } },
-                { "medicationId", n => { MedicationId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "medicationId", n => { MedicationId = n.GetIntValue(); } },
                 { "notes", n => { Notes = n.GetStringValue(); } },
-                { "patternLength", n => { PatternLength = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<UntypedNode>()?.AsList(); } },
+                { "patternLength", n => { PatternLength = n.GetIntValue(); } },
+                { "patternSequence", n => { PatternSequence = n.GetCollectionOfPrimitiveValues<decimal?>()?.AsList(); } },
                 { "startDate", n => { StartDate = n.GetDateTimeOffsetValue(); } },
-                { "todaysDosage", n => { TodaysDosage = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "todaysPatternDay", n => { TodaysPatternDay = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "todaysDosage", n => { TodaysDosage = n.GetDecimalValue(); } },
+                { "todaysPatternDay", n => { TodaysPatternDay = n.GetIntValue(); } },
                 { "updatedAt", n => { UpdatedAt = n.GetDateTimeOffsetValue(); } },
             };
         }
@@ -145,21 +99,20 @@ namespace ApiSdk.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("averageDosage", AverageDosage);
+            writer.WriteDecimalValue("averageDosage", AverageDosage);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("displayPattern", DisplayPattern);
             writer.WriteDateTimeOffsetValue("endDate", EndDate);
-            writer.WriteObjectValue<UntypedNode>("id", Id);
+            writer.WriteIntValue("id", Id);
             writer.WriteBoolValue("isActive", IsActive);
-            writer.WriteObjectValue<UntypedNode>("medicationId", MedicationId);
+            writer.WriteIntValue("medicationId", MedicationId);
             writer.WriteStringValue("notes", Notes);
-            writer.WriteObjectValue<UntypedNode>("patternLength", PatternLength);
-            writer.WriteCollectionOfPrimitiveValues<UntypedNode>("patternSequence", PatternSequence);
+            writer.WriteIntValue("patternLength", PatternLength);
+            writer.WriteCollectionOfPrimitiveValues<decimal?>("patternSequence", PatternSequence);
             writer.WriteDateTimeOffsetValue("startDate", StartDate);
-            writer.WriteObjectValue<UntypedNode>("todaysDosage", TodaysDosage);
-            writer.WriteObjectValue<UntypedNode>("todaysPatternDay", TodaysPatternDay);
+            writer.WriteDecimalValue("todaysDosage", TodaysDosage);
+            writer.WriteIntValue("todaysPatternDay", TodaysPatternDay);
             writer.WriteDateTimeOffsetValue("updatedAt", UpdatedAt);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

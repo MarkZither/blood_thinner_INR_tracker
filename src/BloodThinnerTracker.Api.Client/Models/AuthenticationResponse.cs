@@ -7,13 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// Authentication response with JWT tokens.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class AuthenticationResponse : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class AuthenticationResponse : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Gets or sets the JWT access token for API access.</summary>
+        /// <summary>The accessToken property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? AccessToken { get; set; }
@@ -21,17 +20,9 @@ namespace ApiSdk.Models
 #else
         public string AccessToken { get; set; }
 #endif
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Gets or sets the access token expiration in seconds.</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ExpiresIn { get; set; }
-#nullable restore
-#else
-        public UntypedNode ExpiresIn { get; set; }
-#endif
-        /// <summary>Gets or sets the medical data access permissions.</summary>
+        /// <summary>The expiresIn property</summary>
+        public int? ExpiresIn { get; set; }
+        /// <summary>The permissions property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public List<string>? Permissions { get; set; }
@@ -39,7 +30,7 @@ namespace ApiSdk.Models
 #else
         public List<string> Permissions { get; set; }
 #endif
-        /// <summary>Gets or sets the refresh token for token renewal.</summary>
+        /// <summary>The refreshToken property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? RefreshToken { get; set; }
@@ -47,9 +38,9 @@ namespace ApiSdk.Models
 #else
         public string RefreshToken { get; set; }
 #endif
-        /// <summary>Gets or sets a value indicating whether multi-factor authentication is required.</summary>
+        /// <summary>The requiresMfa property</summary>
         public bool? RequiresMfa { get; set; }
-        /// <summary>Gets or sets the token type (typically &quot;Bearer&quot;).</summary>
+        /// <summary>The tokenType property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? TokenType { get; set; }
@@ -57,7 +48,7 @@ namespace ApiSdk.Models
 #else
         public string TokenType { get; set; }
 #endif
-        /// <summary>Gets or sets the user information.</summary>
+        /// <summary>The user property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public global::ApiSdk.Models.UserInfo? User { get; set; }
@@ -65,13 +56,6 @@ namespace ApiSdk.Models
 #else
         public global::ApiSdk.Models.UserInfo User { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.AuthenticationResponse"/> and sets the default values.
-        /// </summary>
-        public AuthenticationResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -91,7 +75,7 @@ namespace ApiSdk.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "accessToken", n => { AccessToken = n.GetStringValue(); } },
-                { "expiresIn", n => { ExpiresIn = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "expiresIn", n => { ExpiresIn = n.GetIntValue(); } },
                 { "permissions", n => { Permissions = n.GetCollectionOfPrimitiveValues<string>()?.AsList(); } },
                 { "refreshToken", n => { RefreshToken = n.GetStringValue(); } },
                 { "requiresMfa", n => { RequiresMfa = n.GetBoolValue(); } },
@@ -107,13 +91,12 @@ namespace ApiSdk.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("accessToken", AccessToken);
-            writer.WriteObjectValue<UntypedNode>("expiresIn", ExpiresIn);
+            writer.WriteIntValue("expiresIn", ExpiresIn);
             writer.WriteCollectionOfPrimitiveValues<string>("permissions", Permissions);
             writer.WriteStringValue("refreshToken", RefreshToken);
             writer.WriteBoolValue("requiresMfa", RequiresMfa);
             writer.WriteStringValue("tokenType", TokenType);
             writer.WriteObjectValue<global::ApiSdk.Models.UserInfo>("user", User);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

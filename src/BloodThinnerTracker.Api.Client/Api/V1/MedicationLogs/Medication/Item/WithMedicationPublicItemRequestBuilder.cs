@@ -105,16 +105,9 @@ namespace ApiSdk.Api.V1.MedicationLogs.Medication.Item
             /// <summary>Optional end date filter.</summary>
             [QueryParameter("toDate")]
             public DateTimeOffset? ToDate { get; set; }
-            /// <summary>Optional: Minimum absolute variance amount to include (e.g., 0.5 returns |actualDosage - expectedDosage| &amp;gt;= 0.5).</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
+            /// <summary>Optional: Minimum absolute variance amount to include (e.g., 0.5 returns |actualDosage - expectedDosage| &gt;= 0.5).</summary>
             [QueryParameter("varianceThreshold")]
-            public string? VarianceThreshold { get; set; }
-#nullable restore
-#else
-            [QueryParameter("varianceThreshold")]
-            public string VarianceThreshold { get; set; }
-#endif
+            public decimal? VarianceThreshold { get; set; }
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.

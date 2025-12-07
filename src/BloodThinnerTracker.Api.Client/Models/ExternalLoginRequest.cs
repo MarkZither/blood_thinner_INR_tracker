@@ -7,15 +7,12 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// External OAuth2 login request model for medical application.Supports Azure AD and Google authentication providers.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class ExternalLoginRequest : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class ExternalLoginRequest : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Gets or sets the device identifier for medical security tracking.</summary>
+        /// <summary>The deviceId property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DeviceId { get; set; }
@@ -23,7 +20,7 @@ namespace ApiSdk.Models
 #else
         public string DeviceId { get; set; }
 #endif
-        /// <summary>Gets or sets the device platform (iOS, Android, Web).</summary>
+        /// <summary>The devicePlatform property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? DevicePlatform { get; set; }
@@ -31,7 +28,7 @@ namespace ApiSdk.Models
 #else
         public string DevicePlatform { get; set; }
 #endif
-        /// <summary>Gets or sets the ID token from the OAuth2 provider.For mobile apps: Platform-native OAuth returns ID tokenFor web apps: Callback endpoint extracts from authorization code</summary>
+        /// <summary>The idToken property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? IdToken { get; set; }
@@ -39,7 +36,7 @@ namespace ApiSdk.Models
 #else
         public string IdToken { get; set; }
 #endif
-        /// <summary>Gets or sets the OAuth2 provider name (AzureAD or Google).</summary>
+        /// <summary>The provider property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public string? Provider { get; set; }
@@ -47,13 +44,6 @@ namespace ApiSdk.Models
 #else
         public string Provider { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.ExternalLoginRequest"/> and sets the default values.
-        /// </summary>
-        public ExternalLoginRequest()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -89,7 +79,6 @@ namespace ApiSdk.Models
             writer.WriteStringValue("devicePlatform", DevicePlatform);
             writer.WriteStringValue("idToken", IdToken);
             writer.WriteStringValue("provider", Provider);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

@@ -7,17 +7,14 @@ using System.IO;
 using System;
 namespace ApiSdk.Models
 {
-    /// <summary>
-    /// OAuth configuration response sent to mobile clients.Contains configuration for all enabled OAuth providers.
-    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class OAuthConfig : IAdditionalDataHolder, IParsable
+    #pragma warning disable CS1591
+    public partial class OAuthConfig : IParsable
+    #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>Timestamp when this configuration was generated (UTC).</summary>
+        /// <summary>The fetchedAt property</summary>
         public DateTimeOffset? FetchedAt { get; set; }
-        /// <summary>List of configured OAuth providers (e.g., Azure AD, Google).</summary>
+        /// <summary>The providers property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public List<global::ApiSdk.Models.OAuthProviderConfig>? Providers { get; set; }
@@ -25,13 +22,6 @@ namespace ApiSdk.Models
 #else
         public List<global::ApiSdk.Models.OAuthProviderConfig> Providers { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.OAuthConfig"/> and sets the default values.
-        /// </summary>
-        public OAuthConfig()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -63,7 +53,6 @@ namespace ApiSdk.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteDateTimeOffsetValue("fetchedAt", FetchedAt);
             writer.WriteCollectionOfObjectValues<global::ApiSdk.Models.OAuthProviderConfig>("providers", Providers);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

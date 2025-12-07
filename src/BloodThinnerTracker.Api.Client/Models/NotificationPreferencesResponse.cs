@@ -9,11 +9,9 @@ namespace ApiSdk.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class NotificationPreferencesResponse : IAdditionalDataHolder, IParsable
+    public partial class NotificationPreferencesResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The isEmailNotificationsEnabled property</summary>
         public bool? IsEmailNotificationsEnabled { get; set; }
         /// <summary>The isPushNotificationsEnabled property</summary>
@@ -29,13 +27,7 @@ namespace ApiSdk.Models
         public string PreferredLanguage { get; set; }
 #endif
         /// <summary>The reminderAdvanceMinutes property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ReminderAdvanceMinutes { get; set; }
-#nullable restore
-#else
-        public UntypedNode ReminderAdvanceMinutes { get; set; }
-#endif
+        public int? ReminderAdvanceMinutes { get; set; }
         /// <summary>The timeZone property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -44,13 +36,6 @@ namespace ApiSdk.Models
 #else
         public string TimeZone { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::ApiSdk.Models.NotificationPreferencesResponse"/> and sets the default values.
-        /// </summary>
-        public NotificationPreferencesResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -73,7 +58,7 @@ namespace ApiSdk.Models
                 { "isPushNotificationsEnabled", n => { IsPushNotificationsEnabled = n.GetBoolValue(); } },
                 { "isSmsNotificationsEnabled", n => { IsSmsNotificationsEnabled = n.GetBoolValue(); } },
                 { "preferredLanguage", n => { PreferredLanguage = n.GetStringValue(); } },
-                { "reminderAdvanceMinutes", n => { ReminderAdvanceMinutes = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "reminderAdvanceMinutes", n => { ReminderAdvanceMinutes = n.GetIntValue(); } },
                 { "timeZone", n => { TimeZone = n.GetStringValue(); } },
             };
         }
@@ -88,9 +73,8 @@ namespace ApiSdk.Models
             writer.WriteBoolValue("isPushNotificationsEnabled", IsPushNotificationsEnabled);
             writer.WriteBoolValue("isSmsNotificationsEnabled", IsSmsNotificationsEnabled);
             writer.WriteStringValue("preferredLanguage", PreferredLanguage);
-            writer.WriteObjectValue<UntypedNode>("reminderAdvanceMinutes", ReminderAdvanceMinutes);
+            writer.WriteIntValue("reminderAdvanceMinutes", ReminderAdvanceMinutes);
             writer.WriteStringValue("timeZone", TimeZone);
-            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }
