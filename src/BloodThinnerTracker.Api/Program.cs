@@ -6,7 +6,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.OpenApi;
+//using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -22,6 +22,8 @@ using BloodThinnerTracker.ServiceDefaults.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.HttpOverrides;
 using BloodThinnerTracker.Api.Middleware;
+using Microsoft.OpenApi;
+using System.Reflection;
 
 // ⚠️ MEDICAL APPLICATION DISCLAIMER ⚠️
 // This application handles medical data and must comply with healthcare regulations.
@@ -200,13 +202,38 @@ builder.Services.AddVersionedApiExplorer(options =>
 });
 
 // Add OpenAPI generation with custom documentation
-builder.Services.AddOpenApi(options =>
+builder.Services.AddSwaggerGen(options =>
 {
-    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    // Include XML comments
+    var xmlName = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlName);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+
+    // Force decimal to be emitted as number/decimal
+    options.MapType<decimal>(() => new OpenApiSchema
     {
-        document.Info.Title = "Blood Thinner Tracker API";
-        document.Info.Version = "v1";
-        document.Info.Description = """
+        Type = Microsoft.OpenApi.JsonSchemaType.Number,
+        Format = "decimal"
+    });
+
+    options.MapType<decimal?>(() => new OpenApiSchema
+    {
+        Type = Microsoft.OpenApi.JsonSchemaType.Number | JsonSchemaType.Null,
+        Format = "decimal"
+    });
+
+        // Use the versioned API explorer to generate docs per version
+    var provider = builder.Services.BuildServiceProvider()
+                                   .GetRequiredService<IApiVersionDescriptionProvider>();
+
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+        options.SwaggerDoc(description.GroupName, new OpenApiInfo
+        {
+        Title = "Blood Thinner Tracker API",
+        Version = description.ApiVersion.ToString(),
+        Description = """
             # 🔐 Authentication Required
 
             This API uses **OAuth 2.0 authentication** with JWT bearer tokens.
@@ -245,10 +272,9 @@ builder.Services.AddOpenApi(options =>
             - User data isolation
             - OWASP security guidelines
             - Healthcare data protection
-            """;
-
-        return Task.CompletedTask;
-    });
+            """
+        });
+    }
 });
 
 // Add distributed cache for OAuth state parameter storage
@@ -322,7 +348,12 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.MapOpenApi();
+//app.MapOpenApi();
+app.UseSwagger(c =>
+{
+    c.RouteTemplate = "openapi/{documentName}.json";
+});
+
 app.MapScalarApiReference(options =>
 {
     options

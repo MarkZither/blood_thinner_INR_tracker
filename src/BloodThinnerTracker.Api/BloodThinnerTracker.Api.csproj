@@ -18,13 +18,25 @@
 		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<!-- Keep XML docs -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<!-- Disable example injection -->
+		<OpenApiGenerateExamples>false</OpenApiGenerateExamples>
+		<!-- Keep descriptions from XML comments -->
+		<OpenApiGenerateXmlComments>true</OpenApiGenerateXmlComments>
+	</PropertyGroup>
+
+
 	<ItemGroup>
 		<PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
 		<PackageReference Include="Azure.Identity" Version="1.17.0" />
 		<PackageReference Include="FluentValidation" Version="12.1.0" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
 		<PackageReference Include="Google.Apis.Auth" Version="1.72.0" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+		<!--PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" /-->
+		<PackageReference Include="Microsoft.OpenApi" Version="2.3.10" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
