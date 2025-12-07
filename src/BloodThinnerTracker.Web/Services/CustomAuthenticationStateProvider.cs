@@ -268,8 +268,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             // Also store claims for retrieval
             await SetItemAsync(ClaimsKey, JsonSerializer.Serialize(claims.Select(c => new { c.Type, c.Value })), userIdentifier);
-            
-            
+
+
 
             var identity = new ClaimsIdentity(claims, principal != null ? "oauth" : "jwt");
             var user = new ClaimsPrincipal(identity);

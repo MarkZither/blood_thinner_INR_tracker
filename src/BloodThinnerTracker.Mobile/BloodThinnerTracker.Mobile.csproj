@@ -97,9 +97,13 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\BloodThinnerTracker.Shared\BloodThinnerTracker.Shared.csproj" />
 		<ProjectReference Include="..\BloodThinnerTracker.Data.SQLite\BloodThinnerTracker.Data.SQLite.csproj" />
+		<ProjectReference Include="..\..\src\BloodThinnerTracker.Api.Client\BloodThinnerTracker.Api.Client.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Kiota.Abstractions" Version="1.20.1" />
+		<PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="1.20.1" />
+
 		<!-- Embed appsettings.json as a manifest resource for configuration loading -->
 		<EmbeddedResource Include="appsettings.json" />
 	</ItemGroup>

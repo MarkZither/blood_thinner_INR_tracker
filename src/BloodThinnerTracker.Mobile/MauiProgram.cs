@@ -183,6 +183,8 @@ public static class MauiProgram
             builder.Services.AddScoped<BloodThinnerTracker.Data.Shared.ICurrentUserService, Services.MobileCurrentUserService>();
 
             builder.Services.AddScoped<Services.IInrRepository, Services.InrRepository>();
+            builder.Services.AddScoped<Services.IMedicationRepository, Services.MedicationRepository>();
+            builder.Services.AddScoped<Services.IMedicationLogRepository, Services.MedicationLogRepository>();
             // Register the EF DbContext from Data.SQLite using a file-based connection.
             var dbPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "bloodtracker_mobile.db");
             builder.Services.AddDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>(opts =>
@@ -213,6 +215,9 @@ public static class MauiProgram
                 BaseAddress = new System.Uri(options.Value.ApiRootUrl)
             };
         });
+
+        // API client facade: interim HttpClient-backed implementation of the Kiota-generated client surface.
+        builder.Services.AddSingleton<Services.IApiClientFacade, Services.ApiHttpClientFacade>();
 
         // Token handler and ApiInrService configured with a token-aware HttpClient
         builder.Services.AddSingleton<Services.ApiInrService>(sp =>
