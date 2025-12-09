@@ -23,8 +23,8 @@ namespace BloodThinnerTracker.Mobile.Extensions
                 var fileName = configuration["Diagnostics:Serilog:FileName"] ?? "mobile-.log";
                 var enableConsole = configuration.GetValue<bool?>("Diagnostics:Serilog:EnableConsole") ?? true;
 
-                // Ensure Serilog internal SelfLog writes to Console.Error for diagnostics
-                Serilog.Debugging.SelfLog.Enable(Console.Error);
+                // Ensure Serilog internal SelfLog writes to the debug output (Console isn't supported on Android)
+                Serilog.Debugging.SelfLog.Enable(message => System.Diagnostics.Debug.WriteLine(message));
 
                 var loggerConfig = new LoggerConfiguration()
                     .ReadFrom.Configuration(configuration)
@@ -65,7 +65,18 @@ namespace BloodThinnerTracker.Mobile.Extensions
 
                     if (enableConsole && !hasConsoleSink)
                     {
-                        loggerConfig = loggerConfig.WriteTo.Console();
+                        // Avoid adding the Console sink on Android (Console APIs throw PlatformNotSupported)
+                        try
+                        {
+                            if (Microsoft.Maui.Devices.DeviceInfo.Platform != Microsoft.Maui.Devices.DevicePlatform.Android)
+                            {
+                                loggerConfig = loggerConfig.WriteTo.Console();
+                            }
+                        }
+                        catch
+                        {
+                            // If DeviceInfo isn't available or any check fails, skip Console sink to be safe
+                        }
                     }
                 }
 

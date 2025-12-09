@@ -13,8 +13,11 @@ public partial class AppShell : Shell
         _logger = logger;
         _logger?.LogInformation("AppShell constructor called");
 
-        InitializeComponent();
+        // Assign injected services before calling InitializeComponent so any
+        // XAML-instantiated elements or event handlers that access these
+        // fields during load won't encounter null references.
         _themeService = themeService;
+        InitializeComponent();
 
         // Apply persisted theme at shell creation
         try
@@ -73,6 +76,38 @@ public partial class AppShell : Shell
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to login failed: {ex.Message}");
+        }
+    }
+
+    private async void OnFlyoutDebugClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///debugscheduledreminders");
+        }
+            catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to debug page failed: {ex.Message}");
+            _logger?.LogWarning(ex, "Navigation to debug page route failed; attempting fallback push");
+            try
+            {
+                // Fallback: attempt to push using the active Window/Page navigation (avoid deprecated Application.MainPage)
+                var nav = Shell.Current?.Navigation
+                          ?? Application.Current?.Windows?.FirstOrDefault()?.Page?.Navigation;
+                if (nav != null)
+                {
+                    await nav.PushAsync(new Views.DebugScheduledRemindersPage());
+                }
+                else
+                {
+                    _logger?.LogWarning("No navigation context available to push DebugScheduledRemindersPage");
+                }
+            }
+            catch (Exception innerEx)
+            {
+                _logger?.LogDebug(innerEx, "Fallback PushAsync to DebugScheduledRemindersPage failed");
+            }
         }
     }
 }

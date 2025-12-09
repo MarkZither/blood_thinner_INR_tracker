@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Vector drawable notification icon: single-color (white) silhouette of a blood drop + pill.
+  Best used as a small notification icon (24dp). Edit in an SVG editor (Inkscape) and re-import
+  via Android Studio's Vector Asset tool for best results.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Blood drop (top) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2.2 C11.4,3.0 9,6.2 9,9.0 C9,12.5 11.7,15.0 14.5,15.0 C17.3,15.0 20,12.6 20,9.0 C20,6.2 16.6,3.0 16,2.2 C15.4,1.4 12.6,1.4 12,2.2 Z" />
+
+    <!-- Pill shape (lower-left), rotated group -->
+    <group android:rotation="-30" android:pivotX="8" android:pivotY="17">
+        <!-- pill body -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M3.6,15.2 C2.6,14.2 2.6,12.6 3.6,11.6 L7.4,7.8 C8.4,6.8 10.0,6.8 11.0,7.8 C12.0,8.8 12.0,10.4 11.0,11.4 L7.2,15.2 C6.2,16.2 4.6,16.2 3.6,15.2 Z" />
+        <!-- pill divider line -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeWidth="0.8"
+            android:strokeColor="#80FFFFFF"
+            android:pathData="M6.3,12.6 L9.7,9.2" />
+    </group>
+</vector>

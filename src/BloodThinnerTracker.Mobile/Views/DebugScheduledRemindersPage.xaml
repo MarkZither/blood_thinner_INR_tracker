@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BloodThinnerTracker.Mobile.Views.DebugScheduledRemindersPage"
+             Title="Scheduled Reminders (Debug)">
+
+    <VerticalStackLayout Padding="16" Spacing="12">
+        <Label Text="Scheduled Reminders (Debug)" FontSize="18" FontAttributes="Bold" />
+
+        <Button x:Name="BtnScheduleWork" Text="Schedule notification in 2 minutes (WorkManager)" />
+        <Button x:Name="BtnScheduleExact" Text="Schedule exact alarm in 1 minute (Exact Alarm)" />
+        <Button x:Name="BtnEnsurePermissions" Text="Check / Request Notification Permission" />
+        <Button x:Name="BtnList" Text="List scheduled reminders (JSON)" />
+
+        <Label x:Name="LblMessage" Text="" LineBreakMode="WordWrap" />
+    </VerticalStackLayout>
+
+</ContentPage>

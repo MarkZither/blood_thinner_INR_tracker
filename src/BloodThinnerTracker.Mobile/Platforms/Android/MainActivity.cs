@@ -5,6 +5,9 @@ using Android.OS;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using Android.Runtime;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BloodThinnerTracker.Mobile.Platforms.Android
 {
@@ -15,6 +18,8 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
         protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            // Register global exception handlers early to capture startup crashes
+            RegisterGlobalExceptionHandlers();
 
             try
             {
@@ -37,6 +42,49 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
                     try { global::Android.Util.Log.Warn("MainActivity", ex.ToString()); } catch { }
                 }
             }
+        }
+
+        private void RegisterGlobalExceptionHandlers()
+        {
+            try
+            {
+                AndroidEnvironment.UnhandledExceptionRaiser += (sender, args) =>
+                {
+                    try { LogUnhandled("AndroidEnvironment.UnhandledExceptionRaiser", args.Exception); } catch { }
+                };
+
+                AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+                {
+                    try { LogUnhandled("AppDomain.UnhandledException", e.ExceptionObject as Exception); } catch { }
+                };
+
+                TaskScheduler.UnobservedTaskException += (sender, e) =>
+                {
+                    try { LogUnhandled("TaskScheduler.UnobservedTaskException", e.Exception); e.SetObserved(); } catch { }
+                };
+            }
+            catch (Exception ex)
+            {
+                try { global::Android.Util.Log.Warn("MainActivity", "Failed to register global exception handlers: " + ex); } catch { }
+            }
+        }
+
+        private void LogUnhandled(string tag, Exception? ex)
+        {
+            if (ex == null) return;
+            try
+            {
+                var scope = BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.CreateScope();
+                var logger = scope.ServiceProvider.GetService(typeof(ILogger<MainActivity>)) as ILogger<MainActivity>;
+                if (logger != null)
+                {
+                    logger.LogError(ex, "{Tag}: Unhandled exception", tag);
+                    return;
+                }
+            }
+            catch { }
+
+            try { global::Android.Util.Log.Error(tag, ex.ToString()); } catch { }
         }
     }
 }

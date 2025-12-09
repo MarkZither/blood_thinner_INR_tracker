@@ -1,23 +1,25 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="${applicationId}">
-
-  <!-- Permission required to receive BOOT_COMPLETED -->
-  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-  <application>
-    <!-- Register the BootCompletedReceiver so we can reschedule jobs after reboot -->
-    <receiver android:name="mono.android.RuntimeBroadcastReceiverProxy"
-              android:enabled="true"
-              android:exported="true">
-      <!-- RuntimeBroadcastReceiverProxy is used by Xamarin/MAUI to route broadcasts to managed receivers -->
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED" />
-        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-      </intent-filter>
-    </receiver>
-
-    <!-- Note: The managed BootCompletedReceiver class will be invoked via the runtime proxy. -->
-  </application>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="x__applicationId_.x__applicationId_">
+	<!-- Permission required to receive BOOT_COMPLETED -->
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+	<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+	<application android:icon="@drawable/ic_notify_small" android:roundIcon="@drawable/ic_stat_notify">
+		<!-- Register the BootCompletedReceiver so we can reschedule jobs after reboot -->
+		<receiver android:name="mono.android.RuntimeBroadcastReceiverProxy" android:enabled="true" android:exported="true">
+			<!-- RuntimeBroadcastReceiverProxy is used by Xamarin/MAUI to route broadcasts to managed receivers -->
+			<intent-filter>
+				<action android:name="android.intent.action.BOOT_COMPLETED" />
+				<action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+			</intent-filter>
+		</receiver>
+		<!-- Provide a default small notification icon resource name that plugins/system may use -->
+		<meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_notify" />
+		<!-- Note: The managed BootCompletedReceiver class will be invoked via the runtime proxy. -->
+	</application>
 </manifest>

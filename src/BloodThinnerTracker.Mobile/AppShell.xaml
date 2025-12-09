@@ -9,7 +9,7 @@
     FlyoutHeaderBehavior="CollapseOnScroll"
     FlyoutBackgroundColor="{DynamicResource PageBackground}">
 
-    <Shell.Resources>
+       <Shell.Resources>
         <ResourceDictionary>
             <!-- Provide flyout brushes via resources to avoid direct markup-extension parsing on root element -->
             <SolidColorBrush x:Key="FlyoutBackgroundBrush" Color="{AppThemeBinding Light={StaticResource PageBackground}, Dark={StaticResource DarkModeBackground}}" />
@@ -82,6 +82,12 @@
         Title="Login"
         ContentTemplate="{DataTemplate views:LoginView}"
         Route="login" />
+
+    <!-- Debug scheduled reminders page (dev-only) -->
+    <ShellContent
+        Title="Debug Reminders"
+        ContentTemplate="{DataTemplate views:DebugScheduledRemindersPage}"
+        Route="debugscheduledreminders" />
 
     <!-- Toolbar: theme toggle (placed after content to conform to XAML ordering requirements) -->
     <Shell.ToolbarItems>

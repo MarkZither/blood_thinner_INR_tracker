@@ -18,7 +18,7 @@ using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
 
-public static class MauiProgram
+public static partial class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
@@ -71,6 +71,8 @@ public static class MauiProgram
         // Register services (DI) - minimal bootstrap
         builder.Services.AddSingleton<App>();
         builder.Services.AddSingleton<AppShell>();
+        // Theme service used by AppShell for persisted theme preference
+        builder.Services.AddSingleton<Services.IThemeService, Services.ThemeService>();
         // Register MainPage for DI resolution in App
         builder.Services.AddSingleton<MainPage>();
 
@@ -88,78 +90,20 @@ public static class MauiProgram
         // Note: JSON boolean true becomes string "True" (capitalized) - use case-insensitive comparison
         var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
 
-        // Bind configuration to strongly-typed FeaturesOptions (no more magic strings!)
-        builder.Services.Configure<Services.FeaturesOptions>(builder.Configuration.GetSection(Services.FeaturesOptions.SectionName));
-
-        // Bind synchronization options for background sync intervals
-        builder.Services.Configure<SyncOptions>(builder.Configuration.GetSection(SyncOptions.SectionName));
-
-        builder.Services.AddSingleton<Services.EncryptionService>();
-        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
-        builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
-
-        // OpenTelemetry: configure tracing and metrics exporters and register wrapper service
-        try
-        {
-            var otlpEndpoint = builder.Configuration["Telemetry:OtlpEndpoint"]; // e.g. "http://otel-collector:4317"
-
-            builder.Services.AddOpenTelemetry()
-                .WithTracing(tracerProviderBuilder =>
-                {
-                    tracerProviderBuilder
-                        .AddSource("BloodThinnerTracker.Mobile");
-
-                    if (!string.IsNullOrEmpty(otlpEndpoint))
-                    {
-                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
-                        tracerProviderBuilder.AddOtlpExporter(opts =>
-                        {
-                            opts.Endpoint = new Uri(otlpEndpoint);
-                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
-                        });
-                    }
-                    else
-                    {
-                        tracerProviderBuilder.AddConsoleExporter();
-                    }
-                })
-                .WithMetrics(meterProviderBuilder =>
-                {
-                    meterProviderBuilder
-                        .AddMeter("BloodThinnerTracker.Mobile.Metrics");
-
-                    if (!string.IsNullOrEmpty(otlpEndpoint))
-                    {
-                        var otlpHeaders = builder.Configuration["Telemetry:OtlpHeaders"];
-                        meterProviderBuilder.AddOtlpExporter(opts =>
-                        {
-                            opts.Endpoint = new Uri(otlpEndpoint);
-                            if (!string.IsNullOrEmpty(otlpHeaders)) opts.Headers = otlpHeaders;
-                        });
-                    }
-                    else
-                    {
-                        meterProviderBuilder.AddConsoleExporter();
-                    }
-                });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MauiProgram: OpenTelemetry setup failed: {ex.Message}");
-        }
-
-        builder.Services.AddSingleton<BloodThinnerTracker.Mobile.Services.Telemetry.ITelemetryService, BloodThinnerTracker.Mobile.Services.Telemetry.OpenTelemetryTelemetryService>();
-
-        // Theme service - manages user theme preference
-        builder.Services.AddSingleton<Services.IThemeService, Services.ThemeService>();
-
-        // Register Feature services with mock/real selection
         builder.Services.AddSingleton<Services.IInrService>(sp =>
         {
             return useMockServices
                 ? (Services.IInrService)new Services.MockInrService()
                 : sp.GetRequiredService<Services.ApiInrService>();
         });
+
+        // Register medication mock/in-memory implementations when feature flag enabled
+            if (useMockServices)
+            {
+                builder.Services.AddSingleton<Services.IMedicationService, Services.MockMedicationService>();
+            builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
+            builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
+        }
 
         // If the Data.SQLite project is available, register a read-only adapter to query
         // the canonical local DB for offline reads. This keeps the mobile app consistent
@@ -183,8 +127,12 @@ public static class MauiProgram
             builder.Services.AddScoped<BloodThinnerTracker.Data.Shared.ICurrentUserService, Services.MobileCurrentUserService>();
 
             builder.Services.AddScoped<Services.IInrRepository, Services.InrRepository>();
-            builder.Services.AddScoped<Services.IMedicationRepository, Services.MedicationRepository>();
-            builder.Services.AddScoped<Services.IMedicationLogRepository, Services.MedicationLogRepository>();
+                // Register medication repositories only when not using mock services
+                if (!useMockServices)
+                {
+                    builder.Services.AddScoped<Services.IMedicationRepository, Services.MedicationRepository>();
+                    builder.Services.AddScoped<Services.IMedicationLogRepository, Services.MedicationLogRepository>();
+                }
             // Register the EF DbContext from Data.SQLite using a file-based connection.
             var dbPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "bloodtracker_mobile.db");
             builder.Services.AddDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>(opts =>
@@ -203,6 +151,17 @@ public static class MauiProgram
                 // critical background services can be resolved without platform DB.
                 builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
                 builder.Services.AddSingleton<Services.IInrRepository, Services.InMemoryInrRepository>();
+                // Also ensure medication mocks are available in test-mode
+                if (!useMockServices)
+                {
+                    // If test-mode but feature flag says real services, leave registration to platform; this is unlikely
+                }
+                else
+                {
+                    builder.Services.AddSingleton<Services.IMedicationService, Services.MockMedicationService>();
+                    builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
+                    builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
+                }
             }
 
         // HttpClient for API-backed services (uses IOptions to get API root URL)
@@ -292,6 +251,9 @@ public static class MauiProgram
         {
             System.Diagnostics.Debug.WriteLine($"MauiProgram: CacheSyncService/DevSyncHostedService registration failed: {ex.Message}");
         }
+
+            // Platform-specific service registrations (implemented in platform files)
+            RegisterPlatformServices(builder);
 
         var app = builder.Build();
 
@@ -401,4 +363,7 @@ public static class MauiProgram
 
         return app;
     }
+
+    // Partial method implemented in platform-specific files (no-op in shared code)
+    static partial void RegisterPlatformServices(MauiAppBuilder builder);
 }
