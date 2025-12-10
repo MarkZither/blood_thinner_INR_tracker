@@ -44,6 +44,12 @@
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource TextDark}"
                     Clicked="OnFlyoutLoginClicked" />
+
+                <!-- Debug page access (dev-only) -->
+                <Button Text="Debug Reminders"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextDark}"
+                    Clicked="OnFlyoutDebugClicked" />
             </VerticalStackLayout>
         </ScrollView>
     </Shell.FlyoutContent>
