@@ -46,21 +46,21 @@ namespace Mobile.UnitTests.Android
                         var doc = XDocument.Load(vf);
                         foreach (var style in doc.Descendants("style"))
                         {
-                            var name = style.Attribute("name")?.Value;
+                            string? name = style.Attribute("name")?.Value;
                             if (!string.IsNullOrEmpty(name)) definedStyles.Add(name);
                         }
 
                         foreach (var color in doc.Descendants("color"))
                         {
-                            var name = color.Attribute("name")?.Value;
+                            string? name = color.Attribute("name")?.Value;
                             if (!string.IsNullOrEmpty(name)) definedColors.Add(name);
                         }
 
                         // also look for <item name="..."> entries inside resources for types
                         foreach (var item in doc.Descendants("item"))
                         {
-                            var name = item.Attribute("name")?.Value;
-                            var typeAttr = item.Attribute("type")?.Value;
+                            string? name = item.Attribute("name")?.Value;
+                            string? typeAttr = item.Attribute("type")?.Value;
                             if (!string.IsNullOrEmpty(name) && string.Equals(typeAttr, "color", StringComparison.OrdinalIgnoreCase))
                             {
                                 definedColors.Add(name);
@@ -81,7 +81,7 @@ namespace Mobile.UnitTests.Android
 
             foreach (var xmlFile in Directory.GetFiles(drawableDir, "*.xml"))
             {
-                XDocument doc = null;
+                XDocument? doc = null;
                 try
                 {
                     doc = XDocument.Load(xmlFile);
