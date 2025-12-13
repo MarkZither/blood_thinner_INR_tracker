@@ -59,7 +59,9 @@ public static partial class MauiProgram
 
         // Register SplashOptions and its validation via extension to keep startup concise
         builder.Services.AddSplashOptions(builder.Configuration);
-        // ensure the extension namespace is available
+        
+        // Register FeaturesOptions (binds to Features:* config section)
+        builder.Services.AddFeaturesOptions(builder.Configuration);
 
         // Register optional app initializer (warms tokens, remote config fetch, etc.)
         builder.Services.AddSingleton<Services.IAppInitializer, Services.AppInitializer>();
@@ -178,6 +180,10 @@ public static partial class MauiProgram
         // API client facade: interim HttpClient-backed implementation of the Kiota-generated client surface.
         builder.Services.AddSingleton<Services.IApiClientFacade, Services.ApiHttpClientFacade>();
 
+        // Register encryption and cache services used by multiple components
+        builder.Services.AddSingleton<Services.EncryptionService>();
+        builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
+
         // Token handler and ApiInrService configured with a token-aware HttpClient
         builder.Services.AddSingleton<Services.ApiInrService>(sp =>
         {
@@ -210,6 +216,10 @@ public static partial class MauiProgram
                     sp.GetRequiredService<ILogger<Services.OAuthConfigService>>(),
                     sp.GetRequiredService<Services.ICacheService>());
         });
+
+        // Register AuthService - use configuration flag for mock/real
+        // Register platform secure storage implementation required by several services
+        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
 
         // Register AuthService - use configuration flag for mock/real
         builder.Services.AddSingleton<Services.IAuthService>(sp =>
@@ -323,44 +333,7 @@ public static partial class MauiProgram
             fallbackLogger?.LogError(ex, "Startup: Failed to apply database migrations");
         }
 
-#if ANDROID
-        // Initialize the Android service provider bridge so OS-created components
-        // (JobService / BroadcastReceiver) can obtain scoped services safely.
-        try
-        {
-            BloodThinnerTracker.Mobile.Platforms.Android.AndroidServiceProvider.Initialize(app.Services);
-        }
-        catch (Exception ex)
-        {
-            var logger = app.Services.GetService<ILogger<App>>();
-            logger?.LogError(ex, "Failed to initialize Android service provider bridge");
-        }
-#endif
-
-#if WINDOWS
-        // Initialize the Windows service provider bridge so OS-created background tasks
-        // can obtain scoped services safely, and register the periodic background task.
-        try
-        {
-            BloodThinnerTracker.Mobile.Platforms.Windows.WindowsServiceProvider.Initialize(app.Services);
-
-            // Register background task for periodic INR data sync (idempotent - won't re-register if already done)
-            var logger = app.Services.GetService<ILogger<App>>();
-            BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingHelper.RegisterBackgroundTask(
-                intervalMinutes: 15,
-                force: false,
-                store: new BloodThinnerTracker.Mobile.Platforms.Windows.Background.WindowsSchedulingFlagStore(),
-                logger: logger);
-        }
-        catch (Exception ex)
-        {
-            var logger = app.Services.GetService<ILogger<App>>();
-            logger?.LogError(ex, "Failed to initialize Windows service provider or register background task");
-        }
-#endif
-
-
-
+    var logger = app.Services.GetService<ILogger<App>>();
         return app;
     }
 
