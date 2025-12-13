@@ -246,6 +246,42 @@ public async Task<IEnumerable<InrListItemVm>> GetRecentAsync(int count = 5)
 - Platform-specific notification handling
 - Secure storage using platform keychains
 - Battery optimization for background tasks
+- **Use platform-specific folders and partials instead.** Put platform-specific types and implementations under `Platforms/<Platform>/` (for example `Platforms/Android/BootReceiver.cs`, `Platforms/Windows/NotificationScheduler.Windows.cs`). Files in those folders are compiled only for that platform and do not require `#if` guards.
+- **Prefer partial classes/partial methods for startup wiring.** Define a partial method in shared startup (no platform conditional):
+
+```csharp
+// MauiProgram.cs (shared)
+static partial void RegisterPlatformServices(MauiAppBuilder builder);
+
+public static MauiApp CreateMauiApp()
+{
+    var builder = MauiApp.CreateBuilder();
+    // shared registrations
+    RegisterPlatformServices(builder); // implemented per-platform
+    return builder.Build();
+}
+```
+
+and implement it in platform folders without any `#if`:
+
+```csharp
+// Platforms/Android/MauiProgram.Platforms.cs
+namespace BloodThinnerTracker.Mobile;
+static partial class MauiProgram
+{
+    static partial void RegisterPlatformServices(MauiAppBuilder builder)
+    {
+        // Android-only DI and registration (no #if required)
+    }
+}
+```
+
+- **When generating platform code, place it in `Platforms/<Platform>` or add a new `*.Platform.cs` file.** Avoid changing shared files to add platform conditionals — add a platform-specific file instead.
+- **Broadcast receivers, Android attributes, Windows AUMID helpers, etc., belong in platform folders.** For example, `BootReceiver` should live at `Platforms/Android/BootReceiver.cs` and does not need `#if ANDROID` inside that file.
+
+Why: this keeps the shared code platform-agnostic, makes Copilot-generated suggestions safer and easier to review, prevents accidental compile/runtime failures across TFMs, and aligns with MAUI project layout conventions.
+
+Copilot-specific rule: when proposing platform-specific code, create files under `src/BloodThinnerTracker.Mobile/Platforms/<Platform>/` and avoid adding `#if` blocks to shared files. If there is a compelling reason to use `#if` in shared code, add a justification comment and include it in the PR description for reviewer approval.
 
 ### .NET Aspire Orchestration Patterns
 

@@ -27,32 +27,38 @@ All code MUST adhere to .NET coding conventions and C# best practices. Code MUST
 
 **Rationale**: Medical applications require enterprise-grade code quality for reliability, maintainability, and regulatory compliance. .NET ecosystem provides robust tooling for enforcing these standards.
 
-### II. Testing Discipline & Coverage
+### II. MAUI Platform Code Layout and Compilation Guidance
+
+Platform-specific implementations for MAUI projects MUST be placed under platform-specific folders (for example `Platforms/Android`, `Platforms/Windows`, `Platforms/iOS`) or in platform-targeted `*.Platform.cs` files. Conditional compilation (`#if ANDROID`, `#if WINDOWS`, `#if IOS`, etc.) MUST NOT be used inside shared MAUI source files such as `MauiProgram.cs`, shared pages, viewmodels, or other cross-platform logic files. Instead use partial methods or partial classes to provide platform-specific wiring from platform-local files (for example `static partial void RegisterPlatformServices(MauiAppBuilder builder)`).
+
+Rationale: Keeping platform code isolated prevents accidental cross-target compilation/runtime errors, simplifies code reviews, and makes automated analysis and code generation (including Copilot suggestions) safer and more predictable. Platform `#if` blocks in shared code have historically led to missed registrations and runtime failures during cross-target builds and tests.
+
+### III. Testing Discipline & Coverage
 All functional code MUST achieve minimum 80% test coverage with unit and integration test. Extra confidence can be gained with end-to-end tests but not counted towards the coverage. Tests MUST be written using xUnit for .NET backend, Playwright/Appium for UI automation, BUnit for Blazor components and Pester for Powershell scripts. Critical user flows (medication reminders, INR logging, authentication) MUST have comprehensive test scenarios covering happy path, edge cases, and error conditions. No production deployment without passing CI/CD pipeline including all test suites.
 
 **Rationale**: Patient safety depends on thoroughly tested functionality. Automated testing prevents regression and ensures consistent behavior across platforms.
 
-### III. User Experience Consistency & Pure .NET UI
+### IV. User Experience Consistency & Pure .NET UI
 User interfaces MUST maintain identical behavior and visual consistency between MAUI mobile and Blazor web applications. **Blazor Web applications MUST use MudBlazor component library for all UI components to maintain pure .NET implementation without JavaScript dependencies**. JavaScript interop MUST be avoided except where absolutely necessary for browser APIs (clipboard, file downloads). Charts, dialogs, data grids, and interactive components MUST use MudBlazor's native C# implementations. All interactive elements MUST comply with WCAG 2.1 AA accessibility standards. Critical safety features (medication alarms, dose logging) MUST have identical user workflows across platforms. UI components MUST be responsive and provide clear feedback for all user actions. Error messages MUST be user-friendly and actionable.
 
 **Rationale**: Consistent UX prevents user confusion that could lead to medication errors. Pure .NET implementation eliminates JavaScript prerendering issues, improves maintainability, provides type safety, and aligns with Blazor best practices. MudBlazor provides professional Material Design components with comprehensive accessibility support. Accessibility ensures the app serves all patients regardless of disabilities.
 
-### IV. Performance & Responsiveness
+### V. Performance & Responsiveness
 Application MUST respond to user interactions within 200ms for local operations and 2 seconds for network requests. MAUI apps MUST start within 3 seconds on target devices. Blazor Server components MUST render within 1 second. Database queries MUST be optimized with proper indexing and Entity Framework best practices. Memory usage MUST be monitored and controlled to prevent device resource exhaustion.
 
 **Rationale**: Poor performance can cause users to abandon critical health tasks. Medication reminders require immediate responsiveness for patient safety.
 
-### V. Security & OWASP Compliance
+### VI. Security & OWASP Compliance
 All code MUST prevent OWASP Top 10 vulnerabilities through secure coding practices. Authentication MUST use OAuth2/OpenID Connect with external providers Azure and Google. All data transmission MUST use HTTPS/TLS 1.3. Input validation MUST be implemented at all API endpoints and UI forms. User data MUST be encrypted at rest using AES-256 or database specific features like TDE in Sql Server and sqlcipher for SQLite. Regular security audits and dependency vulnerability scans are mandatory. No hardcoded secrets or credentials in source code.
 
 **Rationale**: Health data requires maximum security protection. OWASP compliance is essential for protecting patient privacy and meeting healthcare regulations.
 
-### VI. Cloud Deployment & Container Strategy
+### VII. Cloud Deployment & Container Strategy
 API services MUST use **source-based deployments** to Azure Container Apps leveraging .NET SDK container support. Dockerfiles MUST NOT be used unless absolutely necessary for complex multi-stage builds. All container configuration MUST be declared in `.csproj` files using `<EnableSdkContainerSupport>`, `<ContainerPort>`, and `<ContainerBaseImage>` properties. Deployment pipelines MUST use Azure's Oryx buildpacks for automatic .NET detection and optimization. Container images MUST use official Microsoft .NET runtime images from `mcr.microsoft.com`. Port configuration MUST be explicit (5234 for HTTP, 7234 for HTTPS) and documented. Infrastructure as Code (IaC) MUST be used for all Azure resources. GitHub Actions MUST handle CI/CD with proper secret management and OIDC authentication.
 
 **Rationale**: Source-based builds align with modern .NET 10+ capabilities, reduce maintenance overhead, eliminate Dockerfile complexity, and leverage Azure's optimized build pipelines. This approach follows Microsoft's recommended practices for .NET cloud-native applications and simplifies the deployment process while maintaining security and reliability.
 
-### VIII. Feature Sizing & Scope Management
+### IX. Feature Sizing & Scope Management
 Features MUST be scoped to 2-3 weeks maximum effort per feature. Features exceeding this size MUST be split into smaller, independently deliverable features. Each feature MUST have clear boundaries with a single primary concern (authentication OR deployment OR UI, not multiple). Pull requests MUST be ≤500 lines of changed code (excluding generated code, migrations, package-lock files). Features MUST be independently deployable behind feature flags. Feature specs MUST define explicit non-goals to prevent scope creep. Branch naming MUST follow `NNN-short-description` convention where NNN is a zero-padded feature number.
 
 **Rationale**: Large features increase review time, testing complexity, and deployment risk. Smaller features enable faster feedback cycles, easier rollback, parallel development, and more predictable delivery. The 2-3 week limit ensures features remain focused and prevent scope creep that delays valuable functionality from reaching users. Feature flags enable gradual rollout and quick rollback without deployment.
