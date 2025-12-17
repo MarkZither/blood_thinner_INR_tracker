@@ -541,6 +541,9 @@ namespace BloodThinnerTracker.Data.SqlServer.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Medications_IsActive");
+
                     b.HasIndex("PublicId")
                         .IsUnique();
 
