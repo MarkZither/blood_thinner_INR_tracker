@@ -98,6 +98,23 @@ Replace `your.package.name` with your actual application package value (see `And
 - [ ] JSON scheduled file exists in `FileSystem.AppDataDirectory` and contains expected entries after scheduling.
 - [ ] On device reboot the `BootReceiver` reads the JSON file and re-enqueues scheduled reminders.
 
+## Windows: AUMID, activator, and packaging notes
+
+- Windows toast notifications require an Application User Model ID (AUMID) for full activation and action handling. Packaged apps (MSIX) get an AUMID automatically; unpackaged desktop apps must register an AUMID and optionally register a COM activator to handle activation callbacks.
+
+- During development you can use a helper like `DesktopNotificationManagerCompat` (CommunityToolkit) to register an AUMID and COM server. In this repository we provide a best-effort reflection-based attempt to call `DesktopNotificationManagerCompat.RegisterAumidAndComServer` if the library is present. For production reliability prefer packaging the app or adding the COM activator registration explicitly.
+
+- Packaging guidance (brief):
+	- Build and test your app as a packaged MSIX to get a stable AUMID and toast activation support.
+	- In Visual Studio, create an MSIX packaging project or use `msix` targets in your CI to produce an MSIX bundle. Ensure the manifest declares the ToastActivations support and includes the AUMID.
+
+- Unpackaged apps: to enable toast activation you must register a compatible AUMID and a COM server at install time. See Microsoft docs: https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/enable-desktop-toasts
+
+- Debugging scheduled toasts on Windows:
+	- Use the debug page in the app (`Debug -> Scheduled Reminders`) to view both the JSON-scheduled reminder entries and the OS-scheduled toasts.
+	- If toasts do not appear, verify the app has a valid AUMID (packaged apps) or that `DesktopNotificationManagerCompat` (or equivalent) registered the AUMID for unpackaged cases.
+
+
 ***
 
 dotnet run --project src/BloodThinnerTracker.Api --urls http://localhost:5237

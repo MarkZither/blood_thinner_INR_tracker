@@ -153,8 +153,51 @@ namespace BloodThinnerTracker.Mobile.Views
 
         private async Task GetScheduled()
         {
-            var list = await _scheduler.GetAllScheduledAsync().ConfigureAwait(false);
-            SetMessage($"Scheduled: {string.Join(", ", list.Select(i => i.Id.ToString()))}");
+            try
+            {
+                var list = await _scheduler.GetAllScheduledAsync().ConfigureAwait(false);
+                // Also read JSON store for all scheduled entries (platform-agnostic path)
+                var appData = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
+                var storePath = System.IO.Path.Combine(appData, "scheduled_reminders.json");
+                string storeMsg = string.Empty;
+                if (System.IO.File.Exists(storePath))
+                {
+                    try
+                    {
+                        var json = await System.IO.File.ReadAllTextAsync(storePath).ConfigureAwait(false);
+                        // Try to parse as array of objects with Id and TriggerTime
+                        using var doc = System.Text.Json.JsonDocument.Parse(json);
+                        var ids = new System.Collections.Generic.List<string>();
+                        if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            foreach (var el in doc.RootElement.EnumerateArray())
+                            {
+                                if (el.TryGetProperty("Id", out var idProp)) ids.Add(idProp.GetString() ?? "");
+                            }
+                        }
+                        storeMsg = $"Store: {string.Join(", ", ids)}";
+                    }
+                    catch (Exception ex)
+                    {
+                        storeMsg = $"Store: (failed to read) {ex.Message}";
+                    }
+                }
+
+                var osIds = string.Join(", ", list.Select(i => i.Id.ToString()));
+
+                // Get platform diagnostics (AUMID, shortcut, etc. on Windows)
+                var diag = await _scheduler.GetPlatformDiagnosticsAsync().ConfigureAwait(false);
+                var diagMsg = diag.Count > 0 ? string.Join(" | ", diag.Select(kv => $"{kv.Key}: {kv.Value}")) : string.Empty;
+
+                var msg = $"OS Scheduled: {osIds}\n{storeMsg}";
+                if (!string.IsNullOrEmpty(diagMsg)) msg += $"\n{diagMsg}";
+
+                SetMessage(msg);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Failed to list scheduled reminders: {ex.Message}");
+            }
         }
     }
 }

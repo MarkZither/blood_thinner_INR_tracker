@@ -3,7 +3,9 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10">
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  IgnorableNamespaces="rescap desktop com">
 
   <Identity
     Name="com.markzither.BloodThinnerTracker.Mobile"
@@ -31,23 +33,33 @@
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="Blood Thinner INR tracker mobile client"
-        BackgroundColor="#FFFFFFFF">
+        BackgroundColor="#FFFFFF">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
-        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+        <uap:SplashScreen Image="splash_windowsSplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
-        <!-- Background task for periodic INR data sync -->
-        <Extension Category="windows.backgroundTasks" EntryPoint="BloodThinnerTracker.Mobile.Platforms.Windows.Background.SyncBackgroundTask">
-          <BackgroundTasks>
-            <Task Type="timer"/>
-          </BackgroundTasks>
-        </Extension>
+        <!-- Toast notification activation -->
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="A1B2C3D4-E5F6-4789-ABCD-1234567890AB" />
+        </desktop:Extension>
+
+        <!-- COM server for toast activation -->
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="$targetnametoken$.exe" Arguments="-ToastActivated" DisplayName="Toast activator">
+              <com:Class Id="A1B2C3D4-E5F6-4789-ABCD-1234567890AB" DisplayName="Toast activator"/>
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+
+        <!-- TODO: Re-add background task once in-process activation is properly configured -->
       </Extensions>
     </Application>
   </Applications>
 
   <Capabilities>
     <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
   </Capabilities>
 
 </Package>

@@ -34,5 +34,11 @@ namespace BloodThinnerTracker.Mobile.Services
         Task CancelAsync(Guid reminderId);
         Task<NotificationInfo?> GetScheduledAsync(Guid reminderId);
         Task<IEnumerable<NotificationInfo>> GetAllScheduledAsync();
+
+        /// <summary>
+        /// Returns platform-specific diagnostic information (e.g., AUMID on Windows).
+        /// Default implementation returns empty dictionary.
+        /// </summary>
+        Task<IDictionary<string, string>> GetPlatformDiagnosticsAsync() => Task.FromResult<IDictionary<string, string>>(new Dictionary<string, string>());
     }
 }

@@ -92,3 +92,4 @@ appsettings.local.json
 # Publish files
 publish-windows/*
 publish/*
+src/BloodThinnerTracker.Mobile/AppPackages/*
