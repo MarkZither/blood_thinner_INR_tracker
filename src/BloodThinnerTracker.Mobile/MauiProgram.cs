@@ -59,7 +59,7 @@ public static partial class MauiProgram
 
         // Register SplashOptions and its validation via extension to keep startup concise
         builder.Services.AddSplashOptions(builder.Configuration);
-        
+
         // Register FeaturesOptions (binds to Features:* config section)
         builder.Services.AddFeaturesOptions(builder.Configuration);
 
@@ -164,6 +164,9 @@ public static partial class MauiProgram
                     builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
                     builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
                 }
+
+                    // Ensure a cache service is available in test-mode so hosted services can be activated
+                    builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
             }
 
         // HttpClient for API-backed services (uses IOptions to get API root URL)

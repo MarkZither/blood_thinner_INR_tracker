@@ -233,6 +233,14 @@ public abstract class ApplicationDbContextBase : DbContext, IApplicationDbContex
 
     private void ConfigureIndexes(ModelBuilder modelBuilder)
     {
+        // Medication.IsActive index — ensure this is part of the canonical model so EF
+        // generates provider-specific migrations for all DBs (SQLite/SqlServer/Postgres)
+        modelBuilder.Entity<Medication>(entity =>
+        {
+            // Index to support queries that filter active medications efficiently
+            entity.HasIndex(e => e.IsActive).HasDatabaseName("IX_Medications_IsActive");
+        });
+
         _logger.LogDebug("Database indexes configured for medical entities");
     }
 

@@ -61,7 +61,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows
             {
                 System.Diagnostics.Debug.WriteLine("WindowsNotificationRegistration: Sending test notification...");
                 var notifier = DesktopNotificationManagerCompat.CreateToastNotifier();
-                
+
                 // Build a simple toast using the toolkit's builder
                 var content = new ToastContent()
                 {
@@ -83,7 +83,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows
                         }
                     }
                 };
-                
+
                 var xml = content.GetXml();
                 // Use reflection to create ToastNotification since Windows runtime types aren't directly available
                 var tn = System.Type.GetType("Windows.UI.Notifications.ToastNotification");

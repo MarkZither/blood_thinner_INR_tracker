@@ -117,7 +117,7 @@ if (-not $SkipBuild) {
     Write-Host "Step 2/5: Building MSIX package..." -ForegroundColor Yellow
     Write-Host "  Command: dotnet publish -c $Configuration -f $TargetFramework" -ForegroundColor Gray
     Write-Host "  Project: $PROJECT_PATH" -ForegroundColor Gray
-    
+
     $publishOutput = dotnet publish -c $Configuration -f $TargetFramework `
         -o "$BinPath" `
         "$PROJECT_PATH\$PROJECT_NAME.csproj" `
@@ -157,7 +157,7 @@ Write-Host ""
 
 if (-not $SkipSign) {
     Write-Host "Step 3/5: Signing MSIX package..." -ForegroundColor Yellow
-    
+
     # Find signtool.exe
     $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
         -Recurse -Filter "signtool.exe" `
@@ -183,7 +183,7 @@ if (-not $SkipSign) {
 
     # Sign
     $signOutput = & $signtool.FullName sign /fd SHA256 /sha1 $CERT_THUMBPRINT "$MsixFile" 2>&1
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Host "✗ Signing failed" -ForegroundColor Red
         Write-Host $signOutput
@@ -253,11 +253,11 @@ Write-Host ""
 
 if ($Launch) {
     Write-Host "Step 5/5: Launching application..." -ForegroundColor Yellow
-    
+
     $app = Get-AppxPackage | Where-Object { $_.Name -match $PROJECT_NAME }
     if ($app) {
-        $exePath = Get-ChildItem -Path $app.InstallLocation -Filter "*.exe" -Recurse | 
-            Where-Object { $_.Name -match "BloodThinnerTracker" } | 
+        $exePath = Get-ChildItem -Path $app.InstallLocation -Filter "*.exe" -Recurse |
+            Where-Object { $_.Name -match "BloodThinnerTracker" } |
             Select-Object -First 1 -ExpandProperty FullName
 
         if ($exePath) {
