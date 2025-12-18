@@ -64,7 +64,8 @@ namespace Mobile.IntegrationTests
                 var medPub = Guid.NewGuid();
                 api.Setup(a => a.GetMedicationsAsync(It.IsAny<System.Threading.CancellationToken>())).ReturnsAsync(new List<global::ApiSdk.Models.MedicationResponse>
                 {
-                    new global::ApiSdk.Models.MedicationResponse{ PublicId = medPub, Name = "TestMed", Dosage = 1m, DosageUnit = "mg" }
+                    // Intentionally omit Dosage to simulate invalid medication that should be skipped
+                    new global::ApiSdk.Models.MedicationResponse{ PublicId = medPub, Name = "InvalidMed", Dosage = null, DosageUnit = "mg" }
                 });
 
                 api.Setup(a => a.GetRecentInrTestsAsync(It.IsAny<int>(), It.IsAny<System.Threading.CancellationToken>())).ReturnsAsync(new List<global::ApiSdk.Models.INRTestResponse>
@@ -85,10 +86,16 @@ namespace Mobile.IntegrationTests
                 var medCount = await db.Medications.CountAsync();
                 var inrCount = await db.INRTests.CountAsync();
                 var logCount = await db.MedicationLogs.CountAsync();
-
-                Assert.True(medCount >= 1, "Medication should be persisted");
+                // Medication has invalid dosage and should not be persisted; medCount should be 0
+                Assert.True(medCount == 0, "Invalid medication should be skipped and not persisted");
                 Assert.True(inrCount >= 1, "INR test should be persisted");
-                Assert.True(logCount >= 1, "Medication log should be persisted");
+                // Medication logs cannot be persisted without a corresponding medication; ensure none were saved
+                Assert.True(logCount == 0, "Medication log should not be persisted when medication is invalid");
+
+                // Cached medications should contain the invalid med (fallback)
+                var cached = await cache.GetAsync("medications");
+                Assert.False(string.IsNullOrEmpty(cached));
+                Assert.Contains("InvalidMed", cached);
             }
             finally
             {

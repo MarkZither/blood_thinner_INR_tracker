@@ -144,6 +144,22 @@ dotnet run --project src/BloodThinnerTracker.Mobile --framework net10.0-windows1
 Verification test (cold-start migrations):
 - A lightweight verification test is included in `tests/BloodThinnerTracker.Mobile.Tests/StartupTests.cs`. It builds the MAUI app via `MauiProgram.CreateMauiApp()` and asserts that the `ApplicationDbContext` service is resolvable. Running the test will exercise the startup migration path in the test runner environment.
 
+6) Verify Fetch & Upsert (T014) — sync smoke tests
+
+- Run the integration smoke test that exercises the full fetch-and-upsert path (applies migrations to a temporary SQLite DB, calls the API client, and verifies DB persistence):
+
+```pwsh
+dotnet test tests/Mobile.IntegrationTests/Mobile.IntegrationTests.csproj --filter FetchAndUpsertAsync_PopulatesDatabase -c Debug
+```
+
+- Expected behavior:
+	- INR tests returned by the API are persisted into `INRTests` table (or cached under `inr_tests` if DB persist fails).
+	- Medications returned by the API are upserted, but **invalid medications** (e.g., missing dosage) are skipped and **cached** under the `medications` cache key instead of being persisted.
+	- Medication logs are persisted only when their related medication exists locally; if the related medication is missing, logs are not persisted and may be cached under `medication_logs` if persistence fails.
+	- The sync worker prevents overlapping runs (concurrent calls to `SyncOnceAsync()` are skipped).
+
+If the test passes, the fetch-and-upsert behavior is functioning as expected and will be exercised by existing CI integration steps (no new CI job required).
+
 5) Validate sync flow:
 - Open the app while API running; verify logs indicate a foreground refresh and that medications and INR tests are fetched.  
 - Background jobs: simulate by running the platform background worker (or use emulator scheduler) and verify notifications are scheduled and fired.

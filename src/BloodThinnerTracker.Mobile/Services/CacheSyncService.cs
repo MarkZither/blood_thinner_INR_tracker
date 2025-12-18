@@ -14,6 +14,8 @@ namespace BloodThinnerTracker.Mobile.Services
     /// </summary>
     public class CacheSyncService : IHostedService, IDisposable, ICacheSyncWorker
     {
+        // Prevent overlapping sync executions
+        private readonly System.Threading.SemaphoreSlim _syncLock = new(1, 1);
         private readonly IApiClientFacade _apiClient;
         private readonly IInrRepository _inrRepository;
         private readonly ICacheService _cacheService;
@@ -102,8 +104,25 @@ namespace BloodThinnerTracker.Mobile.Services
                     });
                 }
 
-                await _inrRepository.SaveRangeAsync(items).ConfigureAwait(false);
-                _logger.LogInformation("CacheSyncService: persisted {Count} INR items into local DB", items.Count);
+                try
+                {
+                    await _inrRepository.SaveRangeAsync(items).ConfigureAwait(false);
+                    _logger.LogInformation("CacheSyncService: persisted {Count} INR items into local DB", items.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CacheSyncService: failed to persist INR items to DB, falling back to cache");
+                    try
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(items);
+                        await _cacheService.SetAsync("inr_tests", json).ConfigureAwait(false);
+                        _logger.LogInformation("CacheSyncService: cached {Count} INR items", items.Count);
+                    }
+                    catch (Exception inner)
+                    {
+                        _logger.LogWarning(inner, "CacheSyncService: failed to cache INR items after DB persist failure");
+                    }
+                }
             }
 
             // 2) Medications
@@ -162,6 +181,13 @@ namespace BloodThinnerTracker.Mobile.Services
 
         public async Task SyncOnceAsync(System.Threading.CancellationToken cancellationToken = default)
         {
+            // Prevent overlapping syncs
+            if (!_syncLock.Wait(0))
+            {
+                _logger.LogDebug("CacheSyncService: sync already running - skipping concurrent invocation");
+                return;
+            }
+
             try
             {
                 _logger.LogDebug("CacheSyncService: starting sync");
@@ -174,6 +200,10 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "CacheSyncService: sync once error");
+            }
+            finally
+            {
+                _syncLock.Release();
             }
         }
 
