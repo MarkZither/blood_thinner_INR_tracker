@@ -86,6 +86,7 @@ public static partial class MauiProgram
         // Lazy factory registration for deferred ViewModel creation
         builder.Services.AddTransient(typeof(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<>));
         builder.Services.AddTransient<Views.AboutView>();
+        builder.Services.AddTransient<Views.MedicineListView>();
 
         // Register Feature services - use configuration flag instead of #if DEBUG
         // Features.UseMockServices: true = mock, false = real API
@@ -151,22 +152,24 @@ public static partial class MauiProgram
             {
                 // Test-mode fallbacks: register lightweight in-memory implementations so
                 // critical background services can be resolved without platform DB.
-                builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
-                builder.Services.AddSingleton<Services.IInrRepository, Services.InMemoryInrRepository>();
-                // Also ensure medication mocks are available in test-mode
-                if (!useMockServices)
+                // Do not override IInrService if the feature flag requested the real API service.
+                if (useMockServices)
                 {
-                    // If test-mode but feature flag says real services, leave registration to platform; this is unlikely
+                    builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
                 }
-                else
+
+                builder.Services.AddSingleton<Services.IInrRepository, Services.InMemoryInrRepository>();
+
+                // Register medication mocks only when requested
+                if (useMockServices)
                 {
                     builder.Services.AddSingleton<Services.IMedicationService, Services.MockMedicationService>();
                     builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
                     builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
                 }
 
-                    // Ensure a cache service is available in test-mode so hosted services can be activated
-                    builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
+                // Ensure a cache service is available in test-mode so hosted services can be activated
+                builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
             }
 
         // HttpClient for API-backed services (uses IOptions to get API root URL)
@@ -182,6 +185,7 @@ public static partial class MauiProgram
 
         // API client facade: interim HttpClient-backed implementation of the Kiota-generated client surface.
         builder.Services.AddSingleton<Services.IApiClientFacade, Services.ApiHttpClientFacade>();
+        builder.Services.AddSingleton<Services.IForegroundSyncService, Services.ForegroundSyncService>();
 
         // Register encryption and cache services used by multiple components
         builder.Services.AddSingleton<Services.EncryptionService>();

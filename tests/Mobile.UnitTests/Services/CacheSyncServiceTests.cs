@@ -183,5 +183,77 @@ namespace BloodThinnerTracker.Mobile.UnitTests.Services
 
             medLogRepo.Verify(r => r.SaveRangeAsync(It.Is<IEnumerable<global::ApiSdk.Models.MedicationLogResponse>>(c => c != null), It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [Fact]
+        public async Task FetchAndUpsertAsync_RetriesOnTransientApiError()
+        {
+            var api = new Mock<IApiClientFacade>();
+            var inrRepo = new Mock<IInrRepository>();
+            var cache = new Mock<ICacheService>();
+            var medRepo = new Mock<IMedicationRepository>();
+            var medLogRepo = new Mock<IMedicationLogRepository>();
+
+            var meds = new List<global::ApiSdk.Models.MedicationResponse>
+            {
+                new global::ApiSdk.Models.MedicationResponse { PublicId = Guid.NewGuid(), Name = "RetryMed", Dosage = 1m }
+            };
+
+            api.Setup(a => a.GetRecentInrTestsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync((List<global::ApiSdk.Models.INRTestResponse>?)null);
+
+            // First call throws, second call returns the list
+            api.SetupSequence(a => a.GetMedicationsAsync(It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new TimeoutException("transient"))
+               .ReturnsAsync(meds);
+
+            api.Setup(a => a.GetMedicationLogsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<global::ApiSdk.Models.MedicationLogResponse>());
+
+            var svc = new CacheSyncService(api.Object, inrRepo.Object, cache.Object, medRepo.Object, medLogRepo.Object, Microsoft.Extensions.Options.Options.Create(new Config.SyncOptions()), new NullLogger<CacheSyncService>());
+
+            await svc.FetchAndUpsertAsync(CancellationToken.None);
+
+            // Verify Upsert was called after the retry
+            medRepo.Verify(r => r.UpsertRangeAsync(It.IsAny<IEnumerable<global::ApiSdk.Models.MedicationResponse>>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task FetchAndUpsertAsync_SetsLastSyncCacheKey()
+        {
+            var api = new Mock<IApiClientFacade>();
+            var inrRepo = new Mock<IInrRepository>();
+            var cache = new Mock<ICacheService>();
+            var medRepo = new Mock<IMedicationRepository>();
+            var medLogRepo = new Mock<IMedicationLogRepository>();
+
+            api.Setup(a => a.GetRecentInrTestsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync((List<global::ApiSdk.Models.INRTestResponse>?)null);
+            api.Setup(a => a.GetMedicationsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<global::ApiSdk.Models.MedicationResponse>());
+
+            string? captured = null;
+            cache.Setup(c => c.SetAsync("last_sync_utc", It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+                .Callback<string, string, TimeSpan?>((k, v, ts) => captured = v)
+                .Returns(Task.CompletedTask);
+
+            var svc = new CacheSyncService(api.Object, inrRepo.Object, cache.Object, medRepo.Object, medLogRepo.Object, Microsoft.Extensions.Options.Options.Create(new Config.SyncOptions()), new NullLogger<CacheSyncService>());
+
+            await svc.FetchAndUpsertAsync(CancellationToken.None);
+
+            Assert.False(string.IsNullOrEmpty(captured));
+            Assert.True(DateTime.TryParse(captured, null, System.Globalization.DateTimeStyles.RoundtripKind, out _));
+        }
+
+        [Fact]
+        public void ConfiguredInterval_ReflectsSyncOptions()
+        {
+            var api = new Mock<IApiClientFacade>();
+            var inrRepo = new Mock<IInrRepository>();
+            var cache = new Mock<ICacheService>();
+            var medRepo = new Mock<IMedicationRepository>();
+            var medLogRepo = new Mock<IMedicationLogRepository>();
+
+            var opts = Microsoft.Extensions.Options.Options.Create(new Config.SyncOptions { DefaultIntervalMinutes = 123 });
+
+            var svc = new CacheSyncService(api.Object, inrRepo.Object, cache.Object, medRepo.Object, medLogRepo.Object, opts, new NullLogger<CacheSyncService>());
+
+            Assert.Equal(TimeSpan.FromMinutes(123), svc.ConfiguredInterval);
+        }
     }
 }

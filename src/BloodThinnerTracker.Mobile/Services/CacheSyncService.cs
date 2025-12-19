@@ -72,7 +72,7 @@ namespace BloodThinnerTracker.Mobile.Services
             _logger.LogDebug("CacheSyncService: FetchAndUpsertAsync starting");
 
             // 1) INR tests (persist into local DB)
-            var inrResults = await _apiClient.GetRecentInrTestsAsync(50, cancellationToken).ConfigureAwait(false);
+            var inrResults = await ExecuteWithRetriesAsync(() => _apiClient.GetRecentInrTestsAsync(50, cancellationToken), maxAttempts: 3).ConfigureAwait(false);
             if (inrResults != null)
             {
                 if (cancellationToken.IsCancellationRequested) return;
@@ -126,7 +126,7 @@ namespace BloodThinnerTracker.Mobile.Services
             }
 
             // 2) Medications
-            var meds = await _apiClient.GetMedicationsAsync(cancellationToken).ConfigureAwait(false);
+            var meds = await ExecuteWithRetriesAsync(() => _apiClient.GetMedicationsAsync(cancellationToken), maxAttempts: 3).ConfigureAwait(false);
             if (meds != null)
             {
                 try
@@ -151,13 +151,13 @@ namespace BloodThinnerTracker.Mobile.Services
                 {
                     if (cancellationToken.IsCancellationRequested) break;
 
-                    try
-                    {
-                        if (!med.PublicId.HasValue) continue;
-                        var medId = med.PublicId.Value;
-                        var logs = await _apiClient.GetMedicationLogsAsync(medId, cancellationToken).ConfigureAwait(false);
-                        if (logs != null) allLogs.AddRange(logs);
-                    }
+                        try
+                        {
+                            if (!med.PublicId.HasValue) continue;
+                            var medId = med.PublicId.Value;
+                            var logs = await ExecuteWithRetriesAsync(() => _apiClient.GetMedicationLogsAsync(medId, cancellationToken), maxAttempts: 3).ConfigureAwait(false);
+                            if (logs != null) allLogs.AddRange(logs);
+                        }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "CacheSyncService: failed to fetch logs for medication {MedicationId}", med.PublicId);
@@ -177,7 +177,20 @@ namespace BloodThinnerTracker.Mobile.Services
                     _logger.LogInformation("CacheSyncService: cached {Count} medication logs (from {MedicationCount} medications)", allLogs.Count, meds.Count);
                 }
             }
+
+            // Mark last sync time so foreground logic can make informed decisions
+            try
+            {
+                await _cacheService.SetAsync("last_sync_utc", DateTime.UtcNow.ToString("o")).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CacheSyncService: failed to set last sync cache key");
+            }
         }
+
+        // Expose configured interval for test verification
+        internal TimeSpan ConfiguredInterval => _interval;
 
         public async Task SyncOnceAsync(System.Threading.CancellationToken cancellationToken = default)
         {
@@ -217,6 +230,35 @@ namespace BloodThinnerTracker.Mobile.Services
         public void Dispose()
         {
             _timer?.Dispose();
+        }
+
+        // Simple retry helper for transient API calls. Uses exponential backoff and logs attempts.
+        private async Task<T?> ExecuteWithRetriesAsync<T>(Func<Task<T?>> operation, int maxAttempts = 3, int initialDelayMs = 100)
+            where T : class
+        {
+            if (operation == null) throw new ArgumentNullException(nameof(operation));
+
+            var attempt = 0;
+            var delay = initialDelayMs;
+            while (true)
+            {
+                attempt++;
+                try
+                {
+                    return await operation().ConfigureAwait(false);
+                }
+                catch (Exception ex) when (attempt < maxAttempts)
+                {
+                    _logger.LogWarning(ex, "CacheSyncService: transient error on attempt {Attempt}/{MaxAttempts}, retrying after {Delay}ms", attempt, maxAttempts, delay);
+                    await Task.Delay(delay).ConfigureAwait(false);
+                    delay *= 2; // exponential backoff
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CacheSyncService: operation failed after {Attempt} attempts", attempt);
+                    return null;
+                }
+            }
         }
     }
 }

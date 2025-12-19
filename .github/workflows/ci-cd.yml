@@ -44,6 +44,16 @@ jobs:
     - name: 🔨 Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
 
+    - name: 🧪 Run mobile integration smoke
+      run: |
+        dotnet test tests/Mobile.IntegrationTests/Mobile.IntegrationTests.csproj \
+          --no-restore \
+          --no-build \
+          --configuration ${{ env.BUILD_CONFIGURATION }} \
+          --logger trx \
+          --results-directory TestResults/mobile-integration \
+          --verbosity normal
+
     - name: 🧪 Run tests
       run: |
         dotnet test ${{ env.SOLUTION_FILE }} \

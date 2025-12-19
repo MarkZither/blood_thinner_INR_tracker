@@ -73,6 +73,20 @@ namespace BloodThinnerTracker.Mobile.Views
                         await vm.LoadInrLogsCommand.ExecuteAsync(null);
                     }
 
+                    // Trigger foreground sync when the INR list appears (best-effort, non-blocking)
+                    try
+                    {
+                        var fg = App.ServiceProvider?.GetService<Services.IForegroundSyncService>();
+                        if (fg != null)
+                        {
+                            _ = fg.EnsureForegroundSyncAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Foreground sync trigger failed on InrListView appearing");
+                    }
+
                     sw.Stop();
                     telemetry?.TrackHistogram("View.InrList.RenderMs", sw.Elapsed.TotalMilliseconds);
                 }

@@ -152,6 +152,12 @@ Verification test (cold-start migrations):
 dotnet test tests/Mobile.IntegrationTests/Mobile.IntegrationTests.csproj --filter FetchAndUpsertAsync_PopulatesDatabase -c Debug
 ```
 
+Alternatively, there is a full E2E test that starts the AppHost (API + dependencies), seeds test data, and verifies the mobile `CacheSyncService.FetchAndUpsertAsync()` end-to-end:
+
+```pwsh
+dotnet test tests/Mobile.IntegrationTests/Mobile.IntegrationTests.csproj --filter FetchAndUpsertAsync_FetchesFromRunningApiAndPersistsToLocalDb -c Debug
+```
+
 - Expected behavior:
 	- INR tests returned by the API are persisted into `INRTests` table (or cached under `inr_tests` if DB persist fails).
 	- Medications returned by the API are upserted, but **invalid medications** (e.g., missing dosage) are skipped and **cached** under the `medications` cache key instead of being persisted.
@@ -163,3 +169,5 @@ If the test passes, the fetch-and-upsert behavior is functioning as expected and
 5) Validate sync flow:
 - Open the app while API running; verify logs indicate a foreground refresh and that medications and INR tests are fetched.  
 - Background jobs: simulate by running the platform background worker (or use emulator scheduler) and verify notifications are scheduled and fired.
+ 
+Notes: The sync worker now includes simple retry/backoff logic for transient API failures (3 attempts, exponential backoff). Idempotency is ensured by repository upsert semantics; running the sync multiple times will not create duplicate medications or INR tests.

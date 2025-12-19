@@ -120,6 +120,32 @@ namespace BloodThinnerTracker.Mobile
                     logger2?.LogError(ex, "Navigation after initialization failed");
                     telemetry?.TrackEvent("NavigationFailed");
                 }
+
+                // Fire-and-forget: trigger a foreground sync if needed. Do not block navigation.
+                try
+                {
+                    var fg = _services.GetService<Services.IForegroundSyncService>();
+                    if (fg != null)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await fg.EnsureForegroundSyncAsync().ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                var log = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
+                                log?.LogWarning(ex, "Foreground sync failed on app loaded");
+                            }
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var log = _services.GetService<Microsoft.Extensions.Logging.ILogger<App>>();
+                    log?.LogWarning(ex, "Failed to schedule foreground sync");
+                }
             };
 
             return new Window(appShell);
