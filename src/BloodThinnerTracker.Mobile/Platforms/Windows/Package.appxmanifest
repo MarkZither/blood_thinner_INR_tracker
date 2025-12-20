@@ -10,7 +10,7 @@
   <Identity
     Name="com.markzither.BloodThinnerTracker.Mobile"
     Publisher="CN=UnverifiedPublisher"
-    Version="1.0.0.0" />
+    Version="1.0.0.1" />
 
   <Properties>
     <DisplayName>BloodThinnerTracker Mobile</DisplayName>
