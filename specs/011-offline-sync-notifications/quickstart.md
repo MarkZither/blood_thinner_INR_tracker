@@ -171,3 +171,147 @@ If the test passes, the fetch-and-upsert behavior is functioning as expected and
 - Background jobs: simulate by running the platform background worker (or use emulator scheduler) and verify notifications are scheduled and fired.
  
 Notes: The sync worker now includes simple retry/backoff logic for transient API failures (3 attempts, exponential backoff). Idempotency is ensured by repository upsert semantics; running the sync multiple times will not create duplicate medications or INR tests.
+
+---
+
+## Manual Verification Checklist: Reliable Local Reminders (US2)
+
+This checklist provides step-by-step instructions for manually verifying that medication reminders are delivered reliably on Android and Windows devices.
+
+### Prerequisites
+
+- [ ] API is running at `http://localhost:5237` (or configured URL)
+- [ ] Mobile app is built and installed on target device
+- [ ] At least one active medication exists with `RemindersEnabled = true`
+- [ ] Device notifications are enabled for the app
+
+### Android Verification Steps
+
+**Test Case 1: Basic Reminder Delivery (App Backgrounded)**
+
+1. [ ] Open the app and navigate to Settings
+2. [ ] Verify "Notification Status" shows "Enabled ✓"
+3. [ ] Navigate to the Medications list and note an active medication's schedule
+4. [ ] Tap "Sync Now" to trigger reminder computation
+5. [ ] Navigate to "Debug Reminders" to verify scheduled reminders are listed
+6. [ ] Background the app (press home button)
+7. [ ] Wait for the scheduled reminder time
+8. [ ] **Expected**: Notification appears in system tray with medication name and dosage
+
+**Test Case 2: Reminder Delivery (Device Locked)**
+
+1. [ ] Follow steps 1-5 above to schedule a reminder for 2 minutes from now
+2. [ ] Lock the device screen
+3. [ ] Wait for the scheduled time
+4. [ ] **Expected**: Notification appears on lock screen (if device allows)
+
+**Test Case 3: Notification Permission Denied**
+
+1. [ ] Open device Settings > Apps > Blood Thinner Tracker > Notifications
+2. [ ] Disable all notifications
+3. [ ] Open the app and navigate to Settings
+4. [ ] **Expected**: "Notification Status" shows "Disabled ✗" with guidance text
+5. [ ] Tap "Enable Notifications" or "Open Notification Settings"
+6. [ ] Re-enable notifications
+7. [ ] Return to app and verify status updates to "Enabled ✓"
+
+**Test Case 4: Exact Alarm Permission (Android 12+)**
+
+1. [ ] Open the app and navigate to Settings
+2. [ ] Check if "Exact Alarm Permission" section is visible
+3. [ ] If "Not Granted", tap "Grant Exact Alarm Permission"
+4. [ ] Grant the permission in system settings
+5. [ ] Return to app and verify status updates to "Enabled ✓"
+6. [ ] Schedule an exact alarm via Debug page
+7. [ ] **Expected**: Alarm fires at precise scheduled time
+
+**Test Case 5: Device Reboot Persistence**
+
+1. [ ] Schedule a reminder for 10 minutes from now via Debug page
+2. [ ] Verify reminder is listed in scheduled reminders
+3. [ ] Reboot the device
+4. [ ] Open the app after reboot
+5. [ ] Navigate to Debug Reminders
+6. [ ] **Expected**: Reminder should still be scheduled (re-enqueued by BootReceiver)
+7. [ ] Wait for scheduled time
+8. [ ] **Expected**: Notification is delivered
+
+### Windows Verification Steps
+
+**Test Case 1: Basic Toast Notification**
+
+1. [ ] Open the app and navigate to Settings
+2. [ ] Tap "Sync Now" to trigger reminder computation
+3. [ ] Navigate to "Debug Reminders" to verify scheduled reminders
+4. [ ] Check "AUMID" diagnostic info is displayed
+5. [ ] Wait for scheduled reminder time
+6. [ ] **Expected**: Toast notification appears in Action Center
+
+**Test Case 2: Unpackaged App Limitations**
+
+1. [ ] If running unpackaged (not MSIX):
+   - [ ] Check Debug diagnostics show "IsPackaged: No"
+   - [ ] Scheduled toasts may not appear due to missing AUMID
+   - [ ] JSON store should still contain scheduled entries
+2. [ ] If running packaged (MSIX):
+   - [ ] Check Debug diagnostics show "IsPackaged: Yes"
+   - [ ] **Expected**: Toast notifications work correctly
+
+**Test Case 3: App Restart Reconciliation**
+
+1. [ ] Schedule a reminder via Debug page
+2. [ ] Close the app completely
+3. [ ] Reopen the app
+4. [ ] Navigate to Debug Reminders
+5. [ ] **Expected**: Reminder appears in both JSON store and OS scheduled list
+
+### Sync-Triggered Reminder Scheduling
+
+**Test Case: Reminders Computed After Sync**
+
+1. [ ] Ensure API has medications with `RemindersEnabled = true` and `ScheduledTimes` set
+2. [ ] Open app and navigate to Settings
+3. [ ] Note current scheduled reminders count in Debug page
+4. [ ] Tap "Sync Now"
+5. [ ] Return to Debug Reminders
+6. [ ] **Expected**: New reminders computed based on medication schedules
+
+### Expected Behaviors
+
+| Scenario | Android | Windows |
+|----------|---------|---------|
+| App in foreground | Notification shown | Toast shown |
+| App backgrounded | Notification shown | Toast shown |
+| Device locked | Lock screen notification | Toast in Action Center |
+| App killed | Notification shown (WorkManager/AlarmManager) | Toast may not show (unpackaged) |
+| Device rebooted | Reminders re-scheduled on boot | Reminders reconciled on app start |
+| Permissions denied | No notification; guidance shown in Settings | Toast may fail silently |
+
+### Troubleshooting
+
+**Android: Notifications not appearing**
+
+1. Check `dumpsys notification` for blocked packages:
+   ```shell
+   adb shell dumpsys notification | grep bloodthinner
+   ```
+2. Check battery optimization settings:
+   ```shell
+   adb shell dumpsys deviceidle whitelist
+   ```
+3. Verify notification channel exists:
+   ```shell
+   adb shell dumpsys notification | grep -A 5 "bloodthinner_reminders"
+   ```
+
+**Windows: Toasts not appearing**
+
+1. Check if app has toast permissions in Windows Settings > System > Notifications
+2. Verify AUMID registration via Debug diagnostics in the app
+3. For unpackaged apps, ensure COM registration is complete or package the app as MSIX
+
+### Pass/Fail Criteria
+
+- **PASS**: All test cases marked with expected results achieved
+- **PARTIAL**: Core notification delivery works but edge cases (reboot, permission denial) have issues
+- **FAIL**: Basic notification delivery (Test Case 1) does not work on target platform

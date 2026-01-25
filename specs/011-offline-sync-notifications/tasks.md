@@ -81,11 +81,11 @@ All tasks are organized by user story. Tasks follow the strict checklist format 
 
 **Independent Test**: Schedule a medication for next minute and confirm a local notification is delivered while the app is backgrounded.
 
-- [ ] T019 [P] [US2] Implement Android-specific `NotificationScheduler` in `src/BloodThinnerTracker.Mobile/Platforms/Android/NotificationScheduler.Android.cs` and ensure `NotificationChannel` creation
-- [ ] T020 [US2] Implement Windows-specific `NotificationScheduler` in `src/BloodThinnerTracker.Mobile/Platforms/Windows/NotificationScheduler.Windows.cs` (if supported by app targets)
-- [ ] T021 [US2] Ensure `CacheSyncService` computes upcoming reminders from `MobileDbContext` after a successful sync and calls `NotificationScheduler.ScheduleNotification()` (no separate `SyncWorker` implementation required unless platform-specific differences demand it). Update `CacheSyncService` to expose extension points for reminder computation and scheduling.
-- [ ] T022 [US2] Respect user notification permissions: add permission checks and graceful fallback in `src/BloodThinnerTracker.Mobile/Services/NotificationScheduler.cs` and surface guidance in `src/BloodThinnerTracker.Mobile/Pages/Settings.razor`
-- [ ] T023 [US2] Add a manual verification checklist and device-run instructions in `specs/011-offline-sync-notifications/quickstart.md` for reminder delivery tests
+- [x] T019 [P] [US2] Implement Android-specific `NotificationScheduler` in `src/BloodThinnerTracker.Mobile/Platforms/Android/NotificationScheduler.Android.cs` and ensure `NotificationChannel` creation
+- [x] T020 [US2] Implement Windows-specific `NotificationScheduler` in `src/BloodThinnerTracker.Mobile/Platforms/Windows/NotificationScheduler.Windows.cs` (if supported by app targets)
+- [x] T021 [US2] Ensure `CacheSyncService` computes upcoming reminders from `MobileDbContext` after a successful sync and calls `NotificationScheduler.ScheduleNotification()` (no separate `SyncWorker` implementation required unless platform-specific differences demand it). Update `CacheSyncService` to expose extension points for reminder computation and scheduling.
+- [x] T022 [US2] Respect user notification permissions: add permission checks and graceful fallback in `src/BloodThinnerTracker.Mobile/Services/NotificationScheduler.cs` and surface guidance in `src/BloodThinnerTracker.Mobile/Pages/Settings.razor`
+- [x] T023 [US2] Add a manual verification checklist and device-run instructions in `specs/011-offline-sync-notifications/quickstart.md` for reminder delivery tests
 
 ---
 
