@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ namespace BloodThinnerTracker.Mobile.Services
     /// into the local encrypted cache so the app can operate offline.
     ///
     /// Runs on a timer and performs a best-effort sync; failures are logged but do not crash the app.
+    /// After a successful sync, computes upcoming medication reminders and schedules notifications.
     /// </summary>
     public class CacheSyncService : IHostedService, IDisposable, ICacheSyncWorker
     {
@@ -21,6 +23,8 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly ICacheService _cacheService;
         private readonly IMedicationRepository _medicationRepository;
         private readonly IMedicationLogRepository _medicationLogRepository;
+        private readonly INotificationScheduler? _notificationScheduler;
+        private readonly IReminderComputationService? _reminderComputationService;
         private readonly ILogger<CacheSyncService> _logger;
         private readonly TimeSpan _interval;
         private Timer? _timer;
@@ -28,13 +32,24 @@ namespace BloodThinnerTracker.Mobile.Services
         // Default sync interval (fallback)
         private static readonly TimeSpan DefaultInterval = TimeSpan.FromMinutes(60);
 
-        public CacheSyncService(IApiClientFacade apiClient, IInrRepository inrRepository, ICacheService cacheService, IMedicationRepository medicationRepository, IMedicationLogRepository medicationLogRepository, Microsoft.Extensions.Options.IOptions<Config.SyncOptions> syncOptions, ILogger<CacheSyncService> logger)
+        public CacheSyncService(
+            IApiClientFacade apiClient,
+            IInrRepository inrRepository,
+            ICacheService cacheService,
+            IMedicationRepository medicationRepository,
+            IMedicationLogRepository medicationLogRepository,
+            Microsoft.Extensions.Options.IOptions<Config.SyncOptions> syncOptions,
+            ILogger<CacheSyncService> logger,
+            INotificationScheduler? notificationScheduler = null,
+            IReminderComputationService? reminderComputationService = null)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
             _inrRepository = inrRepository ?? throw new ArgumentNullException(nameof(inrRepository));
             _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
             _medicationRepository = medicationRepository ?? throw new ArgumentNullException(nameof(medicationRepository));
             _medicationLogRepository = medicationLogRepository ?? throw new ArgumentNullException(nameof(medicationLogRepository));
+            _notificationScheduler = notificationScheduler;
+            _reminderComputationService = reminderComputationService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             var opts = syncOptions?.Value ?? new Config.SyncOptions();
@@ -186,6 +201,79 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "CacheSyncService: failed to set last sync cache key");
+            }
+
+            // 4) Schedule medication reminders after successful sync
+            await ScheduleUpcomingRemindersAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Computes upcoming medication reminders from active medications and schedules notifications.
+        /// Called after a successful sync to ensure reminders are aligned with server data.
+        /// </summary>
+        private async Task ScheduleUpcomingRemindersAsync(CancellationToken cancellationToken)
+        {
+            if (_notificationScheduler == null || _reminderComputationService == null)
+            {
+                _logger.LogDebug("CacheSyncService: Notification scheduler or reminder computation service not available - skipping reminder scheduling");
+                return;
+            }
+
+            try
+            {
+                // Get active medications from the local database
+                var activeMedications = await _medicationRepository.GetActiveMedicationsAsync(cancellationToken).ConfigureAwait(false);
+
+                if (activeMedications == null || activeMedications.Count == 0)
+                {
+                    _logger.LogDebug("CacheSyncService: No active medications found - no reminders to schedule");
+                    return;
+                }
+
+                // Filter to medications with reminders enabled
+                var medicationsWithReminders = activeMedications.Where(m => m.RemindersEnabled).ToList();
+
+                if (medicationsWithReminders.Count == 0)
+                {
+                    _logger.LogDebug("CacheSyncService: No medications with reminders enabled - no reminders to schedule");
+                    return;
+                }
+
+                // Compute upcoming reminders for the next 24 hours
+                var reminders = _reminderComputationService.ComputeUpcomingReminders(medicationsWithReminders, windowHours: 24);
+                var reminderList = reminders.ToList();
+
+                _logger.LogInformation("CacheSyncService: Computed {Count} upcoming reminders from {MedicationCount} medications",
+                    reminderList.Count, medicationsWithReminders.Count);
+
+                // Schedule each reminder
+                int scheduled = 0;
+                int failed = 0;
+
+                foreach (var reminder in reminderList)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+
+                    try
+                    {
+                        await _notificationScheduler.ScheduleAsync(reminder).ConfigureAwait(false);
+                        scheduled++;
+                        _logger.LogDebug("CacheSyncService: Scheduled reminder {ReminderId} for {TriggerTime}",
+                            reminder.Id, reminder.TriggerTime);
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        _logger.LogWarning(ex, "CacheSyncService: Failed to schedule reminder {ReminderId}", reminder.Id);
+                    }
+                }
+
+                _logger.LogInformation("CacheSyncService: Scheduled {ScheduledCount} reminders, {FailedCount} failed",
+                    scheduled, failed);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CacheSyncService: Failed to schedule upcoming reminders");
             }
         }
 

@@ -15,6 +15,11 @@ namespace BloodThinnerTracker.Mobile.Services
     public interface IMedicationRepository
     {
         Task UpsertRangeAsync(IEnumerable<ApiSdk.Models.MedicationResponse> meds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets all active medications from the local database.
+        /// </summary>
+        Task<IReadOnlyList<Medication>> GetActiveMedicationsAsync(CancellationToken cancellationToken = default);
     }
 
     public class MedicationRepository : IMedicationRepository
@@ -180,6 +185,29 @@ namespace BloodThinnerTracker.Mobile.Services
             catch (InvalidOperationException ex)
             {
                 throw new InvalidOperationException("Saving medications failed. Ensure ApplicationDbContext has the required current-user services registered in DI (the mobile app must supply a current user when persisting medical entities).", ex);
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyList<Medication>> GetActiveMedicationsAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+                var medications = await _db.Medications
+                    .Where(m => m.IsActive
+                        && m.StartDate.Date <= today
+                        && (!m.EndDate.HasValue || m.EndDate.Value.Date >= today))
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogDebug("MedicationRepository: Retrieved {Count} active medications", medications.Count);
+                return medications;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "MedicationRepository: Failed to get active medications");
+                return Array.Empty<Medication>();
             }
         }
     }
