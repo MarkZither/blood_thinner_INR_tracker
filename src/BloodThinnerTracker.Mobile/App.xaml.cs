@@ -17,6 +17,18 @@ namespace BloodThinnerTracker.Mobile
         {
             _services = services;
             ServiceProvider = services;
+
+            // Early Windows-specific diagnostics: if the process was launched for toast activation ("-ToastActivated"),
+            // capture startup diagnostics and attempt a best-effort registration so we can debug COM activation issues.
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    Platforms.Windows.ToastActivationDiagnostics.RunIfToastActivationPresent(Environment.GetCommandLineArgs());
+                }
+            }
+            catch { }
+
             InitializeComponent();
         }
 

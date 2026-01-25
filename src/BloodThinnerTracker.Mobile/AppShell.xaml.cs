@@ -110,4 +110,34 @@ public partial class AppShell : Shell
             }
         }
     }
+
+    private async void OnFlyoutMedicationClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///flyoutmeds/medications");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to medications failed: {ex.Message}");
+            _logger?.LogWarning(ex, "Navigation to medications route failed; attempting fallback push");
+            try
+            {
+                var nav = Shell.Current?.Navigation ?? Application.Current?.Windows?.FirstOrDefault()?.Page?.Navigation;
+                if (nav != null)
+                {
+                    await nav.PushAsync(new Views.MedicineListView());
+                }
+                else
+                {
+                    _logger?.LogWarning("No navigation context available to push MedicineListView");
+                }
+            }
+            catch (Exception innerEx)
+            {
+                _logger?.LogDebug(innerEx, "Fallback PushAsync to MedicineListView failed");
+            }
+        }
+    }
 }

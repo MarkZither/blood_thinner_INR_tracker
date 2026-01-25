@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:BloodThinnerTracker.Mobile.ViewModels"
+             x:Class="BloodThinnerTracker.Mobile.Views.MedicineListView"
+             Title="Medications"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+        <!-- Header with Title and Refresh Button -->
+        <Grid ColumnDefinitions="*,Auto" Padding="20,15" ColumnSpacing="10" BackgroundColor="{StaticResource PrimaryBlue}">
+            <Label
+                Grid.Column="0"
+                Text="Medications"
+                FontSize="24"
+                FontAttributes="Bold"
+                TextColor="{StaticResource BackgroundWhite}"
+                VerticalOptions="Center" />
+
+            <Button
+                Grid.Column="1"
+                Text="↻ Refresh"
+                Command="{Binding LoadMedicationsCommand}"
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                BackgroundColor="{StaticResource BackgroundWhite}"
+                TextColor="{StaticResource PrimaryBlue}"
+                FontAttributes="Bold"
+                FontSize="12"
+                Padding="12,8"
+                CornerRadius="6"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="15">
+            <Label
+                Grid.Row="0"
+                Text="{Binding LastUpdatedText}"
+                FontSize="11"
+                TextColor="{StaticResource TextLight}"
+                Margin="0,0,0,10" />
+
+            <StackLayout Grid.Row="1" IsVisible="{Binding IsBusy}" Spacing="15" VerticalOptions="Center" HorizontalOptions="Center">
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource PrimaryBlue}"
+                    Scale="1.5" />
+                <Label
+                    Text="Loading medications..."
+                    FontSize="14"
+                    TextColor="{StaticResource TextMedium}"
+                    HorizontalOptions="Center" />
+            </StackLayout>
+
+            <CollectionView
+                Grid.Row="3"
+                ItemsSource="{Binding Medications}"
+                IsVisible="{Binding ShowList}"
+                SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardFrame}" Margin="0,8">
+                            <VerticalStackLayout Spacing="4" Padding="12">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14" TextColor="{StaticResource TextLight}" />
+                                <Label Text="{Binding Dosage, StringFormat='Dosage: {0:F2}'}" FontSize="13" TextColor="{StaticResource TextMedium}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Empty State -->
+            <StackLayout Grid.Row="3" IsVisible="{Binding ShowEmpty}" Spacing="15" VerticalOptions="Center" HorizontalOptions="Fill">
+                <Label
+                    Text="No Medications"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource TextMedium}"
+                    HorizontalOptions="Center" />
+
+                <Label
+                    Text="Your medications will appear here once synced."
+                    FontSize="13"
+                    TextColor="{StaticResource TextLight}"
+                    HorizontalOptions="Center"
+                    HorizontalTextAlignment="Center" />
+            </StackLayout>
+        </Grid>
+    </Grid>
+
+</ContentPage>

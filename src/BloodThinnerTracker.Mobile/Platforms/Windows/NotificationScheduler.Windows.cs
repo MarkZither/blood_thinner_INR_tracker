@@ -432,11 +432,19 @@ namespace BloodThinnerTracker.Mobile.Platforms.Windows
             try
             {
                 var clsidPath = @"SOFTWARE\Classes\CLSID\{A1B2C3D4-E5F6-4789-ABCD-1234567890AB}\LocalServer32";
-                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(clsidPath);
-                diag["COMRegistered"] = key != null ? "Yes" : "No";
-                if (key != null)
+                using var keyUser = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(clsidPath);
+                using var keyClasses = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey($"CLSID\\{{A1B2C3D4-E5F6-4789-ABCD-1234567890AB}}\\LocalServer32");
+                var presentUser = keyUser != null;
+                var presentClasses = keyClasses != null;
+                diag["COMRegistered_HKCU"] = presentUser ? "Yes" : "No";
+                diag["COMRegistered_HKCR"] = presentClasses ? "Yes" : "No";
+                if (presentUser)
                 {
-                    diag["COMPath"] = key.GetValue(null) as string ?? "(empty)";
+                    diag["COMPath_HKCU"] = keyUser?.GetValue(null) as string ?? "(empty)";
+                }
+                if (presentClasses)
+                {
+                    diag["COMPath_HKCR"] = keyClasses?.GetValue(null) as string ?? "(empty)";
                 }
             }
             catch

@@ -39,6 +39,11 @@
                     TextColor="{StaticResource TextDark}"
                     Clicked="OnFlyoutAboutClicked" />
 
+                <Button Text="Medications"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextDark}"
+                    Clicked="OnFlyoutMedicationClicked" />
+
                 <!-- Login is a route-only ShellContent; expose it here in the custom flyout -->
                 <Button Text="Login"
                     BackgroundColor="Transparent"
@@ -81,6 +86,13 @@
             Title="About"
             ContentTemplate="{DataTemplate views:AboutView}"
             Route="about" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Medications" Icon="pill" Route="flyoutmeds">
+        <ShellContent
+            Title="Medications"
+            ContentTemplate="{DataTemplate views:MedicineListView}"
+            Route="medications" />
     </FlyoutItem>
 
     <!-- Login route as ShellContent (not in flyout) -->

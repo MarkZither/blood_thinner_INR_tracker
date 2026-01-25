@@ -1,5 +1,6 @@
 #Requires -Version 7.0
-#Requires -RunAsAdministrator
+# Note: we require admin privileges; check explicitly to provide a clearer message.
+#Requires -Version 7.0
 
 <#
 .SYNOPSIS
@@ -69,8 +70,25 @@ param(
 $ErrorActionPreference = 'Stop'
 $WarningPreference = 'Continue'
 
+# NOTE: Installing/uninstalling the MSIX requires elevation, but building and signing do not in most cases.
+# To make local iteration easier, we perform an admin check only when the script is going to install or uninstall packages.
+
 # Configuration
-$REPO_ROOT = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+# Find the repository root by walking up folders until we find the solution file.
+function Get-RepoRoot {
+    param([string]$start)
+    $cur = $start
+    while ($true) {
+        if (Test-Path (Join-Path $cur 'BloodThinnerTracker.sln')) { return $cur }
+        $parent = Split-Path -Parent $cur
+        if ([string]::IsNullOrEmpty($parent) -or $parent -eq $cur) { break }
+        $cur = $parent
+    }
+    # Fallback: two parents up from script dir (previous heuristic)
+    return Split-Path -Parent (Split-Path -Parent $start)
+}
+
+$REPO_ROOT = Get-RepoRoot -start $PSScriptRoot
 $PROJECT_NAME = "BloodThinnerTracker.Mobile"
 $PROJECT_PATH = "$REPO_ROOT\src\$PROJECT_NAME"
 $AUMID = "MarkZither.BloodThinnerTracker.Mobile"
@@ -79,8 +97,9 @@ $CERT_THUMBPRINT = "0D969A392D37534744C60A63B7B8A5EF064F35AE"
 # Calculate paths
 $TargetFramework = "net10.0-windows10.0.19041.0"
 $BinPath = "$PROJECT_PATH\bin\$Platform\$Configuration\$TargetFramework"
-$PackageDir = "$BinPath\AppPackages\${PROJECT_NAME}_1.0.0.0_${Configuration}_Test"
-$MsixFile = "$PackageDir\${PROJECT_NAME}_1.0.0.0_${Platform}_${Configuration}.msix"
+# Note: AppPackages folder contains one or more package folders; do not hardcode the package identity/version.
+$PackageDir = Join-Path $BinPath 'AppPackages'
+$MsixFile = $null
 
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  Blood Thinner Tracker MSIX Installer" -ForegroundColor Cyan
@@ -113,15 +132,52 @@ if ($CleanBuild -and -not $SkipBuild) {
 # STEP 2: Build MSIX
 # ============================================================================
 
+# Check for 'dotnet' only when a build will be performed. Be permissive: don't abort on unexpected output.
+if (-not $SkipBuild) {
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Write-Host "✗ 'dotnet' not found on PATH. Install the .NET SDK or run with -SkipBuild to use an existing MSIX." -ForegroundColor Red
+        exit 1
+    }
+
+    # Capture version output for informational purposes and warn if it's older than .NET 10.
+    $dotnetVersion = (& dotnet --version 2>&1 | Out-String).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($dotnetVersion)) {
+        # Use the first token as the version (ignore any extra lines/warnings)
+        $firstToken = ($dotnetVersion -split '\s+')[0]
+        $major = ($firstToken.Split('.'))[0]
+        # Ensure $majInt exists so [ref] can be applied without error
+        $majInt = 0
+        if ([int]::TryParse($major, [ref]$majInt) -and $majInt -lt 10) {
+            Write-Host "⚠️  Warning: Found dotnet SDK $dotnetVersion which is older than .NET 10; publish may fail." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "dotnet version: $dotnetVersion" -ForegroundColor Gray
+        }
+    }
+    else {
+        Write-Host "⚠️  Warning: Unable to parse 'dotnet --version' output; proceeding but build may fail." -ForegroundColor Yellow
+    }
+}
+
 if (-not $SkipBuild) {
     Write-Host "Step 2/5: Building MSIX package..." -ForegroundColor Yellow
     Write-Host "  Command: dotnet publish -c $Configuration -f $TargetFramework" -ForegroundColor Gray
     Write-Host "  Project: $PROJECT_PATH" -ForegroundColor Gray
 
+    # Map platform to a RID for packaged apps (required for MSIX packaging with app host)
+    switch ($Platform) {
+        'x64' { $rid = 'win-x64' }
+        'x86' { $rid = 'win-x86' }
+        'ARM64' { $rid = 'win-arm64' }
+        default { $rid = 'win-x64' }
+    }
+
+    # Use an empty RuntimeIdentifier to preserve prior behavior and avoid enforcing a RID-specific runtime pack
     $publishOutput = dotnet publish -c $Configuration -f $TargetFramework `
         -o "$BinPath" `
         "$PROJECT_PATH\$PROJECT_NAME.csproj" `
         -p:Platform=$Platform `
+        -p:RuntimeIdentifier='' `
         -p:WindowsPackageType=MSIX `
         -p:PublishTrimmed=false `
         -p:PublishReadyToRun=false 2>&1
@@ -133,11 +189,16 @@ if (-not $SkipBuild) {
         exit 1
     }
 
-    if (-not (Test-Path $MsixFile)) {
-        Write-Host "✗ MSIX file not found at: $MsixFile" -ForegroundColor Red
+    # Discover the most recently created MSIX in the AppPackages output
+    $found = Get-ChildItem -Path $PackageDir -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+    if (-not $found) {
+        Write-Host "✗ MSIX file not found under: $PackageDir" -ForegroundColor Red
         exit 1
     }
 
+    $MsixFile = $found.FullName
     Write-Host "✓ MSIX built successfully" -ForegroundColor Green
     Write-Host "  Output: $MsixFile" -ForegroundColor Gray
 }
@@ -181,21 +242,46 @@ if (-not $SkipSign) {
         exit 1
     }
 
-    # Sign
-    $signOutput = & $signtool.FullName sign /fd SHA256 /sha1 $CERT_THUMBPRINT "$MsixFile" 2>&1
+    # Sign (robustly retry if the file is temporarily locked by another process)
+    $maxSignAttempts = 5
+    $signSucceeded = $false
+    for ($attempt = 1; $attempt -le $maxSignAttempts; $attempt++) {
+        Write-Host "  Signing attempt $attempt/$maxSignAttempts..." -ForegroundColor Gray
+        $signOutput = & $signtool.FullName sign /fd SHA256 /sha1 $CERT_THUMBPRINT "$MsixFile" 2>&1
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "✗ Signing failed" -ForegroundColor Red
+        if ($LASTEXITCODE -eq 0 -and $signOutput -match "Successfully signed") {
+            Write-Host "✓ MSIX signed successfully" -ForegroundColor Green
+            $signSucceeded = $true
+            break
+        }
+
+        # Detect common lock message and retry after a short backoff
+        if ($signOutput -match "being used by another process" -or $signOutput -match "file is being used by another process") {
+            $backoff = [Math]::Min(3000, 500 * $attempt)
+            Write-Host "  Warning: MSIX file appears locked by another process; retrying in ${backoff}ms..." -ForegroundColor Yellow
+            Start-Sleep -Milliseconds $backoff
+            continue
+        }
+
+        # Unknown failure - break and report
+        Write-Host "✗ Signing failed (attempt $attempt)" -ForegroundColor Red
         Write-Host $signOutput
-        exit 1
+        break
     }
 
-    if ($signOutput -match "Successfully signed") {
-        Write-Host "✓ MSIX signed successfully" -ForegroundColor Green
-    }
-    else {
-        Write-Host "✗ Signing may have failed (no success message)" -ForegroundColor Red
-        Write-Host $signOutput
+    if (-not $signSucceeded) {
+        Write-Host "✗ Signing failed after $maxSignAttempts attempts." -ForegroundColor Red
+        Write-Host "Possible causes: antivirus or indexer locking the MSIX, or another process (Explorer, Defender, store tooling) is holding the file." -ForegroundColor Yellow
+        if (Get-Command handle -ErrorAction SilentlyContinue) {
+            Write-Host "Attempting to locate locking handles using Sysinternals 'handle' (requires admin)" -ForegroundColor Gray
+            try {
+                & handle -accepteula "$MsixFile" | Select-Object -First 50
+            }
+            catch {
+                Write-Host "  Failed to run 'handle' or no results were found." -ForegroundColor Gray
+            }
+        }
+        Write-Host "Suggested fixes: close Explorer windows showing the MSIX, disable real-time AV temporarily, or retry the script after a short wait." -ForegroundColor Gray
         exit 1
     }
 }
@@ -212,6 +298,65 @@ Write-Host ""
 if (-not $SkipInstall) {
     Write-Host "Step 4/5: Installing MSIX package..." -ForegroundColor Yellow
 
+    # Require Administrator for install/uninstall operations
+    try {
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+    catch {
+        $isAdmin = $false
+    }
+    if (-not $isAdmin) {
+        Write-Host "This script must be run as Administrator to install or remove packages. Start PowerShell as Administrator and re-run the script." -ForegroundColor Red
+        exit 1
+    }
+
+    # ------------------------------------------------------------------
+    # Cleanup: remove stale LocalServer32 registrations that point to the
+    # unpackaged debug EXE (leftover from developer debugging). These
+    # can cause DCOM activation to fail with Access Denied when Windows
+    # attempts to launch the packaged AppContainer instance.
+    # ------------------------------------------------------------------
+    $ToastActivatorClsid = 'A1B2C3D4-E5F6-4789-ABCD-1234567890AB'
+    function Backup-AndRemove-StaleLocalServer {
+        param(
+            [string]$RootPath  # e.g. 'HKCR' or 'HKCU:\Software\Classes'
+        )
+
+        $regPath = Join-Path $RootPath "CLSID\{$ToastActivatorClsid}\LocalServer32"
+        if (-not (Test-Path $regPath)) { return }
+
+        try {
+            $val = (Get-Item -Path $regPath).GetValue('')
+        }
+        catch {
+            $val = $null
+        }
+
+        if (-not $val) { return }
+
+        # Heuristic: if it points into the repo build output (contains '\bin\' or the repo root), treat it as stale
+        $isStale = $false
+        if ($val -match '\\bin\\' -or $val -match [regex]::Escape($REPO_ROOT)) { $isStale = $true }
+
+        if ($isStale) {
+            $timestamp = (Get-Date).ToString('yyyyMMdd_HHmmss')
+            $backupFile = "C:\Dumps\clsid_backup_${RootPath.Replace(':','').Replace('\\','_')}_$timestamp.reg"
+            try {
+                reg export "$($regPath.Replace('HKCU:','HKCU\').Replace('HKCR:','HKCR\'))" "$backupFile" /y 2>$null
+            }
+            catch {
+                # ignore export failure
+            }
+
+            Write-Host "Removing stale LocalServer32 at $regPath (value: $val). Backup: $backupFile" -ForegroundColor Yellow
+            try { Remove-Item -Path $regPath -Recurse -Force -ErrorAction SilentlyContinue } catch { }
+        }
+    }
+
+    # Run cleanup on both per-machine and per-user registration locations
+    Backup-AndRemove-StaleLocalServer -RootPath 'HKCR:'
+    Backup-AndRemove-StaleLocalServer -RootPath 'HKCU:\Software\Classes'
+
     # Uninstall existing version
     Write-Host "  Uninstalling previous version..." -ForegroundColor Gray
     $existing = Get-AppxPackage | Where-Object { $_.Name -match $PROJECT_NAME }
@@ -223,22 +368,55 @@ if (-not $SkipInstall) {
         }
     }
 
-    # Install new version
-    Write-Host "  Installing new version..." -ForegroundColor Gray
-    $installOutput = Add-AppxPackage -Path $MsixFile -ErrorAction SilentlyContinue 2>&1
+    # Install new version by delegating to the conservative installer script (install-msix.ps1)
+    Write-Host "  Installing new version (delegating to install-msix.ps1)..." -ForegroundColor Gray
+    $installScript = Join-Path $PSScriptRoot 'install-msix.ps1'
+    if (Test-Path $installScript) {
+        try {
+            # Use ForceReplace so the helper can remove existing installs by identity if needed
+            & $installScript -PackagePath $MsixFile -ForceReplace
+        }
+        catch {
+            Write-Host "✗ Delegated install failed: $_" -ForegroundColor Red
+            exit 1
+        }
 
-    # Verify installation
-    $installed = Get-AppxPackage | Where-Object { $_.Name -match $PROJECT_NAME }
-    if ($installed) {
-        Write-Host "✓ MSIX installed successfully" -ForegroundColor Green
-        Write-Host "  Name:    $($installed.Name)" -ForegroundColor Gray
-        Write-Host "  Version: $($installed.Version)" -ForegroundColor Gray
-        Write-Host "  Path:    $($installed.InstallLocation)" -ForegroundColor Gray
+        # Verify installation
+        $installed = Get-AppxPackage | Where-Object { $_.Name -match $PROJECT_NAME }
+        if ($installed) {
+            Write-Host "✓ MSIX installed successfully" -ForegroundColor Green
+            Write-Host "  Name:    $($installed.Name)" -ForegroundColor Gray
+            Write-Host "  Version: $($installed.Version)" -ForegroundColor Gray
+            Write-Host "  Path:    $($installed.InstallLocation)" -ForegroundColor Gray
+
+            # Suggest likely app log locations (packaged & unpackaged)
+            $pf = $installed.PackageFamilyName
+            $packagedLogs = Join-Path $env:LOCALAPPDATA "Packages\$pf\LocalState\Logs"
+            Write-Host "  Likely logs (packaged): $packagedLogs" -ForegroundColor Gray
+            Write-Host "  Likely logs (app data dir): %LOCALAPPDATA%\Mark Zither\com.markzither.BloodThinnerTracker.Mobile\Data\Logs" -ForegroundColor Gray
+        }
+        else {
+            Write-Host "✗ Installation verification failed after delegated install" -ForegroundColor Red
+            exit 1
+        }
     }
     else {
-        Write-Host "✗ Installation verification failed" -ForegroundColor Red
-        Write-Host $installOutput | Select-String -Pattern "Error|error" | Select-Object -First 5
-        exit 1
+        Write-Host "  install-msix.ps1 not found; falling back to in-script install..." -ForegroundColor Yellow
+        $installOutput = Add-AppxPackage -Path $MsixFile -ErrorAction SilentlyContinue 2>&1
+
+        # Verify installation
+        $installed = Get-AppxPackage | Where-Object { $_.Name -match $PROJECT_NAME }
+        if ($installed) {
+            Write-Host "✓ MSIX installed successfully" -ForegroundColor Green
+            Write-Host "  Name:    $($installed.Name)" -ForegroundColor Gray
+            Write-Host "  Version: $($installed.Version)" -ForegroundColor Gray
+            Write-Host "  Path:    $($installed.InstallLocation)" -ForegroundColor Gray
+        }
+        else {
+            Write-Host "✗ Installation verification failed" -ForegroundColor Red
+            Write-Host $installOutput | Select-String -Pattern "Error|error" | Select-Object -First 5
+            exit 1
+        }
     }
 }
 else {
@@ -285,5 +463,6 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  • Check debug output in Event Viewer" -ForegroundColor Gray
 Write-Host "  • Test notification functionality" -ForegroundColor Gray
-Write-Host "  • Check logs at: %APPDATA%\BloodThinnerTracker\logs\" -ForegroundColor Gray
+Write-Host "  • Check logs (unpackaged): %LOCALAPPDATA%\\Mark Zither\\com.markzither.BloodThinnerTracker.Mobile\\Data\\Logs" -ForegroundColor Gray
+Write-Host "  • Check logs (packaged): %LOCALAPPDATA%\\Packages\\<PackageFamilyName>\\LocalState\\Logs" -ForegroundColor Gray
 Write-Host ""

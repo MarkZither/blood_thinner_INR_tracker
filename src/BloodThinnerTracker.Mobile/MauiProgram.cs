@@ -83,6 +83,7 @@ public static partial class MauiProgram
         builder.Services.AddTransient<ViewModels.LoginViewModel>();
         builder.Services.AddTransient<Views.InrListView>();
         builder.Services.AddTransient<ViewModels.InrListViewModel>();
+        builder.Services.AddTransient<ViewModels.MedicineListViewModel>();
         // Lazy factory registration for deferred ViewModel creation
         builder.Services.AddTransient(typeof(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<>));
         builder.Services.AddTransient<Views.AboutView>();
@@ -185,6 +186,11 @@ public static partial class MauiProgram
 
         // API client facade: interim HttpClient-backed implementation of the Kiota-generated client surface.
         builder.Services.AddSingleton<Services.IApiClientFacade, Services.ApiHttpClientFacade>();
+        // Register API-backed medication service when not using mock services
+        if (!useMockServices)
+        {
+            builder.Services.AddSingleton<Services.IMedicationService, Services.ApiMedicationService>();
+        }
         builder.Services.AddSingleton<Services.IForegroundSyncService, Services.ForegroundSyncService>();
 
         // Register encryption and cache services used by multiple components
