@@ -15,6 +15,12 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
     /// </summary>
     public class NotificationSchedulerAlarm
     {
+        public NotificationSchedulerAlarm()
+        {
+            // Ensure notification channel is created for exact alarm reminders
+            NotificationSchedulerAndroid.EnsureNotificationChannelCreated();
+        }
+
         public bool CanScheduleExactAlarms()
         {
             try
@@ -36,6 +42,9 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
 
         public async Task ScheduleExactAsync(AppNotificationRequest request)
         {
+            // Ensure channel exists before scheduling
+            NotificationSchedulerAndroid.EnsureNotificationChannelCreated();
+
             var notificationRequest = new PluginNotificationRequest
             {
                 NotificationId = request.Id.GetHashCode(),
@@ -47,7 +56,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
                 },
                 Android = new Plugin.LocalNotification.AndroidOption.AndroidOptions
                 {
-                    ChannelId = "bloodthinner_reminders",
+                    ChannelId = NotificationSchedulerAndroid.ReminderChannelIdPublic,
                     Priority = Plugin.LocalNotification.AndroidOption.AndroidPriority.Max
                 }
             };

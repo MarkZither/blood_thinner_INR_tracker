@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Android.App;
+using Android.OS;
 using Microsoft.Maui.Storage;
 using Plugin.LocalNotification;
 using BloodThinnerTracker.Mobile.Services;
@@ -20,11 +22,68 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
     public class NotificationSchedulerAndroid : INotificationScheduler
     {
         private const string StoreFileName = "scheduled_reminders.json";
+        private const string ReminderChannelId = "bloodthinner_reminders";
+        private const string ReminderChannelName = "Medication Reminders";
+        private const string ReminderChannelDescription = "Critical medication reminder notifications";
         private readonly string _storePath;
+        private static bool _channelCreated = false;
+
+        /// <summary>
+        /// Public accessor for the reminder channel ID for use by other scheduler implementations.
+        /// </summary>
+        public static string ReminderChannelIdPublic => ReminderChannelId;
 
         public NotificationSchedulerAndroid()
         {
             _storePath = Path.Combine(FileSystem.AppDataDirectory, StoreFileName);
+            EnsureNotificationChannelCreated();
+        }
+
+        /// <summary>
+        /// Ensures the notification channel for medication reminders is created with high importance.
+        /// This is required for Android 8.0+ (API 26+) to deliver notifications.
+        /// </summary>
+        public static void EnsureNotificationChannelCreated()
+        {
+            if (_channelCreated) return;
+
+            try
+            {
+                if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+                {
+                    var context = global::Android.App.Application.Context;
+                    var nm = context.GetSystemService(global::Android.Content.Context.NotificationService) as NotificationManager;
+                    if (nm == null) return;
+
+                    var existingChannel = nm.GetNotificationChannel(ReminderChannelId);
+                    if (existingChannel == null)
+                    {
+                        // Create channel with HIGH importance for medication reminders
+                        // High importance ensures: makes sound, appears as heads-up notification
+                        var channel = new NotificationChannel(ReminderChannelId, ReminderChannelName, NotificationImportance.High)
+                        {
+                            Description = ReminderChannelDescription
+                        };
+
+                        // Enable lights, vibration, and badge for medication reminders
+                        channel.EnableLights(true);
+                        channel.EnableVibration(true);
+                        channel.SetShowBadge(true);
+
+                        // Set bypass DND if possible (user can override in settings)
+                        channel.SetBypassDnd(false); // Respect user's DND preference
+
+                        nm.CreateNotificationChannel(channel);
+                        System.Diagnostics.Debug.WriteLine($"NotificationSchedulerAndroid: Created notification channel '{ReminderChannelId}' with High importance");
+                    }
+
+                    _channelCreated = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"NotificationSchedulerAndroid: Failed to create notification channel: {ex}");
+            }
         }
 
         public async Task ScheduleAsync(AppNotificationRequest request)
@@ -59,7 +118,7 @@ namespace BloodThinnerTracker.Mobile.Platforms.Android
                 },
                 Android = new Plugin.LocalNotification.AndroidOption.AndroidOptions
                 {
-                    ChannelId = "bloodthinner_reminders",
+                    ChannelId = ReminderChannelId,
                     Priority = Plugin.LocalNotification.AndroidOption.AndroidPriority.High
                 }
             };
