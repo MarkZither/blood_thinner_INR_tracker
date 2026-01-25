@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:BloodThinnerTracker.Mobile"
     xmlns:views="clr-namespace:BloodThinnerTracker.Mobile.Views"
+    xmlns:pages="clr-namespace:BloodThinnerTracker.Mobile.Pages"
     FlyoutBehavior="Flyout"
     FlyoutHeaderBehavior="CollapseOnScroll"
     FlyoutBackgroundColor="{DynamicResource PageBackground}">
@@ -49,6 +50,12 @@
                     BackgroundColor="Transparent"
                     TextColor="{StaticResource TextDark}"
                     Clicked="OnFlyoutLoginClicked" />
+
+                <!-- Settings page -->
+                <Button Text="Settings"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextDark}"
+                    Clicked="OnFlyoutSettingsClicked" />
 
                 <!-- Debug page access (dev-only) -->
                 <Button Text="Debug Reminders"
@@ -106,6 +113,12 @@
         Title="Debug Reminders"
         ContentTemplate="{DataTemplate views:DebugScheduledRemindersPage}"
         Route="debugscheduledreminders" />
+
+    <!-- Settings page -->
+    <ShellContent
+        Title="Settings"
+        ContentTemplate="{DataTemplate pages:SettingsPage}"
+        Route="settings" />
 
     <!-- Toolbar: theme toggle (placed after content to conform to XAML ordering requirements) -->
     <Shell.ToolbarItems>

@@ -140,4 +140,34 @@ public partial class AppShell : Shell
             }
         }
     }
+
+    private async void OnFlyoutSettingsClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            FlyoutIsPresented = false;
+            await Shell.Current.GoToAsync("///settings");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AppShell: Navigation to settings failed: {ex.Message}");
+            _logger?.LogWarning(ex, "Navigation to settings route failed; attempting fallback push");
+            try
+            {
+                var nav = Shell.Current?.Navigation ?? Application.Current?.Windows?.FirstOrDefault()?.Page?.Navigation;
+                if (nav != null)
+                {
+                    await nav.PushAsync(new Pages.SettingsPage());
+                }
+                else
+                {
+                    _logger?.LogWarning("No navigation context available to push SettingsPage");
+                }
+            }
+            catch (Exception innerEx)
+            {
+                _logger?.LogDebug(innerEx, "Fallback PushAsync to SettingsPage failed");
+            }
+        }
+    }
 }

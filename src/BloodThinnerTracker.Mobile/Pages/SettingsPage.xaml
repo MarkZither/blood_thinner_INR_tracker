@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BloodThinnerTracker.Mobile.Pages.SettingsPage"
+             Title="Settings">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Label Text="Settings" FontSize="24" FontAttributes="Bold" />
+
+            <!-- Notifications Section -->
+            <Border Stroke="LightGray" StrokeShape="RoundRectangle 8" Padding="12">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Notifications" FontSize="18" FontAttributes="Bold" />
+                    
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Notification Status:" VerticalOptions="Center" />
+                        <Label x:Name="LblNotificationStatus" Text="Checking..." TextColor="Gray" VerticalOptions="Center" Margin="8,0,0,0" />
+                    </StackLayout>
+
+                    <Label x:Name="LblNotificationGuidance" Text="" TextColor="Orange" FontSize="12" />
+
+                    <Button x:Name="BtnRequestNotifications" Text="Enable Notifications" 
+                            IsVisible="false" />
+                    
+                    <Button x:Name="BtnOpenNotificationSettings" Text="Open Notification Settings" 
+                            IsVisible="false" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Exact Alarm Permission (Android) -->
+            <Border x:Name="BorderExactAlarm" Stroke="LightGray" StrokeShape="RoundRectangle 8" Padding="12" IsVisible="false">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Exact Alarm Permission" FontSize="16" FontAttributes="Bold" />
+                    
+                    <Label Text="For precise medication reminders, the app needs permission to schedule exact alarms. This ensures your reminders fire at the exact scheduled time."
+                           FontSize="12" TextColor="Gray" />
+                    
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Exact Alarm Status:" VerticalOptions="Center" />
+                        <Label x:Name="LblExactAlarmStatus" Text="Checking..." TextColor="Gray" VerticalOptions="Center" Margin="8,0,0,0" />
+                    </StackLayout>
+
+                    <Button x:Name="BtnRequestExactAlarm" Text="Grant Exact Alarm Permission" 
+                            IsVisible="false" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Battery Optimization Section -->
+            <Border Stroke="LightGray" StrokeShape="RoundRectangle 8" Padding="12">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Battery Optimization" FontSize="18" FontAttributes="Bold" />
+                    
+                    <Label Text="For reliable reminder delivery, we recommend disabling battery optimization for this app. This prevents the system from delaying or blocking reminders when the device is in power-saving mode."
+                           FontSize="12" TextColor="Gray" />
+                    
+                    <Label x:Name="LblBatteryOptimization" 
+                           Text="Battery optimization may be affecting reminder delivery. If you're not receiving reminders, please disable battery optimization for this app in your device settings."
+                           TextColor="Orange" FontSize="12" />
+                    
+                    <Button x:Name="BtnOpenBatterySettings" Text="Open Battery Settings" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Sync Section -->
+            <Border Stroke="LightGray" StrokeShape="RoundRectangle 8" Padding="12">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Data Sync" FontSize="18" FontAttributes="Bold" />
+                    
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Last Sync:" VerticalOptions="Center" />
+                        <Label x:Name="LblLastSync" Text="Unknown" TextColor="Gray" VerticalOptions="Center" Margin="8,0,0,0" />
+                    </StackLayout>
+
+                    <Button x:Name="BtnSyncNow" Text="Sync Now" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Debug Section -->
+            <Border Stroke="LightGray" StrokeShape="RoundRectangle 8" Padding="12">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Debug" FontSize="18" FontAttributes="Bold" />
+                    
+                    <Button x:Name="BtnViewScheduledReminders" Text="View Scheduled Reminders" />
+                    
+                    <Label x:Name="LblDiagnostics" Text="" FontSize="10" TextColor="Gray" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
