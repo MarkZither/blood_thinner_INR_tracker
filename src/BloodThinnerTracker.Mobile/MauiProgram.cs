@@ -1,23 +1,13 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using Serilog.Events;
-using Microsoft.Maui;
-using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Exporter;
+using Microsoft.Extensions.Logging;
 using BloodThinnerTracker.Mobile.Extensions;
-using BloodThinnerTracker.Mobile.Config;
-using System.Linq;
 
 namespace BloodThinnerTracker.Mobile;
 
+/// <summary>
+/// MAUI application entry point and DI container configuration.
+/// Service registration is delegated to extension methods for maintainability.
+/// </summary>
 public static partial class MauiProgram
 {
     public static MauiApp CreateMauiApp()
@@ -29,25 +19,77 @@ public static partial class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════════════════
+        ConfigureAppSettings(builder);
+
+#if DEBUG
+        builder.Services.AddBlazorWebViewDeveloperTools();
+        builder.Logging.AddDebug();
+#endif
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CORE SERVICES (used by both mock and real modes)
+        // ═══════════════════════════════════════════════════════════════════════════
+        builder.Services.AddCoreServices();
+        builder.Services.AddViewsAndViewModels();
+        builder.Services.AddApiHttpClient();
+        builder.Services.AddBackgroundServices(builder.Configuration);
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // MOCK vs REAL SERVICE REGISTRATION - Single consolidated block
+        // ═══════════════════════════════════════════════════════════════════════════
+        var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+        var skipPlatformServices = builder.Configuration["Test:SkipPlatformServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        if (useMockServices)
+        {
+            // Mock mode: all services use in-memory data, no remote API calls
+            builder.Services.AddMockServices();
+        }
+        else
+        {
+            // Real mode: services call the remote API
+            builder.Services.AddRealServices(builder.Configuration, skipPlatformServices);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PLATFORM-SPECIFIC SERVICES
+        // ═══════════════════════════════════════════════════════════════════════════
+        RegisterPlatformServices(builder);
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BUILD AND INITIALIZE
+        // ═══════════════════════════════════════════════════════════════════════════
+        var app = builder.Build();
+
+        return app
+            .RunStartupDiagnostics(builder.Configuration)
+            .ApplyDatabaseMigrations();
+    }
+
+    /// <summary>
+    /// Configures application settings from embedded resources and environment variables.
+    /// </summary>
+    private static void ConfigureAppSettings(MauiAppBuilder builder)
+    {
         // Load configuration from appsettings.json embedded resource
         using var stream = typeof(App).Assembly.GetManifestResourceStream("BloodThinnerTracker.Mobile.appsettings.json");
-        IConfiguration? preConfig = null;
         if (stream != null)
         {
-            preConfig = new ConfigurationBuilder()
+            var preConfig = new ConfigurationBuilder()
                 .AddJsonStream(stream)
                 .Build();
             builder.Configuration.AddInMemoryCollection(preConfig.AsEnumerable());
         }
 
-        // Configure Serilog logging via extension to keep MauiProgram concise
+        // Configure Serilog logging via extension
         builder.AddLogging(builder.Configuration);
 
         // Add environment variables (higher priority - overrides appsettings.json)
-        // Supports Features__UseMockServices, Features__ApiRootUrl, etc.
-        // Read all environment variables and add them to configuration
         var envVars = new Dictionary<string, string?>();
-        foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
         {
             var key = entry.Key?.ToString() ?? string.Empty;
             var value = entry.Value?.ToString();
@@ -57,297 +99,9 @@ public static partial class MauiProgram
         }
         builder.Configuration.AddInMemoryCollection(envVars);
 
-        // Register SplashOptions and its validation via extension to keep startup concise
+        // Register options
         builder.Services.AddSplashOptions(builder.Configuration);
-
-        // Register FeaturesOptions (binds to Features:* config section)
         builder.Services.AddFeaturesOptions(builder.Configuration);
-
-        // Register optional app initializer (warms tokens, remote config fetch, etc.)
-        builder.Services.AddSingleton<Services.IAppInitializer, Services.AppInitializer>();
-
-#if DEBUG
-        builder.Services.AddBlazorWebViewDeveloperTools();
-        builder.Logging.AddDebug();
-#endif
-        // Register services (DI) - minimal bootstrap
-        builder.Services.AddSingleton<App>();
-        builder.Services.AddSingleton<AppShell>();
-        // Theme service used by AppShell for persisted theme preference
-        builder.Services.AddSingleton<Services.IThemeService, Services.ThemeService>();
-        // Register MainPage for DI resolution in App
-        builder.Services.AddSingleton<MainPage>();
-
-        // Register views and viewmodels for navigation
-        builder.Services.AddTransient<Views.LoginView>();
-        builder.Services.AddTransient<ViewModels.LoginViewModel>();
-        builder.Services.AddTransient<Views.InrListView>();
-        builder.Services.AddTransient<ViewModels.InrListViewModel>();
-        builder.Services.AddTransient<ViewModels.MedicineListViewModel>();
-        // Lazy factory registration for deferred ViewModel creation
-        builder.Services.AddTransient(typeof(BloodThinnerTracker.Mobile.Extensions.LazyViewModelFactory<>));
-        builder.Services.AddTransient<Views.AboutView>();
-        builder.Services.AddTransient<Views.MedicineListView>();
-
-        // Register Feature services - use configuration flag instead of #if DEBUG
-        // Features.UseMockServices: true = mock, false = real API
-        // Note: JSON boolean true becomes string "True" (capitalized) - use case-insensitive comparison
-        var useMockServices = builder.Configuration["Features:UseMockServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
-
-        builder.Services.AddSingleton<Services.IInrService>(sp =>
-        {
-            return useMockServices
-                ? (Services.IInrService)new Services.MockInrService()
-                : sp.GetRequiredService<Services.ApiInrService>();
-        });
-
-        // Register medication mock/in-memory implementations when feature flag enabled
-            if (useMockServices)
-            {
-                builder.Services.AddSingleton<Services.IMedicationService, Services.MockMedicationService>();
-            builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
-            builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
-        }
-
-        // If the Data.SQLite project is available, register a read-only adapter to query
-        // the canonical local DB for offline reads. This keeps the mobile app consistent
-        // with server-side schema while remaining read-only.
-        // Allow tests to opt-out of platform-specific registration by setting
-        // configuration `Test:SkipPlatformServices=true` (in-memory or environment).
-        var skipPlatformServices = builder.Configuration["Test:SkipPlatformServices"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
-        if (!skipPlatformServices)
-            {
-                try
-                {
-            // Register Data Protection services required by ApplicationDbContext for encryption
-            var dataProtectionPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "DataProtection-Keys");
-            builder.Services.AddDataProtection()
-                .PersistKeysToFileSystem(new System.IO.DirectoryInfo(dataProtectionPath))
-                .SetApplicationName("BloodThinnerTracker.Mobile");
-
-            // Register mobile-specific ICurrentUserService (single-user device)
-            // Also register a seeder that ensures the device-local user exists
-            builder.Services.AddScoped<Services.MobileUserSeeder>();
-            builder.Services.AddScoped<BloodThinnerTracker.Data.Shared.ICurrentUserService, Services.MobileCurrentUserService>();
-
-            builder.Services.AddScoped<Services.IInrRepository, Services.InrRepository>();
-                // Register medication repositories only when not using mock services
-                if (!useMockServices)
-                {
-                    builder.Services.AddScoped<Services.IMedicationRepository, Services.MedicationRepository>();
-                    builder.Services.AddScoped<Services.IMedicationLogRepository, Services.MedicationLogRepository>();
-                }
-            // Register the EF DbContext from Data.SQLite using a file-based connection.
-            var dbPath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "bloodtracker_mobile.db");
-            builder.Services.AddDbContext<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>(opts =>
-            {
-                opts.UseSqlite($"Data Source={dbPath}", b => b.MigrationsAssembly("BloodThinnerTracker.Data.SQLite"));
-            });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"MauiProgram: SQLite/DataProtection registration failed: {ex.Message}");
-                }
-            }
-            else
-            {
-                // Test-mode fallbacks: register lightweight in-memory implementations so
-                // critical background services can be resolved without platform DB.
-                // Do not override IInrService if the feature flag requested the real API service.
-                if (useMockServices)
-                {
-                    builder.Services.AddSingleton<Services.IInrService, Services.MockInrService>();
-                }
-
-                builder.Services.AddSingleton<Services.IInrRepository, Services.InMemoryInrRepository>();
-
-                // Register medication mocks only when requested
-                if (useMockServices)
-                {
-                    builder.Services.AddSingleton<Services.IMedicationService, Services.MockMedicationService>();
-                    builder.Services.AddSingleton<Services.IMedicationRepository, Services.InMemoryMedicationRepository>();
-                    builder.Services.AddSingleton<Services.IMedicationLogRepository, Services.InMemoryMedicationLogRepository>();
-                }
-
-                // Ensure a cache service is available in test-mode so hosted services can be activated
-                builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
-            }
-
-        // HttpClient for API-backed services (uses IOptions to get API root URL)
-        // Keep a general-purpose HttpClient for other services that need it
-        builder.Services.AddSingleton<System.Net.Http.HttpClient>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
-            return new System.Net.Http.HttpClient
-            {
-                BaseAddress = new System.Uri(options.Value.ApiRootUrl)
-            };
-        });
-
-        // API client facade: interim HttpClient-backed implementation of the Kiota-generated client surface.
-        builder.Services.AddSingleton<Services.IApiClientFacade, Services.ApiHttpClientFacade>();
-        // Register API-backed medication service when not using mock services
-        if (!useMockServices)
-        {
-            builder.Services.AddSingleton<Services.IMedicationService, Services.ApiMedicationService>();
-        }
-        builder.Services.AddSingleton<Services.IForegroundSyncService, Services.ForegroundSyncService>();
-
-        // Register encryption and cache services used by multiple components
-        builder.Services.AddSingleton<Services.EncryptionService>();
-        builder.Services.AddSingleton<Services.ICacheService, Services.CacheService>();
-
-        // Token handler and ApiInrService configured with a token-aware HttpClient
-        builder.Services.AddSingleton<Services.ApiInrService>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<Services.FeaturesOptions>>();
-            var auth = sp.GetRequiredService<Services.IAuthService>();
-            var handlerLogger = sp.GetRequiredService<ILogger<Services.TokenDelegatingHandler>>();
-            var apiLogger = sp.GetRequiredService<ILogger<Services.ApiInrService>>();
-
-            var tokenHandler = new Services.TokenDelegatingHandler(auth, handlerLogger)
-            {
-                InnerHandler = new System.Net.Http.HttpClientHandler()
-            };
-
-            var client = new System.Net.Http.HttpClient(tokenHandler)
-            {
-                BaseAddress = new Uri(options.Value.ApiRootUrl)
-            };
-
-            return new Services.ApiInrService(client, apiLogger);
-        });
-
-        // OAuth configuration service - use configuration flag for mock/real
-        builder.Services.AddSingleton<Services.IOAuthConfigService>(sp =>
-        {
-            return useMockServices
-                ? (Services.IOAuthConfigService)new Services.MockOAuthConfigService()
-                : new Services.OAuthConfigService(
-                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
-                    sp.GetRequiredService<System.Net.Http.HttpClient>(),
-                    sp.GetRequiredService<ILogger<Services.OAuthConfigService>>(),
-                    sp.GetRequiredService<Services.ICacheService>());
-        });
-
-        // Register AuthService - use configuration flag for mock/real
-        // Register platform secure storage implementation required by several services
-        builder.Services.AddSingleton<Services.ISecureStorageService, Services.SecureStorageService>();
-
-        // Register AuthService - use configuration flag for mock/real
-        builder.Services.AddSingleton<Services.IAuthService>(sp =>
-        {
-            return useMockServices
-                ? (Services.IAuthService)new Services.MockAuthService(
-                    sp.GetRequiredService<ILogger<Services.MockAuthService>>())
-                : new Services.AuthService(
-                    sp.GetRequiredService<Services.ISecureStorageService>(),
-                    sp.GetRequiredService<Services.IOAuthConfigService>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.FeaturesOptions>>(),
-                    sp.GetRequiredService<ILogger<Services.AuthService>>(),
-                    sp.GetRequiredService<System.Net.Http.HttpClient>());
-        });
-
-        // Background cache sync service: periodically fetch latest INR data and populate encrypted cache
-        try
-        {
-            // Register the concrete CacheSyncService as a singleton and expose it as both
-            // ICacheSyncWorker and IHostedService so platform jobs can invoke SyncOnceAsync
-            builder.Services.AddSingleton<Services.CacheSyncService>();
-            builder.Services.AddSingleton<Services.ICacheSyncWorker>(sp => sp.GetRequiredService<Services.CacheSyncService>());
-            builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.CacheSyncService>());
-
-            // Development-only in-process worker: register DevSyncHostedService when debugging locally
-            // or when the feature flag is explicitly enabled. This runs the same sync logic in-process
-            // so you can iterate without packaging the app.
-            var enableInProc = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
-            if (System.Diagnostics.Debugger.IsAttached || enableInProc)
-            {
-                // Register the concrete dev worker as a singleton and map IHostedService
-                // to the same instance so the host (if it starts hosted services) will
-                // use the same instance and tests can resolve the concrete type.
-                builder.Services.AddSingleton<Services.DevSyncHostedService>();
-                builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<Services.DevSyncHostedService>());
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MauiProgram: CacheSyncService/DevSyncHostedService registration failed: {ex.Message}");
-        }
-
-            // Platform-specific service registrations (implemented in platform files)
-            RegisterPlatformServices(builder);
-
-        var app = builder.Build();
-
-        // Diagnostic: log which hosted services are registered and whether in-proc background
-        // was requested. This helps debug cases where AddHostedService appears to be ignored.
-        try
-        {
-            var startupLogger = app.Services.GetService<ILogger<App>>();
-            var dbgAttached = System.Diagnostics.Debugger.IsAttached;
-            var enableInProcFlag = builder.Configuration["Features:EnableInProcBackground"]?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
-
-            var hostedSvcTypes = app.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>()
-                .Select(s => s.GetType().FullName)
-                .ToList();
-
-            startupLogger?.LogInformation("Startup diagnostic: Debugger.IsAttached={Attached} EnableInProcBackground={EnableInProc} RegisteredHostedServices={Services}", dbgAttached, enableInProcFlag, string.Join(",", hostedSvcTypes));
-
-            // If we're in development in-proc mode, ensure the dev hosted service is started.
-            if (dbgAttached || enableInProcFlag)
-            {
-                try
-                {
-                    var dev = app.Services.GetService<Services.DevSyncHostedService>();
-                    if (dev != null)
-                    {
-                        // Start in background to avoid blocking startup; StartAsync should be idempotent
-                        _ = Task.Run(() => dev.StartAsync(System.Threading.CancellationToken.None));
-                        startupLogger?.LogInformation("Startup: Triggered DevSyncHostedService.StartAsync()");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    startupLogger?.LogWarning(ex, "Failed to start DevSyncHostedService proactively");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MauiProgram: Startup diagnostic logging failed: {ex.Message}");
-        }
-
-        // Ensure SQLite database is created and migrations applied BEFORE any views load.
-        // This must happen synchronously during startup to prevent "no such table" errors.
-        try
-        {
-            using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetService<BloodThinnerTracker.Data.SQLite.ApplicationDbContext>();
-            if (db != null)
-            {
-                var startupLogger = scope.ServiceProvider.GetService<ILogger<App>>();
-                startupLogger?.LogInformation("Startup: Applying EF Core migrations to local SQLite database");
-
-                // Use synchronous migration to ensure DB is ready before app continues
-                db.Database.Migrate();
-
-                startupLogger?.LogInformation("Startup: Local SQLite database migrations applied successfully");
-
-                // Also seed the mobile user
-                var seeder = scope.ServiceProvider.GetService<Services.MobileUserSeeder>();
-                seeder?.EnsureSeeded();
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log but don't crash - app can still function with API fallback
-            var fallbackLogger = app.Services.GetService<ILogger<App>>();
-            fallbackLogger?.LogError(ex, "Startup: Failed to apply database migrations");
-        }
-
-    var logger = app.Services.GetService<ILogger<App>>();
-        return app;
     }
 
     // Partial method implemented in platform-specific files (no-op in shared code)

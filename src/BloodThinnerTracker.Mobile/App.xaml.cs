@@ -22,10 +22,9 @@ namespace BloodThinnerTracker.Mobile
             // capture startup diagnostics and attempt a best-effort registration so we can debug COM activation issues.
             try
             {
-                if (OperatingSystem.IsWindows())
-                {
-                    Platforms.Windows.ToastActivationDiagnostics.RunIfToastActivationPresent(Environment.GetCommandLineArgs());
-                }
+#if WINDOWS
+                Platforms.Windows.ToastActivationDiagnostics.RunIfToastActivationPresent(Environment.GetCommandLineArgs());
+#endif
             }
             catch { }
 
