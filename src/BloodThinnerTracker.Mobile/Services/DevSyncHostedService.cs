@@ -17,23 +17,27 @@ namespace BloodThinnerTracker.Mobile.Services
         private readonly ICacheSyncWorker _syncWorker;
         private Timer? _timer;
         private readonly TimeSpan _interval;
+        
+        /// <summary>
+        /// Delay before first sync to allow UI to become responsive.
+        /// This prevents "not responding" messages during startup.
+        /// </summary>
+        private readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(3);
 
         public DevSyncHostedService(ILogger<DevSyncHostedService> logger, ICacheSyncWorker syncWorker)
         {
             _logger = logger;
             _syncWorker = syncWorker;
-            // Default to 15 minutes (match WinRT periodic task) but allow quick iteration
+            // Default to 3 minutes for dev iteration
             _interval = TimeSpan.FromMinutes(3);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("DevSyncHostedService starting (in-process dev worker)");
+            _logger.LogInformation("DevSyncHostedService starting (in-process dev worker) - first sync deferred by {Delay}s", _initialDelay.TotalSeconds);
 
-            // Run immediately once, then start periodic timer
-            _ = RunOnceSafeAsync(CancellationToken.None);
-
-            _timer = new Timer(async _ => await RunOnceSafeAsync(CancellationToken.None), null, _interval, _interval);
+            // Defer initial sync to allow UI to load first, then start periodic timer
+            _timer = new Timer(async _ => await RunOnceSafeAsync(CancellationToken.None), null, _initialDelay, _interval);
             return Task.CompletedTask;
         }
 
