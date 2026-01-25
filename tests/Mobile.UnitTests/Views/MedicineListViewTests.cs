@@ -11,16 +11,16 @@ namespace BloodThinnerTracker.Mobile.UnitTests.Views
         [Fact]
         public void OnAppearing_TriggersForegroundSync()
         {
-            var fg = new Mock<BloodThinnerTracker.Mobile.Services.IForegroundSyncService>();
+            var fg = new Mock<IForegroundSyncService>();
             fg.Setup(f => f.EnsureForegroundSyncAsync()).Returns(Task.CompletedTask).Verifiable();
 
             // Make App.ServiceProvider available for the view's OnAppearing (set via non-public setter)
             var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-            services.AddSingleton<Services.IForegroundSyncService>(fg.Object);
+            services.AddSingleton<IForegroundSyncService>(fg.Object);
             var sp = services.BuildServiceProvider();
             var prop = typeof(BloodThinnerTracker.Mobile.App).GetProperty("ServiceProvider", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-            var setter = prop.GetSetMethod(true);
-            setter.Invoke(null, new object[] { sp });
+            var setter = prop?.GetSetMethod(true);
+            setter?.Invoke(null, [sp]);
 
             var medSvc = new Mock<BloodThinnerTracker.Mobile.Services.IMedicationService>();
             medSvc.Setup(m => m.GetMedicationsAsync()).ReturnsAsync(new System.Collections.Generic.List<Shared.Models.Medication>());
@@ -43,7 +43,7 @@ namespace BloodThinnerTracker.Mobile.UnitTests.Views
         [Fact]
         public async Task LoadMedicationsAsync_PopulatesList()
         {
-            var fg = new Mock<BloodThinnerTracker.Mobile.Services.IForegroundSyncService>();
+            var fg = new Mock<IForegroundSyncService>();
             fg.Setup(f => f.EnsureForegroundSyncAsync()).Returns(Task.CompletedTask);
 
             var med1 = new Shared.Models.Medication { Id = 1, PublicId = Guid.NewGuid(), Name = "MedA", Dosage = 1m, DosageUnit = "mg" };
