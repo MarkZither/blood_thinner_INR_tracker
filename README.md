@@ -259,18 +259,24 @@ This project uses spec-driven development. All features start with:
 3. **Implementation**: Code in `src/`
 4. **Documentation**: Updated in `docs/`
 
+Contribution and governance documents:
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [NOTICE](NOTICE)
+
 ---
 
 ## License
 
-[License information to be added]
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/blood_thinner_INR_tracker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/blood_thinner_INR_tracker/discussions)
+- **Issues**: [GitHub Issues](https://github.com/MarkZither/blood_thinner_INR_tracker/issues)
+- **Security Reports**: [GitHub Private Security Advisories](https://github.com/MarkZither/blood_thinner_INR_tracker/security/advisories/new)
 - **Documentation**: [docs/](docs/)
 
 ---
