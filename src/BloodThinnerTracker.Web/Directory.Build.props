@@ -1,8 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Disable warnings about redundant package references -->
-    <!-- TEMPORARY: Append CS1591 to reduce XML-doc noise while feature work is in progress.
-         Tracked in specs/009-bug-fix-editing/issue-improve-api-docs.md and must be removed per T009-014. -->
-    <NoWarn>$(NoWarn);NU1510;1591;CS1591</NoWarn>
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>
 </Project>
